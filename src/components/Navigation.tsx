@@ -4,9 +4,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
+import { useAuthStore } from '@/store/auth'
 
 const tabs = [
-  { href: '/', label: 'Write', icon: '✎' },
+  { href: '/write', label: 'Write', icon: '✎' },
   { href: '/timeline', label: 'Timeline', icon: '☰' },
   { href: '/calendar', label: 'Calendar', icon: '▣' },
 ]
@@ -14,11 +15,17 @@ const tabs = [
 export default function Navigation() {
   const pathname = usePathname()
   const { theme } = useThemeStore()
+  const { user, logout } = useAuthStore()
+
+  // Don't show navigation on login page or landing page
+  if (pathname === '/login' || pathname === '/') {
+    return null
+  }
 
   return (
     <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
       <div
-        className="flex gap-1 p-1 rounded-full"
+        className="flex gap-1 p-1 rounded-full items-center"
         style={{
           background: theme.glass.bg,
           backdropFilter: `blur(${theme.glass.blur})`,
@@ -52,6 +59,26 @@ export default function Navigation() {
             </Link>
           )
         })}
+
+        {user && (
+          <>
+            <div
+              className="w-px h-6 mx-1"
+              style={{ background: theme.glass.border }}
+            />
+            <motion.button
+              onClick={logout}
+              className="relative px-3 py-2 rounded-full flex items-center gap-2"
+              style={{ color: theme.text.muted }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              title={`Signed in as ${user.email}`}
+            >
+              <span className="text-sm">Sign Out</span>
+            </motion.button>
+          </>
+        )}
       </div>
     </nav>
   )

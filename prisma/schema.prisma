@@ -7,6 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatar    String?
+  provider  String   @default("dev") // "dev" | "google"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  entries   JournalEntry[]
+
+  @@map("users")
+}
+
 model JournalEntry {
   id          String   @id @default(cuid())
   text        String
@@ -19,6 +32,8 @@ model JournalEntry {
   isSealed    Boolean  @default(false)
   expiresAt   DateTime?
   tags        String[] @default([])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   doodles     Doodle[]
 

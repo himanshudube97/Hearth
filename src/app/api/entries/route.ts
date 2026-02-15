@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getCurrentUser } from '@/lib/auth'
 
-// GET - Fetch all entries
+// GET - Fetch all entries for current user
 export async function GET() {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const entries = await prisma.journalEntry.findMany({
+      where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
       include: {
         doodles: true,
@@ -21,9 +28,14 @@ export async function GET() {
   }
 }
 
-// POST - Create new entry
+// POST - Create new entry for current user
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
     const { text, mood, song, tags, doodles } = body
 
@@ -33,6 +45,7 @@ export async function POST(request: NextRequest) {
         mood: mood ?? 2,
         song,
         tags: tags ?? [],
+        userId: user.id,
         doodles: doodles && doodles.length > 0
           ? {
               create: doodles.map((d: { strokes: unknown; positionInEntry?: number }, index: number) => ({

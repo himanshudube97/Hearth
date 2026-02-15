@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Playfair_Display } from "next/font/google";
 import "./globals.css";
-import Background from "@/components/Background";
-import Navigation from "@/components/Navigation";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
+import LayoutContent from "@/components/LayoutContent";
+import AuthProvider from "@/components/AuthProvider";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -23,12 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${playfair.variable} antialiased`}>
-        <Background />
-        <Navigation />
-        <main className="relative z-10 min-h-screen pt-20 pb-8 px-4">
-          {children}
-        </main>
-        <ThemeSwitcher />
+        <AuthProvider>
+          <LayoutContent>{children}</LayoutContent>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,270 +1,119 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { getGreeting, getRandomWhisper, getRandomPrompt } from '@/lib/themes'
+import { useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
-import { useJournalStore, JournalEntry, StrokeData } from '@/store/journal'
-import Editor from '@/components/Editor'
-import MoodPicker from '@/components/MoodPicker'
-import DoodleCanvas from '@/components/DoodleCanvas'
-import EntryCard from '@/components/EntryCard'
+import HeroSection from '@/components/landing/HeroSection'
+import FeaturesSection from '@/components/landing/FeaturesSection'
+import ThemeShowcase from '@/components/landing/ThemeShowcase'
+import FooterCTA from '@/components/landing/FooterCTA'
+import StickyHeader from '@/components/landing/StickyHeader'
 
-export default function WritePage() {
-  const [whisper, setWhisper] = useState('')
-  const [prompt, setPrompt] = useState('')
-  const [showDoodle, setShowDoodle] = useState(false)
-  const [todayEntries, setTodayEntries] = useState<JournalEntry[]>([])
-  const [saving, setSaving] = useState(false)
-
+export default function LandingPage() {
   const { theme } = useThemeStore()
-  const {
-    currentMood,
-    currentText,
-    currentSong,
-    setCurrentSong,
-    currentDoodleStrokes,
-    addDoodleStroke,
-    clearDoodleStrokes,
-    resetCurrentEntry,
-  } = useJournalStore()
 
   useEffect(() => {
-    setWhisper(getRandomWhisper())
-    setPrompt(getRandomPrompt())
-    fetchTodayEntries()
+    document.documentElement.style.scrollBehavior = 'smooth'
+    return () => {
+      document.documentElement.style.scrollBehavior = ''
+    }
   }, [])
 
-  const fetchTodayEntries = async () => {
-    try {
-      const res = await fetch('/api/entries')
-      const entries = await res.json()
-      const today = new Date().toDateString()
-      const filtered = entries.filter((e: JournalEntry) =>
-        new Date(e.createdAt).toDateString() === today
-      )
-      setTodayEntries(filtered)
-    } catch (error) {
-      console.error('Failed to fetch entries:', error)
-    }
-  }
-
-  const refreshPrompt = () => {
-    setPrompt(getRandomPrompt())
-  }
-
-  const handleSaveEntry = async () => {
-    if (!currentText.trim() || currentText === '<p></p>') return
-
-    setSaving(true)
-    try {
-      const res = await fetch('/api/entries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: currentText,
-          mood: currentMood,
-          song: currentSong || null,
-          doodles: currentDoodleStrokes.length > 0
-            ? [{ strokes: currentDoodleStrokes, positionInEntry: 0 }]
-            : [],
-        }),
-      })
-
-      if (res.ok) {
-        resetCurrentEntry()
-        fetchTodayEntries()
-        setWhisper(getRandomWhisper())
-      }
-    } catch (error) {
-      console.error('Failed to save entry:', error)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleDoodleSave = (strokes: StrokeData[]) => {
-    strokes.forEach(stroke => addDoodleStroke(stroke))
-    setShowDoodle(false)
-  }
-
-  const greeting = getGreeting()
-  const hasContent = currentText.trim() && currentText !== '<p></p>'
-
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Greeting */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-        className="text-center mb-6"
-      >
-        <h1
-          className="text-2xl font-light tracking-wide"
-          style={{ color: theme.text.primary }}
-        >
-          {greeting}
-        </h1>
-      </motion.div>
-
-      {/* Whisper */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1.2, delay: 0.5, ease: 'easeOut' }}
-        className="text-center text-sm italic mb-8"
-        style={{ color: theme.text.muted }}
-      >
-        "{whisper}"
-      </motion.p>
-
-      {/* Mood Picker */}
-      <div className="flex justify-center mb-6">
-        <MoodPicker />
-      </div>
-
-      {/* Prompt */}
-      <div className="flex items-center justify-center gap-2 mb-4">
-        <p className="text-sm italic" style={{ color: theme.text.secondary }}>
-          {prompt}
-        </p>
-        <button
-          onClick={refreshPrompt}
-          className="text-sm opacity-50 hover:opacity-100 transition-opacity"
-          style={{ color: theme.accent.primary }}
-        >
-          ↻
-        </button>
-      </div>
-
-      {/* Editor */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.9, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-      >
-        <Editor prompt={prompt} />
-      </motion.div>
-
-      {/* Action Buttons */}
-      <div className="flex items-center justify-between mt-4">
-        <div className="flex gap-2">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            onClick={() => setShowDoodle(true)}
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{
-              background: theme.glass.bg,
-              border: `1px solid ${theme.glass.border}`,
-              color: currentDoodleStrokes.length > 0 ? theme.accent.warm : theme.text.muted,
-            }}
-            title="Add doodle"
-          >
-            ✎
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{
-              background: theme.glass.bg,
-              border: `1px solid ${theme.glass.border}`,
-              color: currentSong ? theme.accent.warm : theme.text.muted,
-            }}
-            title="Add song"
-          >
-            ♫
-          </motion.button>
-        </div>
-
-        <input
-          type="text"
-          placeholder="what are you listening to?"
-          value={currentSong}
-          onChange={(e) => setCurrentSong(e.target.value)}
-          className="flex-1 mx-4 px-4 py-2 rounded-full text-sm bg-transparent outline-none"
-          style={{
-            border: `1px solid ${theme.glass.border}`,
-            color: theme.text.primary,
+    <main
+      className="relative"
+      style={{
+        background: theme.bg.gradient,
+        color: theme.text.primary,
+      }}
+    >
+      {/* Ambient Background - only shows below the fold */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ top: '100vh' }}>
+        {/* Subtle glow for lower sections */}
+        <motion.div
+          className="absolute top-1/4 -left-40 w-80 h-80 rounded-full blur-3xl"
+          style={{ background: theme.accent.primary }}
+          animate={{
+            opacity: [0.05, 0.1, 0.05],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: 'easeInOut',
           }}
         />
-
-        <AnimatePresence>
-          {hasContent && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-              onClick={handleSaveEntry}
-              disabled={saving}
-              className="px-6 py-2 rounded-full text-sm font-medium"
-              style={{
-                background: theme.accent.primary,
-                color: theme.bg.primary,
-                opacity: saving ? 0.5 : 1,
-              }}
-            >
-              {saving ? 'Saving...' : 'Save Entry'}
-            </motion.button>
-          )}
-        </AnimatePresence>
+        <motion.div
+          className="absolute top-3/4 -right-40 w-80 h-80 rounded-full blur-3xl"
+          style={{ background: theme.accent.secondary }}
+          animate={{
+            opacity: [0.05, 0.08, 0.05],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: 2,
+          }}
+        />
       </div>
 
-      {/* Doodle Preview */}
-      {currentDoodleStrokes.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-          className="mt-4 p-4 rounded-xl"
-          style={{ background: theme.glass.bg }}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm" style={{ color: theme.text.muted }}>
-              Doodle attached
-            </span>
-            <button
-              onClick={clearDoodleStrokes}
-              className="text-sm"
-              style={{ color: theme.accent.primary }}
-            >
-              Remove
-            </button>
-          </div>
-        </motion.div>
-      )}
+      {/* Sticky Header - appears on scroll */}
+      <StickyHeader />
 
-      {/* Today's Entries */}
-      {todayEntries.length > 0 && (
-        <div className="mt-12">
-          <h2 className="text-lg mb-4" style={{ color: theme.text.secondary }}>
-            earlier today
-          </h2>
-          <div className="space-y-4">
-            {todayEntries.map((entry) => (
-              <EntryCard key={entry.id} entry={entry} />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Page Sections */}
+      <HeroSection />
 
-      {/* Doodle Modal */}
-      <AnimatePresence>
-        {showDoodle && (
-          <DoodleCanvas
-            onSave={handleDoodleSave}
-            onClose={() => setShowDoodle(false)}
-          />
-        )}
-      </AnimatePresence>
-    </div>
+      {/* Whisper Gallery - Floating whispers between sections */}
+      <WhisperGallery />
+
+      <FeaturesSection />
+      <ThemeShowcase />
+      <FooterCTA />
+    </main>
+  )
+}
+
+function WhisperGallery() {
+  const { theme } = useThemeStore()
+
+  const floatingWhispers = [
+    "The stars have time. So do you.",
+    "Write freely.",
+    "This moment is yours alone.",
+    "Be gentle with yourself.",
+    "Let your thoughts drift.",
+  ]
+
+  return (
+    <section className="relative py-16 overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        {floatingWhispers.map((whisper, i) => (
+          <motion.p
+            key={i}
+            className="absolute text-sm italic whitespace-nowrap"
+            style={{
+              color: theme.text.muted,
+              left: `${5 + i * 20}%`,
+              top: `${20 + (i % 3) * 30}%`,
+              fontSize: `${0.75 + (i % 3) * 0.15}rem`,
+            }}
+            animate={{
+              x: [0, 30, 0],
+              opacity: [0.2, 0.5, 0.2],
+            }}
+            transition={{
+              duration: 8 + i * 2,
+              repeat: Infinity,
+              delay: i * 1.5,
+              ease: 'easeInOut',
+            }}
+          >
+            "{whisper}"
+          </motion.p>
+        ))}
+      </div>
+    </section>
   )
 }
