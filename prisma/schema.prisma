@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model JournalEntry {
+  id          String   @id @default(cuid())
+  text        String
+  mood        Int      @default(2) // 0-4: Heavy, Low, Okay, Good, Radiant
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  song        String?
+  entryType   String   @default("normal") // normal, letter, unsent_letter, ephemeral
+  unlockDate  DateTime?
+  isSealed    Boolean  @default(false)
+  expiresAt   DateTime?
+  tags        String[] @default([])
+
+  doodles     Doodle[]
+
+  @@map("journal_entries")
+}
+
+model Doodle {
+  id              String       @id @default(cuid())
+  journalEntryId  String
+  journalEntry    JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  strokes         Json         // Array of stroke data
+  positionInEntry Int          @default(0)
+  createdAt       DateTime     @default(now())
+
+  @@map("doodles")
+}
+
+model BookQuote {
+  id          String   @id @default(cuid())
+  quoteText   String
+  bookTitle   String
+  author      String?
+  mood        Int?
+  createdAt   DateTime @default(now())
+
+  @@map("book_quotes")
+}
+
+model Whisper {
+  id       String @id @default(cuid())
+  text     String
+  category String @default("generic") // generic, mood-specific, pattern-based
+
+  @@map("whispers")
+}

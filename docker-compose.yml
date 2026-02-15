@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: hearth-db
+    environment:
+      POSTGRES_USER: hearth
+      POSTGRES_PASSWORD: hearth_secret
+      POSTGRES_DB: hearth
+    ports:
+      - "5432:5432"
+    volumes:
+      - hearth_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hearth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hearth-app
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://hearth:hearth_secret@db:5432/hearth?schema=public
+      WATCHPACK_POLLING: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    stdin_open: true
+    tty: true
+
+volumes:
+  hearth_postgres_data:

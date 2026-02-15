@@ -1,26 +1,63 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #081408;
+  --foreground: #C8D2BE;
+  --accent-forest: #5E8B5A;
+  --accent-gold: #D4A84B;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Georgia, Palatino, serif;
+  overflow-x: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(94, 139, 90, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(94, 139, 90, 0.5);
+}
+
+/* Selection */
+::selection {
+  background: rgba(212, 168, 75, 0.3);
+  color: #C8D2BE;
+}
+
+/* Calm scrollbar appearance */
+.overflow-y-auto {
+  scroll-behavior: smooth;
+}
+
+/* Smooth transitions only for interactive elements */
+button,
+a,
+input,
+textarea,
+[role="button"] {
+  transition-property: transform, opacity, background-color, border-color, color;
+  transition-duration: 0.3s;
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
