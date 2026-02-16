@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format, addWeeks, addMonths, addYears, isBefore, addDays, startOfDay } from 'date-fns'
+import html2canvas from 'html2canvas-pro'
 import { useThemeStore } from '@/store/theme'
 import { useProfileStore } from '@/store/profile'
 import Editor from '@/components/Editor'
@@ -596,6 +597,58 @@ export default function LettersPage() {
   }[]>([])
   const [selectedLetter, setSelectedLetter] = useState<typeof myLetters[0] | null>(null)
   const [showLetterModal, setShowLetterModal] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const letterCaptureRef = useRef<HTMLDivElement>(null)
+
+  // Download letter as image
+  const handleDownloadLetter = useCallback(async () => {
+    if (!letterCaptureRef.current || !selectedLetter) return
+
+    setIsDownloading(true)
+    try {
+      const element = letterCaptureRef.current
+
+      // Keep off-screen but make visible for html2canvas
+      element.style.position = 'fixed'
+      element.style.left = '-9999px'
+      element.style.top = '0'
+      element.style.visibility = 'visible'
+      element.style.opacity = '1'
+
+      // Wait for fonts to be ready
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready
+      }
+
+      // Wait for content to render
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: '#faf8f5',
+        useCORS: true,
+        logging: false,
+        width: element.offsetWidth,
+        height: element.scrollHeight,
+        windowWidth: element.offsetWidth,
+        windowHeight: element.scrollHeight,
+      })
+
+      // Hide again
+      element.style.visibility = 'hidden'
+
+      // Convert to PNG and download
+      const dataUrl = canvas.toDataURL('image/png', 1.0)
+      const link = document.createElement('a')
+      link.download = `letter-${format(new Date(selectedLetter.createdAt), 'yyyy-MM-dd')}.png`
+      link.href = dataUrl
+      link.click()
+    } catch (error) {
+      console.error('Failed to download letter:', error)
+    } finally {
+      setIsDownloading(false)
+    }
+  }, [selectedLetter])
 
   // Fetch user's letters
   useEffect(() => {
@@ -1195,8 +1248,8 @@ export default function LettersPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-            style={{ background: 'rgba(5,5,15,0.95)' }}
+            className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
+            style={{ background: 'rgba(5,5,15,0.95)', paddingTop: '80px', paddingBottom: '24px', paddingLeft: '16px', paddingRight: '16px' }}
             onClick={() => setShowLetterModal(false)}
           >
             <motion.div
@@ -1207,14 +1260,13 @@ export default function LettersPage() {
               style={{
                 width: '90vw',
                 maxWidth: '650px',
-                height: '85vh',
-                maxHeight: '900px',
+                maxHeight: 'calc(100vh - 104px)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Paper letter design */}
               <div
-                className="relative rounded-lg flex-1 flex flex-col"
+                className="relative rounded-lg flex-1 flex flex-col overflow-hidden min-h-0"
                 style={{
                   background: 'linear-gradient(165deg, #faf8f5 0%, #f5f0e8 50%, #efe8dc 100%)',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
@@ -1300,10 +1352,41 @@ export default function LettersPage() {
                 </div>
               </div>
 
-              {/* Close button */}
-              <div className="text-center mt-4 flex-shrink-0">
+              {/* Action buttons */}
+              <div className="flex justify-center gap-3 mt-4 flex-shrink-0">
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleDownloadLetter}
+                  disabled={isDownloading}
+                  className="px-6 py-3 rounded-full text-sm font-medium flex items-center gap-2 relative overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(135deg, #f5f0e8 0%, #efe8dc 100%)',
+                    border: '1px solid rgba(196,154,108,0.4)',
+                    color: '#5a4a3e',
+                    boxShadow: '0 4px 15px rgba(139,115,85,0.2), inset 0 1px 0 rgba(255,255,255,0.5)',
+                    opacity: isDownloading ? 0.7 : 1,
+                  }}
+                >
+                  {isDownloading ? (
+                    <>
+                      <motion.span
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      >
+                        ✦
+                      </motion.span>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '14px' }}>✦</span>
+                      <span>Save as Image</span>
+                    </>
+                  )}
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowLetterModal(false)}
                   className="px-8 py-3 rounded-full text-sm font-medium"
@@ -1315,6 +1398,162 @@ export default function LettersPage() {
                 >
                   Close
                 </motion.button>
+              </div>
+
+              {/* Hidden capture element - renders full letter without scroll for image export */}
+              <div
+                ref={letterCaptureRef}
+                style={{
+                  position: 'absolute',
+                  left: '-9999px',
+                  top: 0,
+                  width: '600px',
+                  background: '#faf8f5',
+                  borderRadius: '8px',
+                  padding: '0',
+                  visibility: 'hidden',
+                  fontFamily: 'Georgia, Times, "Times New Roman", serif',
+                }}
+              >
+                {/* Paper texture overlay */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
+                    opacity: 0.03,
+                    pointerEvents: 'none',
+                    borderRadius: '8px',
+                  }}
+                />
+
+                {/* Decorative corner */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    fontSize: '24px',
+                    opacity: 0.2,
+                    color: '#8B7355',
+                  }}
+                >
+                  ❧
+                </div>
+
+                {/* Header */}
+                <div
+                  style={{
+                    padding: '24px 32px 12px',
+                    textAlign: 'center',
+                    borderBottom: '1px solid rgba(217, 180, 140, 0.5)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 12px',
+                      background: 'linear-gradient(135deg, #d4a574 0%, #c49a6c 100%)',
+                      boxShadow: '0 4px 12px rgba(196,154,108,0.4)',
+                    }}
+                  >
+                    <span style={{ fontSize: '20px' }}>✉</span>
+                  </div>
+                  <h2
+                    style={{
+                      fontSize: '20px',
+                      fontFamily: 'Georgia, Times, "Times New Roman", serif',
+                      letterSpacing: '0.05em',
+                      marginBottom: '8px',
+                      color: '#4a3f35',
+                      fontWeight: 'normal',
+                    }}
+                  >
+                    A Letter From The Past
+                  </h2>
+                  <p style={{ fontSize: '14px', color: '#8B7355' }}>
+                    Written on {format(new Date(selectedLetter.createdAt), 'MMMM d, yyyy')}
+                  </p>
+                  {selectedLetter.letterLocation && (
+                    <p style={{ fontSize: '12px', color: '#8B7355', marginTop: '4px', fontStyle: 'italic' }}>
+                      from {selectedLetter.letterLocation}
+                    </p>
+                  )}
+                </div>
+
+                {/* Content - no scroll, full height */}
+                <div style={{ padding: '24px 40px' }}>
+                  {/* Salutation */}
+                  <p
+                    style={{
+                      fontSize: '18px',
+                      fontStyle: 'italic',
+                      fontFamily: 'Georgia, Times, "Times New Roman", serif',
+                      color: '#6b5b4f',
+                      marginBottom: '24px',
+                      fontWeight: 'normal',
+                    }}
+                  >
+                    Dear future {profile.nickname || 'me'},
+                  </p>
+
+                  {/* Letter content */}
+                  <div
+                    style={{
+                      fontFamily: 'Georgia, Times, "Times New Roman", serif',
+                      fontSize: '18px',
+                      lineHeight: '2',
+                      color: '#3d352e',
+                      fontWeight: 'normal',
+                    }}
+                    dangerouslySetInnerHTML={{ __html: selectedLetter.text }}
+                  />
+
+                  {/* Signature */}
+                  <div style={{ marginTop: '40px', textAlign: 'right' }}>
+                    <p
+                      style={{
+                        fontSize: '18px',
+                        fontStyle: 'italic',
+                        fontFamily: 'Georgia, Times, "Times New Roman", serif',
+                        color: '#6b5b4f',
+                        fontWeight: 'normal',
+                      }}
+                    >
+                      With love,
+                    </p>
+                    <p
+                      style={{
+                        fontSize: '20px',
+                        fontFamily: 'Georgia, Times, "Times New Roman", serif',
+                        fontStyle: 'italic',
+                        marginTop: '8px',
+                        color: '#4a3f35',
+                        fontWeight: 'normal',
+                      }}
+                    >
+                      Past {profile.nickname || 'me'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Flourish */}
+                <div
+                  style={{
+                    padding: '16px 32px',
+                    textAlign: 'center',
+                    borderTop: '1px solid rgba(217, 180, 140, 0.3)',
+                  }}
+                >
+                  <span style={{ fontSize: '24px', opacity: 0.3, color: '#8B7355' }}>
+                    ~ ✧ ~
+                  </span>
+                </div>
               </div>
             </motion.div>
           </motion.div>

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
+import { toPng } from 'html-to-image'
 import { useThemeStore } from '@/store/theme'
 
 interface ArrivedLetter {
@@ -118,6 +119,8 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
   const [envelopePhase, setEnvelopePhase] = useState<'closed' | 'opening' | 'open' | 'reading'>('closed')
   const [particles, setParticles] = useState<{ id: number; x: number; delay: number }[]>([])
   const [hasChecked, setHasChecked] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const letterCaptureRef = useRef<HTMLDivElement>(null)
 
   // Check for arrived letters
   const checkForLetters = useCallback(async () => {
@@ -145,6 +148,54 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
       checkForLetters()
     }
   }, [checkForLetters, hasChecked])
+
+  const currentLetter = arrivedLetters[currentLetterIndex]
+  const displayName = nickname || 'me'
+
+  // Download letter as image
+  const handleDownloadLetter = useCallback(async () => {
+    if (!letterCaptureRef.current || !currentLetter) return
+
+    setIsDownloading(true)
+    try {
+      const element = letterCaptureRef.current
+
+      // Make visible for capture - position behind the modal backdrop
+      element.style.position = 'fixed'
+      element.style.left = '50%'
+      element.style.top = '50%'
+      element.style.transform = 'translate(-50%, -50%)'
+      element.style.zIndex = '50'  // Behind the modal (z-100)
+      element.style.opacity = '1'
+      element.style.pointerEvents = 'none'
+
+      // Wait for content to render
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: '#faf8f5',
+      })
+
+      // Hide again
+      element.style.position = 'absolute'
+      element.style.left = '-9999px'
+      element.style.top = '0'
+      element.style.transform = 'none'
+      element.style.zIndex = 'auto'
+      element.style.opacity = '1'
+
+      const link = document.createElement('a')
+      link.download = `letter-${format(new Date(currentLetter.createdAt), 'yyyy-MM-dd')}.png`
+      link.href = dataUrl
+      link.click()
+    } catch (error) {
+      console.error('Failed to download letter:', error)
+    } finally {
+      setIsDownloading(false)
+    }
+  }, [currentLetter])
 
   const handleOpenLetter = () => {
     setShowModal(true)
@@ -187,12 +238,8 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
     }
   }
 
-  const currentLetter = arrivedLetters[currentLetterIndex]
-
   // Don't render if no letters
   if (arrivedLetters.length === 0) return null
-
-  const displayName = nickname || 'me'
 
   return (
     <>
@@ -259,7 +306,7 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
-            style={{ background: 'rgba(5,5,15,0.98)' }}
+            style={{ background: 'rgba(5,5,15,0.98)', paddingTop: '80px' }}
           >
             {/* Magic particles */}
             {particles.map((p) => (
@@ -276,7 +323,7 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
             )}
 
             {/* Envelope animation container */}
-            <div className="relative flex items-center justify-center w-full h-full p-4 overflow-hidden">
+            <div className="relative flex items-center justify-center w-full h-full p-4 pb-6 overflow-hidden">
 
               {/* Closed/Opening Envelope */}
               <AnimatePresence>
@@ -379,12 +426,11 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
                     transition={{ type: 'spring', duration: 0.6 }}
-                    className="relative mx-4 flex flex-col items-center overflow-hidden"
+                    className="relative mx-4 flex flex-col items-center"
                     style={{
                       width: '90vw',
                       maxWidth: '650px',
-                      height: '85vh',
-                      maxHeight: '850px',
+                      maxHeight: 'calc(100vh - 120px)',
                     }}
                   >
                     {/* Floating sparkles */}
@@ -576,18 +622,49 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                       </div>
                     </motion.div>
 
-                    {/* Close button */}
+                    {/* Action buttons */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.9 }}
-                      className="text-center mt-4 flex-shrink-0"
+                      className="flex justify-center gap-3 mt-4 flex-shrink-0"
                     >
                       <motion.button
                         whileHover={{ scale: 1.05, y: -2 }}
                         whileTap={{ scale: 0.98 }}
+                        onClick={handleDownloadLetter}
+                        disabled={isDownloading}
+                        className="px-6 py-3 rounded-full text-sm font-medium flex items-center gap-2 relative overflow-hidden"
+                        style={{
+                          background: 'linear-gradient(135deg, #f5f0e8 0%, #efe8dc 100%)',
+                          border: '1px solid rgba(196,154,108,0.4)',
+                          color: '#5a4a3e',
+                          boxShadow: '0 4px 15px rgba(139,115,85,0.2), inset 0 1px 0 rgba(255,255,255,0.5)',
+                          opacity: isDownloading ? 0.7 : 1,
+                        }}
+                      >
+                        {isDownloading ? (
+                          <>
+                            <motion.span
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            >
+                              ✦
+                            </motion.span>
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ fontSize: '14px' }}>✦</span>
+                            <span>Save as Image</span>
+                          </>
+                        )}
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.05, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={handleCloseLetter}
-                        className="px-10 py-3.5 rounded-full text-sm font-medium relative overflow-hidden"
+                        className="px-8 py-3 rounded-full text-sm font-medium relative overflow-hidden"
                         style={{
                           background: 'linear-gradient(135deg, #c49a6c 0%, #a67c52 100%)',
                           color: '#fff',
@@ -596,12 +673,145 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                       >
                         <span className="relative z-10">
                           {currentLetterIndex < arrivedLetters.length - 1
-                            ? 'Read Next Letter →'
+                            ? 'Next Letter →'
                             : 'Close & Cherish'
                           }
                         </span>
                       </motion.button>
                     </motion.div>
+
+                    {/* Hidden capture element for download */}
+                    <div
+                      ref={letterCaptureRef}
+                      style={{
+                        position: 'absolute',
+                        left: '-9999px',
+                        top: 0,
+                        width: '600px',
+                        background: 'linear-gradient(165deg, #faf8f5 0%, #f5f0e8 50%, #efe8dc 100%)',
+                        borderRadius: '8px',
+                      }}
+                    >
+                      {/* Decorative corner */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '16px',
+                          right: '16px',
+                          fontSize: '24px',
+                          opacity: 0.2,
+                          color: '#8B7355',
+                        }}
+                      >
+                        ❧
+                      </div>
+
+                      {/* Header */}
+                      <div
+                        style={{
+                          padding: '24px 32px 12px',
+                          textAlign: 'center',
+                          borderBottom: '1px solid rgba(217, 180, 140, 0.5)',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 12px',
+                            background: 'linear-gradient(135deg, #d4a574 0%, #c49a6c 100%)',
+                            boxShadow: '0 4px 12px rgba(196,154,108,0.4)',
+                          }}
+                        >
+                          <span style={{ fontSize: '20px' }}>✉</span>
+                        </div>
+                        <h2
+                          style={{
+                            fontSize: '20px',
+                            fontFamily: 'serif',
+                            letterSpacing: '0.05em',
+                            marginBottom: '8px',
+                            color: '#4a3f35',
+                          }}
+                        >
+                          A Letter From The Past
+                        </h2>
+                        <p style={{ fontSize: '14px', color: '#8B7355' }}>
+                          Written on {currentLetter && format(new Date(currentLetter.createdAt), 'MMMM d, yyyy')}
+                        </p>
+                        {currentLetter?.letterLocation && (
+                          <p style={{ fontSize: '12px', color: '#8B7355', marginTop: '4px', fontStyle: 'italic' }}>
+                            from {currentLetter.letterLocation}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div style={{ padding: '24px 40px' }}>
+                        <p
+                          style={{
+                            fontSize: '18px',
+                            fontStyle: 'italic',
+                            fontFamily: 'serif',
+                            color: '#6b5b4f',
+                            marginBottom: '24px',
+                          }}
+                        >
+                          Dear future {displayName},
+                        </p>
+
+                        <div
+                          style={{
+                            fontFamily: 'Georgia, "Times New Roman", serif',
+                            fontSize: '18px',
+                            lineHeight: 2,
+                            color: '#3d352e',
+                          }}
+                          dangerouslySetInnerHTML={{ __html: currentLetter?.text || '' }}
+                        />
+
+                        <div style={{ marginTop: '40px', textAlign: 'right' }}>
+                          <p
+                            style={{
+                              fontSize: '18px',
+                              fontStyle: 'italic',
+                              fontFamily: 'serif',
+                              color: '#6b5b4f',
+                            }}
+                          >
+                            With love,
+                          </p>
+                          <p
+                            style={{
+                              fontSize: '20px',
+                              fontFamily: 'serif',
+                              fontStyle: 'italic',
+                              marginTop: '8px',
+                              color: '#4a3f35',
+                            }}
+                          >
+                            Past {displayName}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Flourish */}
+                      <div
+                        style={{
+                          padding: '16px 32px',
+                          textAlign: 'center',
+                          borderTop: '1px solid rgba(217, 180, 140, 0.3)',
+                        }}
+                      >
+                        <span style={{ fontSize: '24px', opacity: 0.3, color: '#8B7355' }}>
+                          ~ ✧ ~
+                        </span>
+                      </div>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
