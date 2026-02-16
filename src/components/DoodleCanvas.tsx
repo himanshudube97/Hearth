@@ -28,6 +28,29 @@ function getSvgPathFromStroke(stroke: number[][]): string {
   return d.join(' ')
 }
 
+// Check if a point is near a stroke
+function isPointNearStroke(point: Point, strokePoints: number[][], threshold: number): boolean {
+  for (const [sx, sy] of strokePoints) {
+    const distance = Math.sqrt((point.x - sx) ** 2 + (point.y - sy) ** 2)
+    if (distance < threshold) return true
+  }
+  return false
+}
+
+// Color palette options
+const COLOR_PALETTE = [
+  '#1a1a1a', // Black
+  '#ffffff', // White
+  '#ef4444', // Red
+  '#f97316', // Orange
+  '#eab308', // Yellow
+  '#22c55e', // Green
+  '#3b82f6', // Blue
+  '#8b5cf6', // Purple
+  '#ec4899', // Pink
+  '#14b8a6', // Teal
+]
+
 interface DoodleCanvasProps {
   onSave: (strokes: StrokeData[]) => void
   onClose: () => void
@@ -41,12 +64,20 @@ export default function DoodleCanvas({ onSave, onClose }: DoodleCanvasProps) {
   const [strokes, setStrokes] = useState<StrokeData[]>([])
   const [activeBrush, setActiveBrush] = useState(1)
   const [isErasing, setIsErasing] = useState(false)
+  const [selectedColor, setSelectedColor] = useState<string | null>(null)
 
   const brushes = [
-    { name: 'Pencil', color: theme.text.secondary, size: 3 },
-    { name: 'Pen', color: theme.accent.warm, size: 5 },
-    { name: 'Marker', color: theme.accent.primary, size: 12 },
+    { name: 'Pencil', size: 3 },
+    { name: 'Pen', size: 5 },
+    { name: 'Marker', size: 12 },
   ]
+
+  // Get current brush color (custom color or theme default)
+  const getCurrentColor = () => {
+    if (selectedColor) return selectedColor
+    const defaultColors = [theme.text.secondary, theme.accent.warm, theme.accent.primary]
+    return defaultColors[activeBrush]
+  }
 
   const getPointFromEvent = useCallback((e: React.PointerEvent): Point => {
     const rect = canvasRef.current?.getBoundingClientRect()
@@ -62,32 +93,46 @@ export default function DoodleCanvas({ onSave, onClose }: DoodleCanvasProps) {
     e.preventDefault()
     setIsDrawing(true)
     const point = getPointFromEvent(e)
-    setCurrentPoints([point])
-  }, [getPointFromEvent])
+
+    if (isErasing) {
+      // Erase on initial click too
+      const eraserRadius = 20
+      setStrokes(prev => prev.filter(stroke => !isPointNearStroke(point, stroke.points, eraserRadius)))
+    } else {
+      setCurrentPoints([point])
+    }
+  }, [getPointFromEvent, isErasing])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDrawing) return
     e.preventDefault()
     const point = getPointFromEvent(e)
-    setCurrentPoints(prev => [...prev, point])
-  }, [isDrawing, getPointFromEvent])
+
+    if (isErasing) {
+      // Erase strokes that the eraser touches
+      const eraserRadius = 20
+      setStrokes(prev => prev.filter(stroke => !isPointNearStroke(point, stroke.points, eraserRadius)))
+    } else {
+      setCurrentPoints(prev => [...prev, point])
+    }
+  }, [isDrawing, getPointFromEvent, isErasing])
 
   const handlePointerUp = useCallback(() => {
-    if (!isDrawing || currentPoints.length === 0) return
+    if (!isDrawing) return
     setIsDrawing(false)
 
-    if (!isErasing) {
+    if (!isErasing && currentPoints.length > 0) {
       const brush = brushes[activeBrush]
       const newStroke: StrokeData = {
         points: currentPoints.map(p => [p.x, p.y, p.pressure || 0.5]),
-        color: brush.color,
+        color: getCurrentColor(),
         size: brush.size,
       }
       setStrokes(prev => [...prev, newStroke])
     }
 
     setCurrentPoints([])
-  }, [isDrawing, currentPoints, activeBrush, isErasing, brushes])
+  }, [isDrawing, currentPoints, activeBrush, isErasing, getCurrentColor])
 
   const clearCanvas = () => {
     setStrokes([])
@@ -132,7 +177,7 @@ export default function DoodleCanvas({ onSave, onClose }: DoodleCanvasProps) {
     )
     const pathData = getSvgPathFromStroke(outlinePoints)
 
-    return <path d={pathData} fill={brush.color} opacity={0.9} />
+    return <path d={pathData} fill={getCurrentColor()} opacity={0.9} />
   }
 
   return (
@@ -153,48 +198,96 @@ export default function DoodleCanvas({ onSave, onClose }: DoodleCanvasProps) {
         }}
       >
         {/* Toolbar */}
-        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.glass.border }}>
-          <div className="flex gap-2">
-            {brushes.map((brush, index) => (
+        <div className="flex flex-col gap-3 p-4 border-b" style={{ borderColor: theme.glass.border }}>
+          {/* Brushes and Eraser */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
+              {brushes.map((brush, index) => (
+                <button
+                  key={brush.name}
+                  onClick={() => { setActiveBrush(index); setIsErasing(false); }}
+                  className="px-3 py-2 rounded-lg text-sm transition-all"
+                  style={{
+                    background: activeBrush === index && !isErasing ? getCurrentColor() + '30' : 'transparent',
+                    border: `2px solid ${activeBrush === index && !isErasing ? getCurrentColor() : 'transparent'}`,
+                    color: theme.text.primary,
+                  }}
+                >
+                  {brush.name}
+                </button>
+              ))}
               <button
-                key={brush.name}
-                onClick={() => { setActiveBrush(index); setIsErasing(false); }}
-                className="px-3 py-2 rounded-lg text-sm transition-all"
+                onClick={() => setIsErasing(!isErasing)}
+                className="px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-1"
                 style={{
-                  background: activeBrush === index && !isErasing ? brush.color + '30' : 'transparent',
-                  border: `2px solid ${activeBrush === index && !isErasing ? brush.color : 'transparent'}`,
+                  background: isErasing ? theme.accent.primary + '30' : 'transparent',
+                  border: `2px solid ${isErasing ? theme.accent.primary : 'transparent'}`,
                   color: theme.text.primary,
                 }}
               >
-                {brush.name}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 20H7L3 16c-.5-.5-.5-1.5 0-2l10-10c.5-.5 1.5-.5 2 0l7 7c.5.5.5 1.5 0 2l-8 8" />
+                  <path d="M18 13.5l-6.5-6.5" />
+                </svg>
+                Eraser
               </button>
-            ))}
+            </div>
             <button
-              onClick={() => setIsErasing(!isErasing)}
-              className="px-3 py-2 rounded-lg text-sm transition-all"
-              style={{
-                background: isErasing ? theme.accent.primary + '30' : 'transparent',
-                border: `2px solid ${isErasing ? theme.accent.primary : 'transparent'}`,
-                color: theme.text.primary,
-              }}
+              onClick={clearCanvas}
+              className="px-3 py-2 rounded-lg text-sm"
+              style={{ color: theme.text.muted }}
             >
-              Eraser
+              Clear
             </button>
           </div>
-          <button
-            onClick={clearCanvas}
-            className="px-3 py-2 rounded-lg text-sm"
-            style={{ color: theme.text.muted }}
-          >
-            Clear
-          </button>
+
+          {/* Color Palette */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs" style={{ color: theme.text.muted }}>Colors:</span>
+            <div className="flex gap-1.5 flex-wrap">
+              {COLOR_PALETTE.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => { setSelectedColor(color); setIsErasing(false); }}
+                  className="w-6 h-6 rounded-full transition-all hover:scale-110"
+                  style={{
+                    background: color,
+                    border: selectedColor === color
+                      ? `3px solid ${theme.accent.primary}`
+                      : `2px solid ${theme.glass.border}`,
+                    boxShadow: selectedColor === color ? `0 0 0 2px ${theme.bg.primary}` : 'none',
+                  }}
+                  title={color}
+                />
+              ))}
+              {/* Reset to theme default */}
+              <button
+                onClick={() => { setSelectedColor(null); setIsErasing(false); }}
+                className="w-6 h-6 rounded-full transition-all hover:scale-110 flex items-center justify-center text-xs"
+                style={{
+                  background: selectedColor === null ? getCurrentColor() : 'transparent',
+                  border: selectedColor === null
+                    ? `3px solid ${theme.accent.primary}`
+                    : `2px dashed ${theme.glass.border}`,
+                  color: theme.text.muted,
+                }}
+                title="Theme default"
+              >
+                {selectedColor === null ? '' : 'T'}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Canvas */}
         <div
           ref={canvasRef}
-          className="relative cursor-crosshair touch-none"
-          style={{ height: '400px', background: 'rgba(0, 0, 0, 0.2)' }}
+          className="relative touch-none"
+          style={{
+            height: '400px',
+            background: 'rgba(0, 0, 0, 0.2)',
+            cursor: isErasing ? 'cell' : 'crosshair',
+          }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
