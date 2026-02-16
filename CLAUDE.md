@@ -1,4 +1,6 @@
-# Hearth - Project Instructions
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Development Environment
 
@@ -24,42 +26,133 @@ docker compose logs -f app
 docker compose down
 ```
 
-### Database
-- PostgreSQL runs in Docker container `hearth-db`
-- App connects via `DATABASE_URL` in docker-compose.yml
-- Run Prisma commands inside the container:
-  ```bash
-  docker compose exec app npx prisma migrate dev
-  docker compose exec app npx prisma db seed
-  ```
-
-## App Info
-- **URL**: http://localhost:3000
-- **Stack**: Next.js 16, React 19, Prisma, PostgreSQL, TipTap, Framer Motion
-- **Features**: Journal entries, mood tracking, doodles, song embeds, letters (self & friends), themes
-
-## Letters Feature
-The letters feature allows users to write time-delayed letters:
-
-### Self Letters
-- User writes a letter to their future self
-- Letter "disappears into the universe" with a beautiful animation
-- Minimum 1 week delay required
-- When unlock date arrives, user sees a magical reveal modal on app open
-
-### Friend Letters
-- User writes a letter to a friend via email
-- Minimum 1 week delay required
-- When unlock date arrives, friend receives a beautiful HTML email
-- Email includes CTA to write a letter back
-
-### Required Environment Variables
+### Database Commands
 ```bash
-RESEND_API_KEY=re_xxxxx          # For sending friend letters via email
-CRON_SECRET=your-secret-here     # To protect the delivery cron endpoint
+docker compose exec app npx prisma migrate dev    # Create migration
+docker compose exec app npx prisma db push        # Sync schema without migration
+docker compose exec app npx prisma studio         # Browse data (opens at :5555)
+docker compose exec app npx tsx prisma/seed.ts    # Seed data
 ```
 
-### Letter Delivery Cron
-Letters are delivered via `/api/cron/deliver-letters`. Call this endpoint daily:
-- Vercel Cron: Add to vercel.json
-- External service: POST or GET with `Authorization: Bearer {CRON_SECRET}`
+**Important:** Never create migrations that delete data. When modifying schema, use additive changes (new columns with defaults, new optional fields). If Prisma warns about data loss, find an alternative approach.
+
+### Installing Packages
+The container has its own `node_modules` volume (separate from host). To install packages:
+```bash
+docker compose exec app npm install <package-name>
+```
+Or rebuild after adding to package.json:
+```bash
+docker compose up -d --build
+```
+
+### Build & Lint
+```bash
+npm run dev      # Turbopack dev server (use Docker instead for full stack)
+npm run build    # Production build
+npm run lint     # ESLint check
+```
+
+## Architecture Overview
+
+### Tech Stack
+- **Framework**: Next.js 16 (App Router) with React 19
+- **Database**: PostgreSQL with Prisma ORM
+- **Editor**: TipTap rich text editor
+- **Animations**: Framer Motion v12
+- **State**: Zustand stores
+- **Payments**: Lemon Squeezy
+- **Email**: Resend
+- **Auth**: Dev JWT (local) / Supabase OAuth (production)
+
+### Path Alias
+`@/*` → `./src/*` (configured in tsconfig.json)
+
+### Key Directories
+```
+src/
+├── app/api/          # API routes (entries, auth, letters, billing, cron)
+├── components/       # React components
+├── hooks/            # useEntries (cursor pagination), useSubscription
+├── lib/              # Core utilities
+│   ├── auth/         # getCurrentUser(), dev-auth, supabase clients
+│   ├── db.ts         # Prisma singleton
+│   ├── encryption.ts # AES-256-GCM encrypt/decrypt
+│   ├── themes.ts     # 10 themes with colors, particles, whispers
+│   ├── lemonsqueezy.ts
+│   └── email.ts      # HTML email templates
+└── store/            # Zustand: theme, auth, cursor, journal, profile
+```
+
+### Database Models (Prisma)
+- **User**: Auth, profile JSON, Lemon Squeezy subscription fields
+- **JournalEntry**: Core model with mood (0-4), entryType (normal/letter/unsent_letter/ephemeral), encryption fields, letter-specific fields (recipientEmail, unlockDate, isSealed, isDelivered)
+- **Doodle**: Strokes as JSON, linked to entries
+
+### Authentication Flow
+- `middleware.ts` protects routes, redirects unauthenticated users
+- Public paths: `/`, `/login`, `/pricing`, `/api/auth/*`, `/api/webhooks/*`
+- Dev mode (`USE_DEV_AUTH=true`): JWT in `hearth-auth-token` cookie
+- Production: Supabase OAuth with auto user creation
+
+### Encryption Pattern
+Entry text and letter metadata are encrypted with AES-256-GCM:
+- Format: `iv:authTag:encryptedData` (hex)
+- Encrypt on save, decrypt on retrieve (see `lib/encryption.ts`)
+- Fields: `text`, `textPreview`, letter recipient info
+
+### Letters Feature
+Time-delayed letters to self or friends:
+- Minimum 1 week delay, stored with `unlockDate` and `isSealed=true`
+- Daily cron (`/api/cron/deliver-letters`) processes due letters
+- Self letters: notification email + reveal modal on app open
+- Friend letters: beautiful HTML email via Resend
+
+### API Patterns
+- Entries use cursor-based pagination for scalability
+- Stats endpoint provides aggregated year/month data
+- Letter delivery processes 50 at a time to avoid timeouts
+- All API routes use `getCurrentUser()` from `@/lib/auth` for authentication
+
+### Themes System
+10 themes in `lib/themes.ts`, each with:
+- Color palette (background, text, accent)
+- Particle effects (snow, fireflies, sakura, rain, stars, etc.)
+- Theme-specific "whispers" (writing prompts)
+
+### Component Patterns
+- `Background.tsx`: Renders theme-specific particles/effects
+- `Editor.tsx`: TipTap editor with song embed and doodle support
+- `MoodPicker.tsx`: 5-level mood selector (0=Heavy → 4=Radiant)
+- Zustand stores persist to localStorage for theme/cursor preferences
+
+## Environment Variables
+
+```bash
+# Database
+DATABASE_URL=postgresql://...
+
+# Auth (pick one)
+USE_DEV_AUTH=true
+DEV_JWT_SECRET=<min-32-chars>
+# OR
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+
+# Encryption
+ENCRYPTION_KEY=<64 hex chars: openssl rand -hex 32>
+
+# Payments
+LEMONSQUEEZY_API_KEY=...
+LEMONSQUEEZY_STORE_ID=...
+LEMONSQUEEZY_VARIANT_MONTHLY=...
+LEMONSQUEEZY_VARIANT_YEARLY=...
+LEMONSQUEEZY_WEBHOOK_SECRET=...
+
+# Email & Cron
+RESEND_API_KEY=...
+CRON_SECRET=...
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
