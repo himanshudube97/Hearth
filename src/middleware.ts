@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import * as jose from 'jose'
 
-const PUBLIC_PATHS = ['/login', '/api/auth']
+const PUBLIC_PATHS = ['/login', '/api/auth', '/api/webhooks', '/api/webhooks/lemonsqueezy']
 const PUBLIC_EXACT_PATHS = ['/', '/pricing']
-const STATIC_PATHS = ['/_next', '/favicon.ico', '/images']
+const STATIC_PATHS = ['/_next', '/favicon.ico', '/images', '/icons', '/manifest.json', '/sw.js', '/workbox']
 
 const isDevAuth = process.env.USE_DEV_AUTH === 'true'
 const DEV_JWT_SECRET = process.env.DEV_JWT_SECRET || 'dev-secret-key-for-local-development-only-min-32-chars'
@@ -31,6 +31,11 @@ export async function middleware(request: NextRequest) {
   const isAuthenticated = await checkAuth(request)
 
   if (!isAuthenticated) {
+    // For API routes, return 401 JSON instead of redirecting
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    // For pages, redirect to login
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
@@ -72,6 +77,6 @@ async function checkSupabaseAuth(request: NextRequest): Promise<boolean> {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest\\.json|sw\\.js|workbox-.*\\.js|icons/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

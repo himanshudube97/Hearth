@@ -20,6 +20,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: dev
     container_name: hearth-app
     ports:
       - "3000:3000"

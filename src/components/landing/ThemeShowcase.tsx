@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { themes, ThemeName } from '@/lib/themes'
@@ -20,8 +20,7 @@ const themeList: { key: ThemeName; emoji: string }[] = [
 ]
 
 export default function ThemeShowcase() {
-  const { theme } = useThemeStore()
-  const [activeTheme, setActiveTheme] = useState<ThemeName>('rivendell')
+  const { theme, themeName, setTheme } = useThemeStore()
   const containerRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -29,14 +28,13 @@ export default function ThemeShowcase() {
   })
 
   const y = useTransform(scrollYProgress, [0, 1], [100, -100])
-  const activeThemeData = themes[activeTheme]
 
   return (
     <section
       ref={containerRef}
       className="relative py-24 px-6 overflow-hidden transition-all duration-700"
       style={{
-        background: activeThemeData.bg.gradient,
+        background: theme.bg.gradient,
       }}
     >
       {/* Parallax Background Elements */}
@@ -78,13 +76,13 @@ export default function ThemeShowcase() {
         >
           <h2
             className="text-3xl md:text-4xl font-serif mb-4"
-            style={{ color: activeThemeData.text.primary }}
+            style={{ color: theme.text.primary }}
           >
             Find your ambience
           </h2>
           <p
             className="text-lg max-w-2xl mx-auto"
-            style={{ color: activeThemeData.text.secondary }}
+            style={{ color: theme.text.secondary }}
           >
             Eleven unique themes, each with its own mood, particles, and color palette
           </p>
@@ -92,22 +90,22 @@ export default function ThemeShowcase() {
 
         {/* Theme Carousel */}
         <div className="relative">
-          <div className="flex gap-4 overflow-x-auto pb-8 px-4 -mx-4 scrollbar-hide snap-x snap-mandatory">
+          <div className="flex gap-4 overflow-x-auto py-4 px-4 -mx-4 scrollbar-hide snap-x snap-mandatory">
             {themeList.map(({ key, emoji }) => {
               const themeData = themes[key]
-              const isActive = key === activeTheme
+              const isActive = key === themeName
 
               return (
                 <motion.div
                   key={key}
-                  className="flex-shrink-0 snap-center"
+                  className="flex-shrink-0 snap-center py-2"
                   initial={{ opacity: 0, scale: 0.9 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5 }}
                 >
                   <motion.button
-                    onClick={() => setActiveTheme(key)}
+                    onClick={() => setTheme(key)}
                     className="w-64 p-6 rounded-2xl text-left transition-all duration-300"
                     style={{
                       background: isActive
@@ -119,7 +117,7 @@ export default function ThemeShowcase() {
                         ? `0 0 30px ${themeData.accent.primary}30`
                         : 'none',
                     }}
-                    whileHover={{ y: -5, scale: 1.02 }}
+                    whileHover={{ y: -5 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     {/* Theme Emoji & Name */}
@@ -189,13 +187,13 @@ export default function ThemeShowcase() {
             {themeList.map(({ key }) => (
               <motion.button
                 key={key}
-                onClick={() => setActiveTheme(key)}
+                onClick={() => setTheme(key)}
                 className="w-2 h-2 rounded-full transition-all duration-300"
                 style={{
                   background:
-                    key === activeTheme
-                      ? activeThemeData.accent.primary
-                      : activeThemeData.text.muted,
+                    key === themeName
+                      ? theme.accent.primary
+                      : theme.text.muted,
                 }}
                 whileHover={{ scale: 1.5 }}
               />
@@ -207,31 +205,31 @@ export default function ThemeShowcase() {
         <motion.div
           className="mt-12 p-8 rounded-2xl text-center"
           style={{
-            background: activeThemeData.glass.bg,
-            backdropFilter: `blur(${activeThemeData.glass.blur})`,
-            border: `1px solid ${activeThemeData.glass.border}`,
+            background: theme.glass.bg,
+            backdropFilter: `blur(${theme.glass.blur})`,
+            border: `1px solid ${theme.glass.border}`,
           }}
           layout
           transition={{ duration: 0.5 }}
         >
           <motion.p
             className="text-2xl font-serif italic"
-            style={{ color: activeThemeData.text.primary }}
-            key={activeTheme}
+            style={{ color: theme.text.primary }}
+            key={themeName}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            "{activeThemeData.description}"
+            "{theme.description}"
           </motion.p>
           <motion.div
             className="flex justify-center gap-4 mt-6"
-            key={`moods-${activeTheme}`}
+            key={`moods-${themeName}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
           >
-            {activeThemeData.moodEmojis.map((emoji, i) => (
+            {theme.moodEmojis.map((emoji, i) => (
               <motion.span
                 key={i}
                 className="text-3xl"

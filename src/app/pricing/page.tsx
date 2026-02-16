@@ -1,8 +1,10 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useThemeStore } from '@/store/theme'
+import { useSubscription, createCheckoutSession } from '@/hooks/useSubscription'
 
 const freeTier = {
   name: 'Free',
@@ -44,6 +46,39 @@ const premiumTier = {
 
 export default function PricingPage() {
   const { theme } = useThemeStore()
+  const { isPremium, plan, isLoading } = useSubscription()
+  const [checkoutLoading, setCheckoutLoading] = useState<'monthly' | 'yearly' | null>(null)
+  const [showSuccess, setShowSuccess] = useState(false)
+
+  // Check for success/canceled query params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('success') === 'true') {
+      setShowSuccess(true)
+      // Clean up URL
+      window.history.replaceState({}, '', '/pricing')
+    }
+  }, [])
+
+  const handleCheckout = async (priceId: 'monthly' | 'yearly') => {
+    try {
+      setCheckoutLoading(priceId)
+      const url = await createCheckoutSession(priceId)
+      if (url) {
+        window.location.href = url
+      }
+    } catch (error: unknown) {
+      console.error('Checkout error:', error)
+      // If unauthorized, redirect to login
+      if (error instanceof Error && error.message === 'Unauthorized') {
+        window.location.href = '/login?redirect=/pricing'
+        return
+      }
+      alert('Failed to start checkout. Please try again.')
+    } finally {
+      setCheckoutLoading(null)
+    }
+  }
 
   return (
     <main
@@ -93,6 +128,22 @@ export default function PricingPage() {
           }}
         />
       </div>
+
+      {/* Success Message */}
+      {showSuccess && (
+        <motion.div
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full"
+          style={{
+            background: theme.accent.primary,
+            color: theme.bg.primary,
+          }}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+        >
+          Welcome to Premium! Your subscription is now active.
+        </motion.div>
+      )}
 
       {/* Back to Home */}
       <div className="relative z-10 p-6">
@@ -354,58 +405,73 @@ export default function PricingPage() {
 
             {/* Two CTA Buttons */}
             <div className="space-y-3">
-              {/* Yearly - Primary */}
-              <motion.button
-                className="w-full py-3 rounded-full font-medium relative overflow-hidden"
-                style={{
-                  background: theme.accent.primary,
-                  color: theme.bg.primary,
-                  boxShadow: `0 0 30px ${theme.accent.primary}30`,
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  // TODO: Stripe checkout with yearly price_id
-                  console.log('Yearly subscription clicked')
-                }}
-              >
-                {/* Pulse Effect */}
+              {isPremium ? (
                 <motion.div
-                  className="absolute inset-0 rounded-full"
-                  style={{ background: theme.accent.warm }}
-                  animate={{
-                    scale: [1, 1.1, 1],
-                    opacity: [0.3, 0, 0.3],
+                  className="w-full py-3 rounded-full font-medium text-center"
+                  style={{
+                    background: `${theme.accent.primary}20`,
+                    color: theme.accent.primary,
+                    border: `1px solid ${theme.accent.primary}40`,
                   }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
-                />
-                <span className="relative z-10">Get Yearly — Best Value</span>
-              </motion.button>
+                >
+                  You&apos;re on Premium ({plan === 'yearly' ? 'Yearly' : 'Monthly'})
+                </motion.div>
+              ) : (
+                <>
+                  {/* Yearly - Primary */}
+                  <motion.button
+                    className="w-full py-3 rounded-full font-medium relative overflow-hidden disabled:opacity-50"
+                    style={{
+                      background: theme.accent.primary,
+                      color: theme.bg.primary,
+                      boxShadow: `0 0 30px ${theme.accent.primary}30`,
+                    }}
+                    whileHover={{ scale: checkoutLoading ? 1 : 1.02 }}
+                    whileTap={{ scale: checkoutLoading ? 1 : 0.98 }}
+                    onClick={() => handleCheckout('yearly')}
+                    disabled={checkoutLoading !== null || isLoading}
+                  >
+                    {/* Pulse Effect */}
+                    {!checkoutLoading && (
+                      <motion.div
+                        className="absolute inset-0 rounded-full"
+                        style={{ background: theme.accent.warm }}
+                        animate={{
+                          scale: [1, 1.1, 1],
+                          opacity: [0.3, 0, 0.3],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                        }}
+                      />
+                    )}
+                    <span className="relative z-10">
+                      {checkoutLoading === 'yearly' ? 'Loading...' : 'Get Yearly — Best Value'}
+                    </span>
+                  </motion.button>
 
-              {/* Monthly - Secondary */}
-              <motion.button
-                className="w-full py-3 rounded-full font-medium transition-all"
-                style={{
-                  background: 'transparent',
-                  border: `1px solid ${theme.glass.border}`,
-                  color: theme.text.primary,
-                }}
-                whileHover={{
-                  background: theme.glass.bg,
-                  scale: 1.02,
-                }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  // TODO: Stripe checkout with monthly price_id
-                  console.log('Monthly subscription clicked')
-                }}
-              >
-                Get Monthly — $5/mo
-              </motion.button>
+                  {/* Monthly - Secondary */}
+                  <motion.button
+                    className="w-full py-3 rounded-full font-medium transition-all disabled:opacity-50"
+                    style={{
+                      background: 'transparent',
+                      border: `1px solid ${theme.glass.border}`,
+                      color: theme.text.primary,
+                    }}
+                    whileHover={{
+                      background: checkoutLoading ? 'transparent' : theme.glass.bg,
+                      scale: checkoutLoading ? 1 : 1.02,
+                    }}
+                    whileTap={{ scale: checkoutLoading ? 1 : 0.98 }}
+                    onClick={() => handleCheckout('monthly')}
+                    disabled={checkoutLoading !== null || isLoading}
+                  >
+                    {checkoutLoading === 'monthly' ? 'Loading...' : 'Get Monthly — $5/mo'}
+                  </motion.button>
+                </>
+              )}
             </div>
           </motion.div>
         </div>

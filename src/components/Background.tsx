@@ -827,7 +827,7 @@ function initParticlesOnce() {
 function BackgroundComponent() {
   const [mounted, setMounted] = useState(false)
   const [particlesReady, setParticlesReady] = useState(false)
-  const { theme } = useThemeStore()
+  const { theme, themeName } = useThemeStore()
 
   useEffect(() => {
     setMounted(true)
@@ -849,7 +849,7 @@ function BackgroundComponent() {
     if (theme.particles === 'snowflakes') return getSnowflakesConfig()
     if (theme.particles === 'dandelion') return getDandelionConfig()
     return getFirefliesConfig()
-  }, [theme.particles])
+  }, [theme.particles, themeName])
 
   if (!mounted) return null
 
@@ -1419,8 +1419,8 @@ function BackgroundComponent() {
       {/* tsParticles layer */}
       {particlesReady && (
         <Particles
-          key={`particles-${theme.particles}`}
-          id="tsparticles"
+          key={`particles-${themeName}`}
+          id="tsparticles-main"
           className="absolute inset-0"
           particlesLoaded={particlesLoaded}
           options={particleConfig}

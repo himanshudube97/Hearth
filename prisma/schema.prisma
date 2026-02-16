@@ -18,6 +18,13 @@ model User {
   updatedAt DateTime @updatedAt
   entries   JournalEntry[]
 
+  // Lemon Squeezy subscription fields
+  lemonSqueezyCustomerId String?   @unique
+  subscriptionId         String?   @unique
+  subscriptionStatus     String?   // "active", "cancelled", "past_due", "on_trial", "paused"
+  variantId              String?   // which variant/plan they subscribed to
+  currentPeriodEnd       DateTime? // when current billing period ends (renews_at)
+
   @@map("users")
 }
 

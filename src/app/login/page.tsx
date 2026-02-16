@@ -13,8 +13,14 @@ function LoginForm() {
   const error = searchParams.get('error')
 
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [loginError, setLoginError] = useState(error ? 'Authentication failed. Please try again.' : '')
+
+  const fillDevCreds = () => {
+    setEmail('himansu.dube13@gmail.com')
+    setPassword('123')
+  }
 
   const handleDevLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -117,6 +123,8 @@ function LoginForm() {
                 <input
                   type="password"
                   id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
                 />
@@ -130,7 +138,15 @@ function LoginForm() {
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
 
-              <p className="text-center text-xs text-[var(--text-muted)] mt-4">
+              <button
+                type="button"
+                onClick={fillDevCreds}
+                className="w-full py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                Fill Dev Creds
+              </button>
+
+              <p className="text-center text-xs text-[var(--text-muted)] mt-2">
                 Development mode — any email will create or log into an account
               </p>
             </form>
