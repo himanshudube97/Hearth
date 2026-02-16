@@ -14,9 +14,10 @@ export default function LayoutContent({
 }) {
   const pathname = usePathname()
   const isLandingPage = pathname === '/'
+  const isPricingPage = pathname === '/pricing'
 
-  if (isLandingPage) {
-    // Landing page - no background, navigation, or padding
+  if (isLandingPage || isPricingPage) {
+    // Landing & Pricing pages - no background, navigation, or padding (they handle their own)
     return (
       <>
         {children}

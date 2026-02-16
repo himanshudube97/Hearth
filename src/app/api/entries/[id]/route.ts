@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import { encrypt, decryptEntryFields } from '@/lib/encryption'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string, maxLength = 150): string {
@@ -42,7 +43,9 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(entry)
+    // Decrypt before returning
+    const decryptedEntry = decryptEntryFields(entry)
+    return NextResponse.json(decryptedEntry)
   } catch (error) {
     console.error('Error fetching entry:', error)
     return NextResponse.json(
@@ -82,14 +85,18 @@ export async function PUT(
     const body = await request.json()
     const { text, mood, song, tags } = body
 
-    // Create preview from text
+    // Create preview from text (before encryption)
     const textPreview = text ? createPreview(text) : undefined
+
+    // Encrypt text fields if provided
+    const encryptedText = text ? encrypt(text) : undefined
+    const encryptedTextPreview = textPreview ? encrypt(textPreview) : undefined
 
     const entry = await prisma.journalEntry.update({
       where: { id },
       data: {
-        text,
-        textPreview,
+        ...(encryptedText && { text: encryptedText }),
+        ...(encryptedTextPreview && { textPreview: encryptedTextPreview }),
         mood,
         song,
         tags,
@@ -99,7 +106,9 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(entry)
+    // Decrypt before returning
+    const decryptedEntry = decryptEntryFields(entry)
+    return NextResponse.json(decryptedEntry)
   } catch (error) {
     console.error('Error updating entry:', error)
     return NextResponse.json(

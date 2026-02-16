@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import { encrypt, decryptEntryFields } from '@/lib/encryption'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string | null | undefined, maxLength = 150): string {
@@ -110,14 +111,17 @@ export async function GET(request: NextRequest) {
     const returnEntries = hasMore ? entries.slice(0, -1) : entries
     const nextCursor = hasMore ? returnEntries[returnEntries.length - 1]?.id : null
 
-    // Transform entries to include preview if not already present
-    const transformedEntries = returnEntries.map(entry => ({
-      ...entry,
-      // Generate preview on the fly if not stored
-      textPreview: entry.textPreview || createPreview(entry.text),
-      // Include doodles array even if empty
-      doodles: entry.doodles || [],
-    }))
+    // Decrypt and transform entries
+    const transformedEntries = returnEntries.map(entry => {
+      const decrypted = decryptEntryFields(entry)
+      return {
+        ...decrypted,
+        // Generate preview on the fly if not stored
+        textPreview: decrypted.textPreview || createPreview(decrypted.text),
+        // Include doodles array even if empty
+        doodles: entry.doodles || [],
+      }
+    })
 
     return NextResponse.json({
       entries: transformedEntries,
@@ -156,16 +160,23 @@ export async function POST(request: NextRequest) {
       recipientEmail, recipientName, senderName, letterLocation
     } = body
 
-    // Create preview from text
+    // Create preview from text (before encryption)
     const textPreview = createPreview(text)
     console.log('[POST /api/entries] Preview:', textPreview?.slice(0, 50))
+
+    // Encrypt sensitive fields
+    const encryptedText = encrypt(text)
+    const encryptedTextPreview = encrypt(textPreview)
+    const encryptedSenderName = senderName ? encrypt(senderName) : null
+    const encryptedRecipientName = recipientName ? encrypt(recipientName) : null
+    const encryptedLetterLocation = letterLocation ? encrypt(letterLocation) : null
 
     console.log('[POST /api/entries] Creating entry for user:', user.id)
 
     const entry = await prisma.journalEntry.create({
       data: {
-        text,
-        textPreview,
+        text: encryptedText,
+        textPreview: encryptedTextPreview,
         mood: mood ?? 2,
         song: song || null,
         tags: tags ?? [],
@@ -173,11 +184,11 @@ export async function POST(request: NextRequest) {
         entryType: entryType || 'normal',
         unlockDate: unlockDate ? new Date(unlockDate) : null,
         isSealed: isSealed ?? false,
-        // Letter-specific fields
+        // Letter-specific fields (recipientEmail NOT encrypted - needed for sending)
         recipientEmail: recipientEmail || null,
-        recipientName: recipientName || null,
-        senderName: senderName || null,
-        letterLocation: letterLocation || null,
+        recipientName: encryptedRecipientName,
+        senderName: encryptedSenderName,
+        letterLocation: encryptedLetterLocation,
         doodles: doodles && doodles.length > 0
           ? {
               create: doodles.map((d: { strokes: unknown; positionInEntry?: number }, index: number) => ({
@@ -193,7 +204,10 @@ export async function POST(request: NextRequest) {
     })
 
     console.log('[POST /api/entries] Created entry:', entry.id)
-    return NextResponse.json(entry, { status: 201 })
+
+    // Decrypt before returning to client
+    const decryptedEntry = decryptEntryFields(entry)
+    return NextResponse.json(decryptedEntry, { status: 201 })
   } catch (error) {
     console.error('Error creating entry:', error)
     // Return more details in development

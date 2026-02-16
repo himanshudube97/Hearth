@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import * as jose from 'jose'
 
 const PUBLIC_PATHS = ['/login', '/api/auth']
-const PUBLIC_EXACT_PATHS = ['/']
+const PUBLIC_EXACT_PATHS = ['/', '/pricing']
 const STATIC_PATHS = ['/_next', '/favicon.ico', '/images']
 
 const isDevAuth = process.env.USE_DEV_AUTH === 'true'

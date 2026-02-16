@@ -23,6 +23,8 @@ services:
     container_name: hearth-app
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://hearth:hearth_secret@db:5432/hearth?schema=public
       WATCHPACK_POLLING: "true"

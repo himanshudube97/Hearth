@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import { safeDecrypt } from '@/lib/encryption'
 
 // GET - Fetch arrived self-letters that are ready to be revealed
 export async function GET() {
@@ -39,9 +40,16 @@ export async function GET() {
       },
     })
 
+    // Decrypt sensitive fields
+    const decryptedLetters = arrivedLetters.map(letter => ({
+      ...letter,
+      text: safeDecrypt(letter.text),
+      letterLocation: safeDecrypt(letter.letterLocation),
+    }))
+
     return NextResponse.json({
-      letters: arrivedLetters,
-      count: arrivedLetters.length,
+      letters: decryptedLetters,
+      count: decryptedLetters.length,
     })
   } catch (error) {
     console.error('Error fetching arrived letters:', error)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import { encryptJson, decryptJson } from '@/lib/encryption'
 
 // Profile questions keys
 export type ProfileKey =
@@ -28,9 +29,12 @@ export async function GET() {
       select: { profile: true },
     })
 
-    return NextResponse.json({
-      profile: (dbUser?.profile as ProfileData) || {},
-    })
+    // Decrypt profile data
+    const profile = dbUser?.profile
+      ? decryptJson<ProfileData>(dbUser.profile as string) || {}
+      : {}
+
+    return NextResponse.json({ profile })
   } catch (error) {
     console.error('Error fetching profile:', error)
     return NextResponse.json(
@@ -50,21 +54,25 @@ export async function PUT(request: NextRequest) {
 
     const updates: ProfileData = await request.json()
 
-    // Get current profile
+    // Get current profile and decrypt
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
       select: { profile: true },
     })
 
-    const currentProfile = (dbUser?.profile as ProfileData) || {}
+    const currentProfile = dbUser?.profile
+      ? decryptJson<ProfileData>(dbUser.profile as string) || {}
+      : {}
 
     // Merge updates with current profile
     const newProfile = { ...currentProfile, ...updates }
 
-    // Update user profile
+    // Encrypt and update user profile
+    const encryptedProfile = encryptJson(newProfile)
+
     await prisma.user.update({
       where: { id: user.id },
-      data: { profile: newProfile },
+      data: { profile: encryptedProfile },
     })
 
     return NextResponse.json({ profile: newProfile })

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { safeDecrypt } from '@/lib/encryption'
 
 export async function GET() {
   try {
@@ -35,6 +36,11 @@ export async function GET() {
     const now = new Date()
     const lettersWithStatus = letters.map(letter => ({
       ...letter,
+      // Decrypt sensitive fields
+      text: safeDecrypt(letter.text),
+      letterLocation: safeDecrypt(letter.letterLocation),
+      recipientName: safeDecrypt(letter.recipientName),
+      // Format dates
       createdAt: letter.createdAt.toISOString(),
       unlockDate: letter.unlockDate?.toISOString() || null,
       hasArrived: letter.unlockDate && new Date(letter.unlockDate) <= now && !letter.recipientEmail,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { sendLetterEmail, sendSelfLetterNotification } from '@/lib/email'
+import { safeDecrypt } from '@/lib/encryption'
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron, or external service)
 // It checks for letters that are due for delivery and sends them
@@ -57,15 +58,18 @@ export async function GET(request: NextRequest) {
         // Determine if this is a friend letter or self letter
         if (letter.recipientEmail) {
           // Friend letter - send email to recipient
-          const senderName = letter.senderName || letter.user.name || 'Someone special'
-          const recipientName = letter.recipientName || 'Friend'
+          // Decrypt sensitive fields before sending
+          const senderName = safeDecrypt(letter.senderName) || letter.user.name || 'Someone special'
+          const recipientName = safeDecrypt(letter.recipientName) || 'Friend'
+          const letterContent = safeDecrypt(letter.text)
+          const letterLocation = safeDecrypt(letter.letterLocation)
 
           const { success, error } = await sendLetterEmail({
             to: letter.recipientEmail,
             recipientName,
             senderName,
-            letterContent: letter.text,
-            letterLocation: letter.letterLocation,
+            letterContent,
+            letterLocation,
             writtenAt: letter.createdAt,
           })
 

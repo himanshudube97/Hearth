@@ -7,6 +7,7 @@ import { themes, ThemeName } from '@/lib/themes'
 
 const themeList: { key: ThemeName; emoji: string }[] = [
   { key: 'rivendell', emoji: '🌿' },
+  { key: 'hobbiton', emoji: '🏡' },
   { key: 'winterSunset', emoji: '🌅' },
   { key: 'cherryBlossom', emoji: '🌸' },
   { key: 'northernLights', emoji: '🌌' },
@@ -85,7 +86,7 @@ export default function ThemeShowcase() {
             className="text-lg max-w-2xl mx-auto"
             style={{ color: activeThemeData.text.secondary }}
           >
-            Ten unique themes, each with its own mood, particles, and color palette
+            Eleven unique themes, each with its own mood, particles, and color palette
           </p>
         </motion.div>
 
