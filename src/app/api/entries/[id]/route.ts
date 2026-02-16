@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 
+// Helper to strip HTML and create preview
+function createPreview(html: string, maxLength = 150): string {
+  const text = html.replace(/<[^>]*>/g, '').trim()
+  if (text.length <= maxLength) return text
+  return text.slice(0, maxLength).trim() + '...'
+}
+
 // GET - Fetch single entry (only if owned by user)
 export async function GET(
   request: NextRequest,
@@ -75,10 +82,14 @@ export async function PUT(
     const body = await request.json()
     const { text, mood, song, tags } = body
 
+    // Create preview from text
+    const textPreview = text ? createPreview(text) : undefined
+
     const entry = await prisma.journalEntry.update({
       where: { id },
       data: {
         text,
+        textPreview,
         mood,
         song,
         tags,

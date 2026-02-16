@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { getGreeting, getRandomWhisper, getRandomPrompt } from '@/lib/themes'
 import { useThemeStore } from '@/store/theme'
 import { useJournalStore, JournalEntry, StrokeData } from '@/store/journal'
+import { useEntries } from '@/hooks/useEntries'
 import Editor from '@/components/Editor'
 import MoodPicker from '@/components/MoodPicker'
 import DoodleCanvas from '@/components/DoodleCanvas'
@@ -14,7 +15,6 @@ export default function WritePage() {
   const [whisper, setWhisper] = useState('')
   const [prompt, setPrompt] = useState('')
   const [showDoodle, setShowDoodle] = useState(false)
-  const [todayEntries, setTodayEntries] = useState<JournalEntry[]>([])
   const [saving, setSaving] = useState(false)
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
 
@@ -32,10 +32,15 @@ export default function WritePage() {
     resetCurrentEntry,
   } = useJournalStore()
 
+  // Fetch only today's entries using the optimized hook
+  const { entries: todayEntries, refresh: refreshTodayEntries } = useEntries({
+    today: true,
+    limit: 20,
+  })
+
   useEffect(() => {
     setWhisper(getRandomWhisper())
     setPrompt(getRandomPrompt())
-    fetchTodayEntries()
 
     // Check if we're coming from timeline with an entry to edit
     const editingId = sessionStorage.getItem('editingEntryId')
@@ -55,20 +60,6 @@ export default function WritePage() {
       sessionStorage.removeItem('editingEntryCreatedAt')
     }
   }, [])
-
-  const fetchTodayEntries = async () => {
-    try {
-      const res = await fetch('/api/entries')
-      const entries = await res.json()
-      const today = new Date().toDateString()
-      const filtered = entries.filter((e: JournalEntry) =>
-        new Date(e.createdAt).toDateString() === today
-      )
-      setTodayEntries(filtered)
-    } catch (error) {
-      console.error('Failed to fetch entries:', error)
-    }
-  }
 
   const refreshPrompt = () => {
     setPrompt(getRandomPrompt())
@@ -96,14 +87,21 @@ export default function WritePage() {
         }),
       })
 
+      const data = await res.json()
+      console.log('Save response:', res.status, data)
+
       if (res.ok) {
         resetCurrentEntry()
         setEditingEntry(null)
-        fetchTodayEntries()
+        refreshTodayEntries()
         setWhisper(getRandomWhisper())
+      } else {
+        console.error('Save failed:', data)
+        alert(`Failed to save: ${data.details || data.error}`)
       }
     } catch (error) {
       console.error('Failed to save entry:', error)
+      alert(`Error: ${error}`)
     } finally {
       setSaving(false)
     }
@@ -133,7 +131,13 @@ export default function WritePage() {
     setShowDoodle(false)
   }
 
-  const greeting = getGreeting()
+  // Use state for greeting to avoid hydration mismatch (time differs server vs client)
+  const [greeting, setGreeting] = useState('')
+
+  useEffect(() => {
+    setGreeting(getGreeting())
+  }, [])
+
   const hasContent = currentText.trim() && currentText !== '<p></p>'
 
   return (

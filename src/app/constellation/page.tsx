@@ -263,9 +263,11 @@ export default function ConstellationPage() {
 
   const fetchEntries = async () => {
     try {
-      const res = await fetch('/api/entries')
+      // Fetch a larger batch for constellation view
+      const res = await fetch('/api/entries?limit=50')
       const data = await res.json()
-      setEntries(data)
+      // API now returns { entries: [...], pagination: {...} }
+      setEntries(data.entries || [])
     } catch (error) {
       console.error('Failed to fetch entries:', error)
     } finally {

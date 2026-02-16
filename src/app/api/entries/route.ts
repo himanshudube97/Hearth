@@ -2,23 +2,125 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 
-// GET - Fetch all entries for current user
-export async function GET() {
+// Helper to strip HTML and create preview
+function createPreview(html: string | null | undefined, maxLength = 150): string {
+  if (!html) return ''
+  const text = html.replace(/<[^>]*>/g, '').trim()
+  if (text.length <= maxLength) return text
+  return text.slice(0, maxLength).trim() + '...'
+}
+
+// GET - Fetch entries with pagination and filters
+export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+
+    // Pagination params
+    const cursor = searchParams.get('cursor') // Entry ID for cursor-based pagination
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50)
+
+    // Filter params
+    const year = searchParams.get('year') // e.g., "2024"
+    const month = searchParams.get('month') // e.g., "2024-02"
+    const mood = searchParams.get('mood') // e.g., "3" or "2,3,4" for multiple
+    const search = searchParams.get('search') // Full text search
+    const today = searchParams.get('today') === 'true' // Only today's entries
+
+    // What to include
+    const includeDoodles = searchParams.get('includeDoodles') !== 'false'
+    const previewOnly = searchParams.get('previewOnly') === 'true' // Don't include full text
+
+    // Build date range filter
+    let dateFilter: { gte?: Date; lt?: Date } | undefined
+
+    if (today) {
+      const todayStart = new Date()
+      todayStart.setHours(0, 0, 0, 0)
+      const todayEnd = new Date()
+      todayEnd.setHours(23, 59, 59, 999)
+      dateFilter = { gte: todayStart, lt: todayEnd }
+    } else if (month) {
+      // month format: "2024-02"
+      const [y, m] = month.split('-').map(Number)
+      const monthStart = new Date(y, m - 1, 1)
+      const monthEnd = new Date(y, m, 1)
+      dateFilter = { gte: monthStart, lt: monthEnd }
+    } else if (year) {
+      const y = parseInt(year)
+      const yearStart = new Date(y, 0, 1)
+      const yearEnd = new Date(y + 1, 0, 1)
+      dateFilter = { gte: yearStart, lt: yearEnd }
+    }
+
+    // Build mood filter
+    let moodFilter: number[] | undefined
+    if (mood) {
+      moodFilter = mood.split(',').map(Number).filter(n => !isNaN(n) && n >= 0 && n <= 4)
+    }
+
+    // Build where clause
+    const where: {
+      userId: string
+      createdAt?: { gte?: Date; lt?: Date }
+      mood?: { in: number[] }
+      text?: { contains: string; mode: 'insensitive' }
+    } = {
+      userId: user.id,
+    }
+
+    if (dateFilter) {
+      where.createdAt = dateFilter
+    }
+
+    if (moodFilter && moodFilter.length > 0) {
+      where.mood = { in: moodFilter }
+    }
+
+    if (search) {
+      where.text = { contains: search, mode: 'insensitive' }
+    }
+
+    // Build query - always include all fields for simplicity
     const entries = await prisma.journalEntry.findMany({
-      where: { userId: user.id },
+      where,
       orderBy: { createdAt: 'desc' },
+      take: limit + 1, // Take one extra to check if there's more
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1, // Skip the cursor itself
+      }),
       include: {
-        doodles: true,
+        doodles: includeDoodles,
       },
     })
 
-    return NextResponse.json(entries)
+    // Check if there are more entries
+    const hasMore = entries.length > limit
+    const returnEntries = hasMore ? entries.slice(0, -1) : entries
+    const nextCursor = hasMore ? returnEntries[returnEntries.length - 1]?.id : null
+
+    // Transform entries to include preview if not already present
+    const transformedEntries = returnEntries.map(entry => ({
+      ...entry,
+      // Generate preview on the fly if not stored
+      textPreview: entry.textPreview || createPreview(entry.text),
+      // Include doodles array even if empty
+      doodles: entry.doodles || [],
+    }))
+
+    return NextResponse.json({
+      entries: transformedEntries,
+      pagination: {
+        hasMore,
+        nextCursor,
+        limit,
+      },
+    })
   } catch (error) {
     console.error('Error fetching entries:', error)
     return NextResponse.json(
@@ -31,19 +133,32 @@ export async function GET() {
 // POST - Create new entry for current user
 export async function POST(request: NextRequest) {
   try {
+    console.log('[POST /api/entries] Starting...')
+
     const user = await getCurrentUser()
+    console.log('[POST /api/entries] User:', user ? user.id : 'null')
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
+    console.log('[POST /api/entries] Body:', JSON.stringify(body).slice(0, 200))
+
     const { text, mood, song, tags, doodles } = body
+
+    // Create preview from text
+    const textPreview = createPreview(text)
+    console.log('[POST /api/entries] Preview:', textPreview?.slice(0, 50))
+
+    console.log('[POST /api/entries] Creating entry for user:', user.id)
 
     const entry = await prisma.journalEntry.create({
       data: {
         text,
+        textPreview,
         mood: mood ?? 2,
-        song,
+        song: song || null,
         tags: tags ?? [],
         userId: user.id,
         doodles: doodles && doodles.length > 0
@@ -60,11 +175,14 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    console.log('[POST /api/entries] Created entry:', entry.id)
     return NextResponse.json(entry, { status: 201 })
   } catch (error) {
     console.error('Error creating entry:', error)
+    // Return more details in development
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: 'Failed to create entry' },
+      { error: 'Failed to create entry', details: message },
       { status: 500 }
     )
   }

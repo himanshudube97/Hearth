@@ -23,6 +23,7 @@ model User {
 model JournalEntry {
   id          String   @id @default(cuid())
   text        String
+  textPreview String?  // First ~150 chars for list views, avoids sending full text
   mood        Int      @default(2) // 0-4: Heavy, Low, Okay, Good, Radiant
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -37,6 +38,10 @@ model JournalEntry {
 
   doodles     Doodle[]
 
+  // Indexes for scalable queries
+  @@index([userId, createdAt(sort: Desc)]) // Timeline queries
+  @@index([userId, mood])                   // Mood filtering
+  @@index([userId, createdAt, mood])        // Combined filters
   @@map("journal_entries")
 }
 
