@@ -50,6 +50,18 @@ export default function Editor({ prompt }: EditorProps) {
     }
   }, [editor, prompt])
 
+  // Sync editor content when currentText changes externally (reset or edit load)
+  useEffect(() => {
+    if (editor && currentText !== editor.getHTML()) {
+      if (currentText === '' || currentText === '<p></p>') {
+        editor.commands.clearContent()
+      } else {
+        // Load content for editing
+        editor.commands.setContent(currentText)
+      }
+    }
+  }, [editor, currentText])
+
   return (
     <div
       className="rounded-2xl p-6"

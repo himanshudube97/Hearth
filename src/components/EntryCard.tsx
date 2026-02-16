@@ -10,15 +10,21 @@ interface EntryCardProps {
   entry: JournalEntry
   expanded?: boolean
   onClick?: () => void
+  onEdit?: (entry: JournalEntry) => void
 }
 
-export default function EntryCard({ entry, expanded = false, onClick }: EntryCardProps) {
+export default function EntryCard({ entry, expanded = false, onClick, onEdit }: EntryCardProps) {
   const { theme } = useThemeStore()
   const moodEmoji = theme.moodEmojis[entry.mood]
   const moodColor = theme.moods[entry.mood as keyof typeof theme.moods]
 
   // Strip HTML tags for preview
   const textPreview = entry.text.replace(/<[^>]*>/g, '').slice(0, 100)
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onEdit?.(entry)
+  }
 
   return (
     <motion.div
@@ -50,6 +56,19 @@ export default function EntryCard({ entry, expanded = false, onClick }: EntryCar
           <span className="text-sm" style={{ color: theme.accent.warm }}>
             ♫
           </span>
+        )}
+        {onEdit && (
+          <button
+            onClick={handleEdit}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-sm opacity-50 hover:opacity-100 transition-opacity"
+            style={{
+              background: theme.glass.bg,
+              color: theme.text.muted,
+            }}
+            title="Edit entry"
+          >
+            ✎
+          </button>
         )}
       </div>
 

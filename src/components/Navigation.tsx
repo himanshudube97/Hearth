@@ -10,6 +10,7 @@ const tabs = [
   { href: '/write', label: 'Write', icon: '✎' },
   { href: '/timeline', label: 'Timeline', icon: '☰' },
   { href: '/calendar', label: 'Calendar', icon: '▣' },
+  { href: '/constellation', label: 'Stars', icon: '✦' },
 ]
 
 export default function Navigation() {

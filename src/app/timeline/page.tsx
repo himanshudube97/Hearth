@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { format, isToday, isYesterday } from 'date-fns'
 import { useThemeStore } from '@/store/theme'
-import { JournalEntry } from '@/store/journal'
+import { useJournalStore, JournalEntry } from '@/store/journal'
 import EntryCard from '@/components/EntryCard'
 
 interface GroupedEntries {
@@ -19,7 +20,29 @@ export default function TimelinePage() {
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const router = useRouter()
   const { theme } = useThemeStore()
+  const {
+    setCurrentText,
+    setCurrentMood,
+    setCurrentSong,
+    clearDoodleStrokes,
+    addDoodleStroke,
+  } = useJournalStore()
+
+  const handleEditEntry = (entry: JournalEntry) => {
+    setCurrentText(entry.text)
+    setCurrentMood(entry.mood)
+    setCurrentSong(entry.song || '')
+    clearDoodleStrokes()
+    if (entry.doodles && entry.doodles.length > 0) {
+      entry.doodles[0]?.strokes.forEach(stroke => addDoodleStroke(stroke))
+    }
+    // Store the entry ID in sessionStorage so write page knows we're editing
+    sessionStorage.setItem('editingEntryId', entry.id)
+    sessionStorage.setItem('editingEntryCreatedAt', entry.createdAt)
+    router.push('/write')
+  }
 
   useEffect(() => {
     fetchEntries()
@@ -143,6 +166,7 @@ export default function TimelinePage() {
                   onClick={() => setExpandedEntry(
                     expandedEntry === entry.id ? null : entry.id
                   )}
+                  onEdit={handleEditEntry}
                 />
               ))}
             </div>
