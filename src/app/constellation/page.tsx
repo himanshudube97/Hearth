@@ -297,7 +297,7 @@ export default function ConstellationPage() {
         y: centerY + Math.sin(angle) * radius + (Math.random() - 0.5) * 15,
         size: 4 + Math.random() * 3,
         entry,
-        delay: index * 0.3,
+        delay: index * 0.4,
       }
     })
 
@@ -317,10 +317,17 @@ export default function ConstellationPage() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center" style={{ background: theme.bg.primary }}>
+      <motion.div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{ background: theme.bg.primary }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      >
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className="text-center"
         >
           <motion.div
@@ -333,15 +340,26 @@ export default function ConstellationPage() {
           </motion.div>
           <p style={{ color: theme.text.muted }}>gazing into the cosmos...</p>
         </motion.div>
-      </div>
+      </motion.div>
     )
   }
 
   if (entries.length === 0) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center" style={{ background: theme.bg.primary }}>
+      <motion.div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{ background: theme.bg.primary }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+      >
         <CosmosBackground theme={theme} />
-        <div className="text-center relative z-10">
+        <motion.div
+          className="text-center relative z-10"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        >
           <div className="text-3xl mb-4 opacity-50">✦</div>
           <p style={{ color: theme.text.muted }}>
             your sky is waiting for its first star
@@ -349,19 +367,28 @@ export default function ConstellationPage() {
           <p className="text-sm mt-2" style={{ color: theme.text.muted }}>
             write something to begin
           </p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     )
   }
 
   return (
-    <div className="fixed inset-0 overflow-hidden" style={{ background: theme.bg.primary }}>
+    <motion.div
+      className="fixed inset-0 overflow-hidden"
+      style={{ background: theme.bg.primary }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+    >
       {/* Deep space background */}
-      <div
+      <motion.div
         className="absolute inset-0"
         style={{
           background: `radial-gradient(ellipse at 30% 20%, ${theme.bg.secondary} 0%, ${theme.bg.primary} 50%, #000 100%)`,
         }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
       />
 
       {/* Cosmos stars */}
@@ -383,7 +410,7 @@ export default function ConstellationPage() {
             }}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: star.delay, duration: 0.8, ease: 'easeOut' }}
+            transition={{ delay: 0.5 + star.delay, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
             onClick={() => setSelectedStar(star)}
           >
             {/* Soft glow */}
@@ -440,7 +467,7 @@ export default function ConstellationPage() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.8, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         className="absolute top-20 left-1/2 -translate-x-1/2 text-center pointer-events-none"
       >
         <p className="text-sm" style={{ color: `${theme.text.muted}80` }}>
@@ -452,7 +479,7 @@ export default function ConstellationPage() {
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 2 }}
+        transition={{ delay: 2.5, duration: 1, ease: [0.22, 1, 0.36, 1] }}
         className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs pointer-events-none"
         style={{ color: `${theme.text.muted}60` }}
       >
@@ -549,7 +576,7 @@ export default function ConstellationPage() {
           </>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   )
 }
 

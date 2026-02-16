@@ -158,6 +158,7 @@ export default function CalendarPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className="grid grid-cols-3 gap-4 mb-8"
         >
           {yearMonths.map((month) => {
@@ -213,6 +214,7 @@ export default function CalendarPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="rounded-2xl p-4 mb-8"
             style={{
               background: theme.glass.bg,
@@ -347,9 +349,9 @@ export default function CalendarPage() {
       {/* Selected Day Entries */}
       {selectedDay && viewMode === 'month' && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
           <h2 className="text-lg mb-4" style={{ color: theme.text.secondary }}>
             {format(selectedDay, 'EEEE, MMMM d')}

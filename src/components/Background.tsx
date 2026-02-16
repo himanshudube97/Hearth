@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import Particles, { initParticlesEngine } from '@tsparticles/react'
 import { loadSlim } from '@tsparticles/slim'
@@ -435,7 +435,7 @@ const getSnowflakesConfig = (): ISourceOptions => ({
 
 // ========== CSS AURORA COMPONENT (simple, elegant) ==========
 
-function CssAurora() {
+const CssAurora = React.memo(function CssAurora() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {/* Aurora ribbon 1 - green */}
@@ -540,11 +540,11 @@ function CssAurora() {
       />
     </div>
   )
-}
+})
 
 // ========== SIMPLEX NOISE MIST COMPONENT ==========
 
-function NoiseMist() {
+const NoiseMist = React.memo(function NoiseMist() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>(0)
   const noise2D = useMemo(() => createNoise2D(), [])
@@ -624,11 +624,11 @@ function NoiseMist() {
       className="absolute inset-0 pointer-events-none"
     />
   )
-}
+})
 
 // ========== MOUNTAIN LAYERS (SVG) ==========
 
-function MountainLayer({
+const MountainLayer = React.memo(function MountainLayer({
   layer,
   color,
   opacity,
@@ -664,11 +664,11 @@ function MountainLayer({
       <path d={paths[layer]} fill={`url(#mountain-grad-${layer})`} />
     </motion.svg>
   )
-}
+})
 
 // ========== FLYING BIRDS ==========
 
-function FlyingBird({ delay, yPosition }: { delay: number; yPosition: number }) {
+const FlyingBird = React.memo(function FlyingBird({ delay, yPosition }: { delay: number; yPosition: number }) {
   return (
     <motion.svg
       className="absolute"
@@ -704,11 +704,11 @@ function FlyingBird({ delay, yPosition }: { delay: number; yPosition: number }) 
       />
     </motion.svg>
   )
-}
+})
 
 // ========== FLOATING CLOUD ==========
 
-function FloatingCloud({ startX, yPosition, size, delay, duration }: {
+const FloatingCloud = React.memo(function FloatingCloud({ startX, yPosition, size, delay, duration }: {
   startX: number; yPosition: number; size: number; delay: number; duration: number
 }) {
   return (
@@ -733,11 +733,11 @@ function FloatingCloud({ startX, yPosition, size, delay, duration }: {
       </g>
     </motion.svg>
   )
-}
+})
 
 // ========== SHOOTING STAR ==========
 
-function ShootingStar({ delay }: { delay: number }) {
+const ShootingStar = React.memo(function ShootingStar({ delay }: { delay: number }) {
   const startX = 10 + Math.random() * 50
   const startY = 5 + Math.random() * 25
 
@@ -764,20 +764,35 @@ function ShootingStar({ delay }: { delay: number }) {
       }}
     />
   )
-}
+})
 
 // ========== MAIN BACKGROUND COMPONENT ==========
 
-export default function Background() {
+// Global particle engine initialization (runs once)
+let particlesInitialized = false
+let particlesInitPromise: Promise<void> | null = null
+
+function initParticlesOnce() {
+  if (particlesInitialized) return Promise.resolve()
+  if (particlesInitPromise) return particlesInitPromise
+
+  particlesInitPromise = initParticlesEngine(async (engine) => {
+    await loadSlim(engine)
+  }).then(() => {
+    particlesInitialized = true
+  })
+
+  return particlesInitPromise
+}
+
+function BackgroundComponent() {
   const [mounted, setMounted] = useState(false)
   const [particlesReady, setParticlesReady] = useState(false)
   const { theme } = useThemeStore()
 
   useEffect(() => {
     setMounted(true)
-    initParticlesEngine(async (engine) => {
-      await loadSlim(engine)
-    }).then(() => setParticlesReady(true))
+    initParticlesOnce().then(() => setParticlesReady(true))
   }, [])
 
   const particlesLoaded = useCallback(async () => {}, [])
@@ -1248,6 +1263,7 @@ export default function Background() {
       {/* tsParticles layer */}
       {particlesReady && (
         <Particles
+          key={`particles-${theme.particles}`}
           id="tsparticles"
           className="absolute inset-0"
           particlesLoaded={particlesLoaded}
@@ -1257,3 +1273,7 @@ export default function Background() {
     </div>
   )
 }
+
+// Memoize to prevent re-renders on navigation
+const Background = React.memo(BackgroundComponent)
+export default Background

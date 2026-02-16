@@ -146,7 +146,7 @@ export default function WritePage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+        transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
         className="text-center mb-6"
       >
         <h1
@@ -161,7 +161,7 @@ export default function WritePage() {
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 1.2, delay: 0.5, ease: 'easeOut' }}
+        transition={{ duration: 1.2, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="text-center text-sm italic mb-8"
         style={{ color: theme.text.muted }}
       >
@@ -215,7 +215,7 @@ export default function WritePage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.9, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+        transition={{ duration: 1, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
       >
         <Editor prompt={prompt} />
       </motion.div>

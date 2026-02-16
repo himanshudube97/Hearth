@@ -7,6 +7,11 @@
   --accent-gold: #D4A84B;
 }
 
+html {
+  /* Prevent layout shift - use overlay scrollbar */
+  overflow-y: scroll;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -14,7 +19,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Scrollbar styling */
+/* Auto-hiding scrollbar - hidden by default, shows on scroll */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -24,12 +29,29 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(94, 139, 90, 0.3);
+  background: transparent;
   border-radius: 4px;
+  transition: background 0.3s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
+/* Show scrollbar on hover anywhere on page */
+html:hover::-webkit-scrollbar-thumb,
+html:active::-webkit-scrollbar-thumb {
+  background: rgba(94, 139, 90, 0.3);
+}
+
+html:hover::-webkit-scrollbar-thumb:hover {
   background: rgba(94, 139, 90, 0.5);
+}
+
+/* Firefox - auto-hide scrollbar */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+html:hover {
+  scrollbar-color: rgba(94, 139, 90, 0.3) transparent;
 }
 
 /* Selection */

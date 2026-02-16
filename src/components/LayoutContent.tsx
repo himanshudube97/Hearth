@@ -5,6 +5,7 @@ import Background from '@/components/Background'
 import Navigation from '@/components/Navigation'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
 import CursorPicker from '@/components/CursorPicker'
+import PageTransition from '@/components/PageTransition'
 
 export default function LayoutContent({
   children,
@@ -31,7 +32,9 @@ export default function LayoutContent({
       <Background />
       <Navigation />
       <main className="relative z-10 min-h-screen pt-20 pb-8 px-4">
-        {children}
+        <PageTransition>
+          {children}
+        </PageTransition>
       </main>
       <CursorPicker />
       <ThemeSwitcher />

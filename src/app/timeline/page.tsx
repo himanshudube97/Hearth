@@ -177,7 +177,7 @@ export default function TimelinePage() {
         <motion.h1
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+          transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           className="text-2xl font-light text-center mb-6"
           style={{ color: theme.text.primary }}
         >
@@ -189,6 +189,7 @@ export default function TimelinePage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="flex justify-center gap-6 mb-6 text-sm"
             style={{ color: theme.text.muted }}
           >
@@ -424,9 +425,9 @@ export default function TimelinePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
-                duration: 0.5,
-                delay: Math.min(groupIndex * 0.1, 0.5),
-                ease: [0.25, 0.1, 0.25, 1]
+                duration: 0.8,
+                delay: 0.5 + Math.min(groupIndex * 0.15, 0.6),
+                ease: [0.22, 1, 0.36, 1]
               }}
             >
               {/* Date header */}
