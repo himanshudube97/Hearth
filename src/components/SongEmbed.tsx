@@ -1,7 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 
@@ -11,7 +10,7 @@ interface SongEmbedProps {
   audioOnly?: boolean // New prop to show custom UI instead of video
 }
 
-type EmbedType = 'youtube' | 'spotify' | 'soundcloud' | 'apple' | 'unknown'
+type EmbedType = 'youtube' | 'spotify' | 'soundcloud' | 'apple' | 'instagram' | 'unknown'
 
 interface EmbedInfo {
   type: EmbedType
@@ -57,6 +56,16 @@ function parseUrl(url: string): EmbedInfo {
   if (trimmedUrl.includes('soundcloud.com')) {
     return {
       type: 'soundcloud',
+      embedUrl: null,
+    }
+  }
+
+  // Instagram Reels/Posts - link only (no embed to keep app clean)
+  // https://www.instagram.com/reel/ABC123/
+  // https://www.instagram.com/p/ABC123/
+  if (trimmedUrl.includes('instagram.com/reel/') || trimmedUrl.includes('instagram.com/p/')) {
+    return {
+      type: 'instagram',
       embedUrl: null,
     }
   }
@@ -147,135 +156,6 @@ function FloatingNotes({ color }: { color: string }) {
   )
 }
 
-// Full screen floating notes - music fills the room
-function FullScreenMusicNotes({ color, secondaryColor }: { color: string; secondaryColor: string }) {
-  const notes = ['♪', '♫', '♬', '♩', '♪', '♫']
-
-  // Change cursor to music note when playing
-  useEffect(() => {
-    // Create a style element for the custom cursor
-    const style = document.createElement('style')
-    style.id = 'music-cursor-style'
-
-    // SVG cursor with music note
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><text x='4' y='22' font-size='20' fill='${color.replace('#', '%23')}'>♪</text></svg>`
-
-    style.textContent = `
-      *, *::before, *::after {
-        cursor: url("data:image/svg+xml,${svg}") 12 12, auto !important;
-      }
-    `
-
-    document.head.appendChild(style)
-
-    return () => {
-      const existingStyle = document.getElementById('music-cursor-style')
-      if (existingStyle) {
-        existingStyle.remove()
-      }
-    }
-  }, [color])
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 1 }}
-      className="fixed inset-0 pointer-events-none z-40 overflow-hidden"
-    >
-      {/* Notes floating up from bottom */}
-      {[...Array(12)].map((_, i) => (
-        <motion.span
-          key={`up-${i}`}
-          className="absolute text-2xl"
-          style={{
-            color: i % 2 === 0 ? color : secondaryColor,
-            left: `${5 + (i * 8)}%`,
-            textShadow: `0 0 20px ${color}50`,
-          }}
-          initial={{
-            y: '100vh',
-            opacity: 0,
-            scale: 0.3,
-            rotate: -20,
-          }}
-          animate={{
-            y: '-10vh',
-            opacity: [0, 0.4, 0.3, 0.2, 0],
-            scale: [0.3, 0.8, 1, 0.9, 0.7],
-            rotate: [-20, 10, -10, 20, 0],
-            x: [0, 30, -20, 40, 0],
-          }}
-          transition={{
-            duration: 8 + Math.random() * 4,
-            repeat: Infinity,
-            delay: i * 0.7,
-            ease: 'easeOut',
-          }}
-        >
-          {notes[i % notes.length]}
-        </motion.span>
-      ))}
-
-      {/* Notes drifting from sides */}
-      {[...Array(6)].map((_, i) => (
-        <motion.span
-          key={`side-${i}`}
-          className="absolute text-xl"
-          style={{
-            color: i % 2 === 0 ? secondaryColor : color,
-            top: `${15 + (i * 12)}%`,
-            opacity: 0.25,
-          }}
-          initial={{
-            x: i % 2 === 0 ? '-5vw' : '105vw',
-            opacity: 0,
-            scale: 0.5,
-          }}
-          animate={{
-            x: i % 2 === 0 ? '105vw' : '-5vw',
-            opacity: [0, 0.25, 0.2, 0],
-            scale: [0.5, 0.9, 0.7],
-            y: [0, -50, -30, -80],
-          }}
-          transition={{
-            duration: 12 + Math.random() * 5,
-            repeat: Infinity,
-            delay: i * 1.5 + 2,
-            ease: 'linear',
-          }}
-        >
-          {notes[(i + 2) % notes.length]}
-        </motion.span>
-      ))}
-
-      {/* Subtle sparkles */}
-      {[...Array(8)].map((_, i) => (
-        <motion.div
-          key={`sparkle-${i}`}
-          className="absolute w-1 h-1 rounded-full"
-          style={{
-            background: color,
-            left: `${10 + Math.random() * 80}%`,
-            top: `${10 + Math.random() * 80}%`,
-            boxShadow: `0 0 10px ${color}`,
-          }}
-          animate={{
-            opacity: [0, 0.6, 0],
-            scale: [0, 1.5, 0],
-          }}
-          transition={{
-            duration: 2 + Math.random() * 2,
-            repeat: Infinity,
-            delay: i * 0.8,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
-    </motion.div>
-  )
-}
 
 // Spinning vinyl record
 function VinylRecord({ isPlaying, color }: { isPlaying: boolean; color: string }) {
@@ -353,6 +233,7 @@ function AudioOnlyPlayer({
     spotify: 'Spotify',
     apple: 'Apple Music',
     soundcloud: 'SoundCloud',
+    instagram: 'Instagram',
     unknown: 'Music',
   }[type]
 
@@ -361,6 +242,7 @@ function AudioOnlyPlayer({
     spotify: '●',
     apple: '♪',
     soundcloud: '☁',
+    instagram: '📷',
     unknown: '♫',
   }[type]
 
@@ -376,22 +258,9 @@ function AudioOnlyPlayer({
     setIsPlaying(false)
   }
 
-  // For portal rendering
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   return (
     <>
-      {/* Full screen music notes - rendered via portal */}
-      {mounted && isPlaying && createPortal(
-        <AnimatePresence>
-          <FullScreenMusicNotes color={theme.accent.warm} secondaryColor={theme.accent.cool} />
-        </AnimatePresence>,
-        document.body
-      )}
-
       <motion.div
       layout
       className="rounded-2xl overflow-hidden relative"
@@ -483,6 +352,22 @@ function AudioOnlyPlayer({
               >
                 <span className="text-sm">■</span>
               </motion.button>
+
+              {/* Open original link icon */}
+              <a
+                href={originalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-100 opacity-50"
+                style={{
+                  background: `${theme.text.muted}15`,
+                  color: theme.text.muted,
+                }}
+                title={`Open in ${platformName}`}
+              >
+                <span className="text-xs">↗</span>
+              </a>
             </div>
 
             {/* Animated border glow */}
@@ -548,6 +433,22 @@ function AudioOnlyPlayer({
             >
               <span className="text-white text-lg ml-0.5">▶</span>
             </motion.div>
+
+            {/* Open original link icon */}
+            <a
+              href={originalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-opacity hover:opacity-100 opacity-50"
+              style={{
+                background: `${theme.text.muted}15`,
+                color: theme.text.muted,
+              }}
+              title={`Open in ${platformName}`}
+            >
+              <span className="text-xs">↗</span>
+            </a>
           </motion.div>
         )}
       </AnimatePresence>
@@ -578,22 +479,35 @@ export default function SongEmbed({ url, compact = false, audioOnly = true }: So
 
   // For URLs without embed support, show as clickable link
   if (!embedInfo.embedUrl) {
+    const linkIcon = {
+      soundcloud: '☁',
+      instagram: '📷',
+      unknown: '♫',
+    }[embedInfo.type] || '♫'
+
+    const linkLabel = {
+      soundcloud: 'SoundCloud',
+      instagram: 'Instagram Reel',
+      unknown: 'Link',
+    }[embedInfo.type] || 'Link'
+
     return (
       <motion.a
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-2 p-3 rounded-xl hover:opacity-80 transition-opacity"
+        className="flex items-center gap-3 p-3 rounded-xl hover:opacity-80 transition-opacity"
         style={{ background: `${theme.accent.warm}15` }}
         whileHover={{ scale: 1.01 }}
       >
-        <span style={{ color: theme.accent.warm }}>
-          {embedInfo.type === 'soundcloud' ? '☁' : '♫'}
-        </span>
-        <span className="text-sm truncate flex-1" style={{ color: theme.text.primary }}>
-          {url}
-        </span>
-        <span className="text-xs" style={{ color: theme.text.muted }}>↗</span>
+        <span style={{ color: theme.accent.warm }}>{linkIcon}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs" style={{ color: theme.text.muted }}>{linkLabel}</p>
+          <p className="text-sm truncate" style={{ color: theme.text.primary }}>
+            {url.replace(/https?:\/\/(www\.)?/, '').slice(0, 40)}...
+          </p>
+        </div>
+        <span className="text-sm" style={{ color: theme.accent.warm }}>↗</span>
       </motion.a>
     )
   }
@@ -709,6 +623,7 @@ export default function SongEmbed({ url, compact = false, audioOnly = true }: So
     )
   }
 
+
   // Fallback
   return (
     <div
@@ -723,7 +638,7 @@ export default function SongEmbed({ url, compact = false, audioOnly = true }: So
   )
 }
 
-// Helper to check if a string looks like a music URL
+// Helper to check if a string looks like a music/media URL
 export function isMusicUrl(text: string): boolean {
   const musicPatterns = [
     /youtube\.com/i,
@@ -732,6 +647,8 @@ export function isMusicUrl(text: string): boolean {
     /spotify\.com/i,
     /soundcloud\.com/i,
     /music\.apple\.com/i,
+    /instagram\.com\/reel\//i,
+    /instagram\.com\/p\//i,
   ]
   return musicPatterns.some(pattern => pattern.test(text))
 }

@@ -206,7 +206,12 @@ export default function TimelinePage() {
         )}
 
         {/* Search bar */}
-        <div className="flex gap-2 mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="flex gap-2 mb-4"
+        >
           <div
             className="flex-1 flex items-center gap-2 px-4 py-2 rounded-full"
             style={{
@@ -252,7 +257,7 @@ export default function TimelinePage() {
           >
             ☰
           </motion.button>
-        </div>
+        </motion.div>
 
         {/* Mood filters */}
         <AnimatePresence>
@@ -306,7 +311,12 @@ export default function TimelinePage() {
 
         {/* Year selector */}
         {!searchQuery && (
-          <div className="flex items-center justify-center gap-2 mb-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            className="flex items-center justify-center gap-2 mb-4"
+          >
             {availableYears.map((year) => (
               <motion.button
                 key={year}
@@ -329,12 +339,15 @@ export default function TimelinePage() {
                 {year}
               </motion.button>
             ))}
-          </div>
+          </motion.div>
         )}
 
         {/* Month tabs */}
         {!searchQuery && (
-          <div
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="flex gap-1 p-1 rounded-full overflow-x-auto scrollbar-hide"
             style={{
               background: theme.glass.bg,
@@ -375,7 +388,7 @@ export default function TimelinePage() {
                 </button>
               )
             })}
-          </div>
+          </motion.div>
         )}
 
         {/* Search results indicator */}
@@ -455,17 +468,20 @@ export default function TimelinePage() {
                 className="space-y-3 ml-4 border-l-2 pl-6"
                 style={{ borderColor: theme.glass.border }}
               >
-                {group.entries.map((entry) => (
-                  <EntryCard
-                    key={entry.id}
-                    entry={entry}
-                    expanded={expandedEntry === entry.id}
-                    onClick={() => setExpandedEntry(
-                      expandedEntry === entry.id ? null : entry.id
-                    )}
-                    onEdit={handleEditEntry}
-                  />
-                ))}
+                {group.entries.map((entry) => {
+                  const isLetter = entry.entryType === 'letter' && entry.isSealed
+                  return (
+                    <EntryCard
+                      key={entry.id}
+                      entry={entry}
+                      expanded={isLetter ? false : expandedEntry === entry.id}
+                      onClick={isLetter ? undefined : () => setExpandedEntry(
+                        expandedEntry === entry.id ? null : entry.id
+                      )}
+                      onEdit={isLetter ? undefined : handleEditEntry}
+                    />
+                  )
+                })}
               </div>
             </motion.div>
           ))}

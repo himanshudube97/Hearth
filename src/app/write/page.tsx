@@ -330,16 +330,38 @@ export default function WritePage() {
 
       {/* Today's Entries */}
       {todayEntries.length > 0 && (
-        <div className="mt-12">
-          <h2 className="text-lg mb-4" style={{ color: theme.text.secondary }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-12"
+        >
+          <motion.h2
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="text-lg mb-4"
+            style={{ color: theme.text.secondary }}
+          >
             earlier today
-          </h2>
+          </motion.h2>
           <div className="space-y-4">
-            {todayEntries.map((entry) => (
-              <EntryCard key={entry.id} entry={entry} onEdit={handleEditEntry} />
+            {todayEntries.map((entry, index) => (
+              <motion.div
+                key={entry.id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.8,
+                  delay: 0.8 + index * 0.1,
+                  ease: [0.22, 1, 0.36, 1]
+                }}
+              >
+                <EntryCard entry={entry} onEdit={handleEditEntry} />
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Doodle Modal */}

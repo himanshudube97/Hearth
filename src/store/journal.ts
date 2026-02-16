@@ -9,6 +9,14 @@ export interface JournalEntry {
   song?: string
   tags: string[]
   doodles: Doodle[]
+  // Letter-specific fields
+  entryType?: 'normal' | 'letter' | 'unsent_letter' | 'ephemeral'
+  isSealed?: boolean
+  unlockDate?: string
+  recipientEmail?: string | null
+  recipientName?: string | null
+  senderName?: string | null
+  letterLocation?: string | null
 }
 
 export interface Doodle {

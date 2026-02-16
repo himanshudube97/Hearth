@@ -20,6 +20,7 @@ import {
 } from 'date-fns'
 import { useThemeStore } from '@/store/theme'
 import { useEntries, useEntryStats } from '@/hooks/useEntries'
+import SongEmbed from '@/components/SongEmbed'
 
 type ViewMode = 'month' | 'year'
 
@@ -363,33 +364,129 @@ export default function CalendarPage() {
             </p>
           ) : selectedDayEntries.length > 0 ? (
             <div className="space-y-4">
-              {selectedDayEntries.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="p-4 rounded-xl"
-                  style={{ background: theme.glass.bg }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span>{theme.moodEmojis[entry.mood]}</span>
-                    <span className="text-sm" style={{ color: theme.text.muted }}>
-                      {format(new Date(entry.createdAt), 'h:mm a')}
-                    </span>
-                    {entry.song && (
-                      <span className="text-sm" style={{ color: theme.accent.warm }}>
-                        ♫ {entry.song}
+              {selectedDayEntries.map((entry) => {
+                const isLetter = entry.entryType === 'letter' && entry.isSealed
+                const isLetterToFriend = isLetter && !!entry.recipientEmail
+                const moodColor = theme.moods[entry.mood as keyof typeof theme.moods]
+
+                // Letter card
+                if (isLetter) {
+                  return (
+                    <div
+                      key={entry.id}
+                      className="p-4 rounded-xl"
+                      style={{
+                        background: `linear-gradient(135deg, ${theme.glass.bg} 0%, ${moodColor}10 100%)`,
+                        border: `1px solid ${moodColor}30`,
+                      }}
+                    >
+                      {/* Letter Header */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <span
+                          className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+                          style={{ background: `${moodColor}20` }}
+                        >
+                          ✉️
+                        </span>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
+                            {isLetterToFriend
+                              ? `Letter to ${entry.recipientName || 'a friend'}`
+                              : 'Letter to future self'}
+                          </p>
+                          <p className="text-xs" style={{ color: theme.text.muted }}>
+                            {format(new Date(entry.createdAt), 'h:mm a')}
+                          </p>
+                        </div>
+                        <span
+                          className="w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{ background: `${theme.text.muted}15` }}
+                        >
+                          🔒
+                        </span>
+                      </div>
+
+                      {/* Sealed envelope body */}
+                      <div
+                        className="relative rounded-xl p-4"
+                        style={{
+                          background: `${theme.bg.primary}60`,
+                          border: `1px dashed ${moodColor}40`,
+                        }}
+                      >
+                        <div
+                          className="absolute top-2 right-2 w-8 h-10 rounded flex items-center justify-center text-sm"
+                          style={{
+                            background: `${moodColor}20`,
+                            border: `1px solid ${moodColor}30`,
+                          }}
+                        >
+                          {theme.moodEmojis[entry.mood]}
+                        </div>
+                        <p
+                          className="text-sm italic pr-10"
+                          style={{ color: theme.text.muted }}
+                        >
+                          {isLetterToFriend
+                            ? `A letter waiting to reach ${entry.recipientName || 'someone special'}...`
+                            : 'A message from your past self, sealed until the right moment...'}
+                        </p>
+                        {entry.unlockDate && (
+                          <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${theme.glass.border}` }}>
+                            <p className="text-xs" style={{ color: theme.text.muted }}>
+                              {new Date(entry.unlockDate) > new Date() ? (
+                                <>
+                                  <span style={{ color: moodColor }}>⏳</span>{' '}
+                                  Opens {format(new Date(entry.unlockDate), 'MMMM d, yyyy')}
+                                </>
+                              ) : (
+                                <>
+                                  <span style={{ color: theme.accent.warm }}>✨</span>{' '}
+                                  {isLetterToFriend ? 'Delivered' : 'Ready to reveal'}
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                }
+
+                // Regular entry card
+                return (
+                  <div
+                    key={entry.id}
+                    className="p-4 rounded-xl"
+                    style={{ background: theme.glass.bg }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span>{theme.moodEmojis[entry.mood]}</span>
+                      <span className="text-sm" style={{ color: theme.text.muted }}>
+                        {format(new Date(entry.createdAt), 'h:mm a')}
                       </span>
+                      {entry.song && (
+                        <span className="text-sm" style={{ color: theme.accent.warm }}>
+                          ♫
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className="prose prose-invert max-w-none text-sm"
+                      style={{
+                        color: theme.text.primary,
+                        fontFamily: 'Georgia, Palatino, serif',
+                      }}
+                      dangerouslySetInnerHTML={{ __html: entry.text }}
+                    />
+                    {entry.song && (
+                      <div className="mt-3">
+                        <SongEmbed url={entry.song} compact />
+                      </div>
                     )}
                   </div>
-                  <div
-                    className="prose prose-invert max-w-none text-sm"
-                    style={{
-                      color: theme.text.primary,
-                      fontFamily: 'Georgia, Palatino, serif',
-                    }}
-                    dangerouslySetInnerHTML={{ __html: entry.text }}
-                  />
-                </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <p className="text-sm italic" style={{ color: theme.text.muted }}>
