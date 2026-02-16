@@ -27,6 +27,33 @@ const themeStamps: Record<ThemeName, { icon: string; color: string }> = {
   quietSnow: { icon: '❄️', color: '#88A8C8' },
 }
 
+// Ink writing effect - words appear as if being written
+function InkWriteText({ text, delay = 0 }: { text: string; delay?: number }) {
+  // Strip HTML and split into words
+  const plainText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  const words = plainText.split(' ')
+
+  return (
+    <p style={{ fontFamily: "var(--font-caveat), 'Caveat', cursive", fontSize: '24px', lineHeight: 1.8, color: '#2a2520' }}>
+      {words.map((word, i) => (
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            delay: delay + i * 0.04,
+            duration: 0.2,
+            ease: 'easeOut',
+          }}
+          style={{ display: 'inline-block', marginRight: '0.3em' }}
+        >
+          {word}
+        </motion.span>
+      ))}
+    </p>
+  )
+}
+
 const unlockOptions = [
   { label: '1 week', getValue: () => addWeeks(new Date(), 1) },
   { label: '2 weeks', getValue: () => addWeeks(new Date(), 2) },
@@ -1440,8 +1467,13 @@ export default function LettersPage() {
 
                 {/* Scrollable content area */}
                 <div className="flex-1 overflow-y-auto px-8 py-6">
-                  {/* Salutation */}
-                  <div className="mb-4">
+                  {/* Salutation with animation */}
+                  <motion.div
+                    className="mb-4"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1, duration: 0.4 }}
+                  >
                     <p
                       style={{
                         fontFamily: "var(--font-caveat), 'Caveat', cursive",
@@ -1451,22 +1483,18 @@ export default function LettersPage() {
                     >
                       Dear future {profile.nickname || 'me'},
                     </p>
-                  </div>
+                  </motion.div>
 
-                  {/* Content */}
-                  <div
-                    className="prose max-w-none"
-                    style={{
-                      fontFamily: "var(--font-caveat), 'Caveat', cursive",
-                      fontSize: '24px',
-                      lineHeight: 1.8,
-                      color: '#2a2520',
-                    }}
-                    dangerouslySetInnerHTML={{ __html: selectedLetter.text }}
-                  />
+                  {/* Content with ink writing effect */}
+                  <InkWriteText text={selectedLetter.text} delay={0.5} />
 
-                  {/* Signature */}
-                  <div className="mt-8 text-right">
+                  {/* Signature with animation */}
+                  <motion.div
+                    className="mt-8 text-right"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 2, duration: 0.5 }}
+                  >
                     <p
                       style={{
                         fontFamily: "var(--font-caveat), 'Caveat', cursive",
@@ -1483,7 +1511,7 @@ export default function LettersPage() {
                       {format(new Date(selectedLetter.createdAt), 'MMMM d, yyyy')}
                       {selectedLetter.letterLocation && ` • ${selectedLetter.letterLocation}`}
                     </p>
-                  </div>
+                  </motion.div>
                 </div>
 
                 {/* Decorative bottom edge */}
