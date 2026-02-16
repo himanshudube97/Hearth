@@ -44,6 +44,7 @@ model JournalEntry {
   letterLocation  String?   // Where the letter was written from (e.g., "Himachal Pradesh")
   isDelivered     Boolean   @default(false)  // Has the letter been sent/delivered
   deliveredAt     DateTime? // When the letter was delivered
+  isViewed        Boolean   @default(false)  // Has the user viewed this letter after it arrived
 
   doodles     Doodle[]
 

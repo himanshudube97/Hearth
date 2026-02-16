@@ -1,10 +1,12 @@
 'use client'
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { getStroke } from 'perfect-freehand'
 import { useThemeStore } from '@/store/theme'
 import { StrokeData } from '@/store/journal'
+
+const DOODLE_DRAFT_KEY = 'hearth_doodle_draft'
 
 interface Point {
   x: number
@@ -65,6 +67,34 @@ export default function DoodleCanvas({ onSave, onClose }: DoodleCanvasProps) {
   const [activeBrush, setActiveBrush] = useState(1)
   const [isErasing, setIsErasing] = useState(false)
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
+  const [hasDraft, setHasDraft] = useState(false)
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const draft = localStorage.getItem(DOODLE_DRAFT_KEY)
+      if (draft) {
+        const parsed = JSON.parse(draft) as StrokeData[]
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setStrokes(parsed)
+          setHasDraft(true)
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load doodle draft:', e)
+    }
+  }, [])
+
+  // Auto-save draft to localStorage whenever strokes change
+  useEffect(() => {
+    if (strokes.length > 0) {
+      try {
+        localStorage.setItem(DOODLE_DRAFT_KEY, JSON.stringify(strokes))
+      } catch (e) {
+        console.error('Failed to save doodle draft:', e)
+      }
+    }
+  }, [strokes])
 
   const brushes = [
     { name: 'Pencil', size: 3 },
@@ -137,10 +167,27 @@ export default function DoodleCanvas({ onSave, onClose }: DoodleCanvasProps) {
   const clearCanvas = () => {
     setStrokes([])
     setCurrentPoints([])
+    setHasDraft(false)
+    try {
+      localStorage.removeItem(DOODLE_DRAFT_KEY)
+    } catch (e) {
+      console.error('Failed to clear doodle draft:', e)
+    }
   }
 
   const handleSave = () => {
     onSave(strokes)
+    // Clear draft after saving
+    try {
+      localStorage.removeItem(DOODLE_DRAFT_KEY)
+    } catch (e) {
+      console.error('Failed to clear doodle draft:', e)
+    }
+  }
+
+  const handleClose = () => {
+    // Keep draft in localStorage so user can resume later
+    onClose()
   }
 
   const renderStroke = (strokeData: StrokeData, index: number) => {
@@ -300,24 +347,33 @@ export default function DoodleCanvas({ onSave, onClose }: DoodleCanvasProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 p-4 border-t" style={{ borderColor: theme.glass.border }}>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm"
-            style={{ color: theme.text.muted }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 rounded-lg text-sm font-medium"
-            style={{
-              background: theme.accent.primary,
-              color: theme.bg.primary,
-            }}
-          >
-            Embed Doodle
-          </button>
+        <div className="flex items-center justify-between p-4 border-t" style={{ borderColor: theme.glass.border }}>
+          <div>
+            {hasDraft && strokes.length > 0 && (
+              <span className="text-xs" style={{ color: theme.text.muted }}>
+                Draft restored
+              </span>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={handleClose}
+              className="px-4 py-2 rounded-lg text-sm"
+              style={{ color: theme.text.muted }}
+            >
+              {strokes.length > 0 ? 'Save draft & close' : 'Cancel'}
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 rounded-lg text-sm font-medium"
+              style={{
+                background: theme.accent.primary,
+                color: theme.bg.primary,
+              }}
+            >
+              Embed Doodle
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>

@@ -24,6 +24,7 @@ export async function GET() {
         letterLocation: true,
         recipientEmail: true,
         recipientName: true,
+        isViewed: true,
       },
       orderBy: {
         createdAt: 'desc',

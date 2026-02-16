@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getGreeting, getRandomWhisper, getRandomPrompt } from '@/lib/themes'
 import { useThemeStore } from '@/store/theme'
@@ -15,12 +15,15 @@ import SongEmbed, { isMusicUrl } from '@/components/SongEmbed'
 import BirthdayBanner from '@/components/BirthdayBanner'
 import LetterArrivedBanner from '@/components/LetterArrivedBanner'
 
+const DOODLE_DRAFT_KEY = 'hearth_doodle_draft'
+
 export default function WritePage() {
   const [whisper, setWhisper] = useState('')
   const [prompt, setPrompt] = useState('')
   const [showDoodle, setShowDoodle] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
+  const [hasDoodleDraft, setHasDoodleDraft] = useState(false)
 
   const { theme } = useThemeStore()
   const { profile, fetchProfile } = useProfileStore()
@@ -43,10 +46,21 @@ export default function WritePage() {
     limit: 20,
   })
 
+  // Check for doodle draft
+  const checkDoodleDraft = useCallback(() => {
+    try {
+      const draft = localStorage.getItem(DOODLE_DRAFT_KEY)
+      setHasDoodleDraft(draft !== null && JSON.parse(draft)?.length > 0)
+    } catch {
+      setHasDoodleDraft(false)
+    }
+  }, [])
+
   useEffect(() => {
     setWhisper(getRandomWhisper())
     setPrompt(getRandomPrompt())
     fetchProfile()
+    checkDoodleDraft()
 
     // Check if we're coming from timeline with an entry to edit
     const editingId = sessionStorage.getItem('editingEntryId')
@@ -101,6 +115,13 @@ export default function WritePage() {
         setEditingEntry(null)
         refreshTodayEntries()
         setWhisper(getRandomWhisper())
+        // Clear doodle draft
+        try {
+          localStorage.removeItem(DOODLE_DRAFT_KEY)
+          setHasDoodleDraft(false)
+        } catch (e) {
+          console.error('Failed to clear doodle draft:', e)
+        }
       } else {
         console.error('Save failed:', data)
         alert(`Failed to save: ${data.details || data.error}`)
@@ -135,6 +156,13 @@ export default function WritePage() {
   const handleDoodleSave = (strokes: StrokeData[]) => {
     strokes.forEach(stroke => addDoodleStroke(stroke))
     setShowDoodle(false)
+    setHasDoodleDraft(false)
+  }
+
+  const handleDoodleClose = () => {
+    setShowDoodle(false)
+    // Check if there's a draft after closing (user might have drawn something)
+    checkDoodleDraft()
   }
 
   // Use state for greeting to avoid hydration mismatch (time differs server vs client)
@@ -254,15 +282,21 @@ export default function WritePage() {
             whileTap={{ scale: 0.95 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
             onClick={() => setShowDoodle(true)}
-            className="w-10 h-10 rounded-full flex items-center justify-center"
+            className="w-10 h-10 rounded-full flex items-center justify-center relative"
             style={{
               background: theme.glass.bg,
               border: `1px solid ${theme.glass.border}`,
-              color: currentDoodleStrokes.length > 0 ? theme.accent.warm : theme.text.muted,
+              color: currentDoodleStrokes.length > 0 || hasDoodleDraft ? theme.accent.warm : theme.text.muted,
             }}
-            title="Add doodle"
+            title={hasDoodleDraft ? "Continue doodle draft" : "Add doodle"}
           >
             ✎
+            {hasDoodleDraft && currentDoodleStrokes.length === 0 && (
+              <span
+                className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
+                style={{ background: theme.accent.warm }}
+              />
+            )}
           </motion.button>
 
           <motion.button
@@ -394,7 +428,7 @@ export default function WritePage() {
         {showDoodle && (
           <DoodleCanvas
             onSave={handleDoodleSave}
-            onClose={() => setShowDoodle(false)}
+            onClose={handleDoodleClose}
           />
         )}
       </AnimatePresence>
