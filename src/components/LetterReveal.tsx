@@ -102,7 +102,7 @@ export default function LetterReveal() {
     }
   }, [checkForLetters, hasChecked])
 
-  const handleClose = () => {
+  const handleClose = async () => {
     // Mark current letter as viewed
     const currentLetter = arrivedLetters[currentLetterIndex]
     if (currentLetter) {
@@ -110,6 +110,13 @@ export default function LetterReveal() {
       newViewedIds.add(currentLetter.id)
       setViewedLetterIds(newViewedIds)
       sessionStorage.setItem('viewedLetterIds', JSON.stringify([...newViewedIds]))
+
+      // Mark as viewed in database so it shows in Letters tab
+      try {
+        await fetch(`/api/letters/${currentLetter.id}/viewed`, { method: 'POST' })
+      } catch (error) {
+        console.error('Failed to mark letter as viewed:', error)
+      }
     }
 
     // If there are more letters, show the next one

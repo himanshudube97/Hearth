@@ -1,11 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display } from "next/font/google";
+import { Playfair_Display, Caveat } from "next/font/google";
 import "./globals.css";
 import LayoutContent from "@/components/LayoutContent";
 import AuthProvider from "@/components/AuthProvider";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
+  subsets: ["latin"],
+});
+
+const caveat = Caveat({
+  variable: "--font-caveat",
   subsets: ["latin"],
 });
 
@@ -56,7 +61,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${playfair.variable} antialiased`}>
+      <body className={`${playfair.variable} ${caveat.variable} antialiased`}>
         <AuthProvider>
           <LayoutContent>{children}</LayoutContent>
         </AuthProvider>

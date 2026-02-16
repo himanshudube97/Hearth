@@ -6,10 +6,26 @@ import { format, addWeeks, addMonths, addYears, isBefore, addDays, startOfDay } 
 import html2canvas from 'html2canvas-pro'
 import { useThemeStore } from '@/store/theme'
 import { useProfileStore } from '@/store/profile'
+import { ThemeName } from '@/lib/themes'
 import Editor from '@/components/Editor'
 import DatePicker from '@/components/DatePicker'
 
 type RecipientType = 'self' | 'friend'
+
+// Theme-specific stamps
+const themeStamps: Record<ThemeName, { icon: string; color: string }> = {
+  rivendell: { icon: '🍃', color: '#5E8B5A' },
+  hobbiton: { icon: '🌻', color: '#60B060' },
+  winterSunset: { icon: '❄️', color: '#E8945A' },
+  cherryBlossom: { icon: '🌸', color: '#E8A0B8' },
+  northernLights: { icon: '✨', color: '#4ECCA3' },
+  mistyMountains: { icon: '⛰️', color: '#8BA4B8' },
+  gentleRain: { icon: '🌧️', color: '#6B8FAD' },
+  cosmos: { icon: '🌟', color: '#9D8CFF' },
+  candlelight: { icon: '🕯️', color: '#E8A050' },
+  oceanTwilight: { icon: '🌊', color: '#50A0C8' },
+  quietSnow: { icon: '❄️', color: '#88A8C8' },
+}
 
 const unlockOptions = [
   { label: '1 week', getValue: () => addWeeks(new Date(), 1) },
@@ -552,7 +568,7 @@ function SuccessMessage({ recipientType, recipientName, unlockDate, onWriteAnoth
 }
 
 export default function LettersPage() {
-  const { theme } = useThemeStore()
+  const { theme, themeName } = useThemeStore()
   const { profile, fetchProfile } = useProfileStore()
 
   // Fetch profile for nickname
@@ -1295,7 +1311,7 @@ export default function LettersPage() {
         )}
       </div>
 
-      {/* Letter Reading Modal */}
+      {/* Letter Reading Modal - Postcard Design */}
       <AnimatePresence>
         {showLetterModal && selectedLetter && (
           <motion.div
@@ -1307,67 +1323,132 @@ export default function LettersPage() {
             onClick={() => setShowLetterModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              initial={{ scale: 0.9, opacity: 0, rotateY: -10 }}
+              animate={{ scale: 1, opacity: 1, rotateY: 0 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="relative mx-4 flex flex-col"
               style={{
-                width: '90vw',
-                maxWidth: '650px',
+                width: '95vw',
+                maxWidth: '900px',
                 maxHeight: 'calc(100vh - 104px)',
+                perspective: '1000px',
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Paper letter design */}
+              {/* Postcard container */}
               <div
-                className="relative rounded-lg flex-1 flex flex-col overflow-hidden min-h-0"
+                className="relative rounded-sm flex-1 flex flex-col overflow-hidden min-h-0"
                 style={{
-                  background: 'linear-gradient(165deg, #faf8f5 0%, #f5f0e8 50%, #efe8dc 100%)',
+                  background: '#f5f0e6',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                  border: '1px solid #e0d5c5',
                 }}
               >
-                {/* Decorative corner */}
+                {/* Paper texture overlay */}
                 <div
-                  className="absolute top-4 right-4 text-2xl opacity-20"
-                  style={{ color: '#8B7355' }}
-                >
-                  ❧
-                </div>
+                  className="absolute inset-0 pointer-events-none opacity-40"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                  }}
+                />
 
-                {/* Header - fixed */}
-                <div className="pt-6 pb-3 px-8 text-center border-b border-amber-200/50 flex-shrink-0">
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-                    style={{
-                      background: 'linear-gradient(135deg, #d4a574 0%, #c49a6c 100%)',
-                      boxShadow: '0 4px 12px rgba(196,154,108,0.4)',
-                    }}
-                  >
-                    <span className="text-xl">✉</span>
+                {/* Fold line in the middle */}
+                <div
+                  className="absolute left-[5%] right-[5%] top-1/2 h-px pointer-events-none"
+                  style={{
+                    background: 'rgba(139,115,85,0.08)',
+                    boxShadow: '0 1px 0 rgba(255,255,255,0.5)',
+                  }}
+                />
+
+                {/* Postcard header with stamp and postmark */}
+                <div className="relative pt-4 pb-3 px-6 shrink-0">
+                  {/* Stamp and Postmark row */}
+                  <div className="flex justify-between items-start mb-4">
+                    {/* Left side - decorative */}
+                    <div
+                      className="text-xs uppercase tracking-widest"
+                      style={{ color: 'rgba(139,115,85,0.5)' }}
+                    >
+                      Postcard
+                    </div>
+
+                    {/* Right side - Stamp and Postmark */}
+                    <div className="flex items-start gap-2">
+                      {/* Postmark */}
+                      <div
+                        className="relative flex items-center justify-center"
+                        style={{
+                          width: 70,
+                          height: 70,
+                          transform: 'rotate(-12deg)',
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            borderRadius: '50%',
+                            border: '3px solid rgba(139, 69, 69, 0.5)',
+                          }}
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 6,
+                            borderRadius: '50%',
+                            border: '2px solid rgba(139, 69, 69, 0.4)',
+                          }}
+                        />
+                        <div className="text-center" style={{ color: 'rgba(139, 69, 69, 0.6)' }}>
+                          <div style={{ fontSize: 9, fontWeight: 'bold', letterSpacing: 1 }}>
+                            {(selectedLetter.letterLocation || 'SOMEWHERE').toUpperCase().slice(0, 8)}
+                          </div>
+                          <div style={{ fontSize: 12, fontWeight: 'bold', marginTop: 2 }}>
+                            {format(new Date(selectedLetter.createdAt), 'dd.MM.yy')}
+                          </div>
+                        </div>
+                      </div>
+                      {/* Stamp */}
+                      <div
+                        style={{
+                          width: 55,
+                          height: 65,
+                          background: 'linear-gradient(145deg, #faf8f5, #f0ebe0)',
+                          border: '3px dashed rgba(139,115,85,0.5)',
+                          borderRadius: 3,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                        }}
+                      >
+                        <span style={{ fontSize: 22, marginBottom: 2 }}>{themeStamps[themeName]?.icon || '🍃'}</span>
+                        <span style={{ fontSize: 7, color: themeStamps[themeName]?.color || '#5E8B5A', fontWeight: 'bold', letterSpacing: 1 }}>HEARTH</span>
+                        <span style={{ fontSize: 9, color: '#8B7355', fontWeight: 'bold', marginTop: 1 }}>₹ 5</span>
+                      </div>
+                    </div>
                   </div>
-
-                  <h2
-                    className="text-xl font-serif tracking-wide mb-2"
-                    style={{ color: '#4a3f35' }}
-                  >
-                    A Letter From The Past
-                  </h2>
-
-                  <p className="text-sm" style={{ color: '#8B7355' }}>
-                    Written on {format(new Date(selectedLetter.createdAt), 'MMMM d, yyyy')}
-                    {selectedLetter.letterLocation && (
-                      <span className="block mt-1 text-xs italic">
-                        from {selectedLetter.letterLocation}
-                      </span>
-                    )}
-                  </p>
                 </div>
+
+                {/* Divider line */}
+                <div
+                  className="mx-6 h-px"
+                  style={{ background: 'rgba(139,115,85,0.15)' }}
+                />
 
                 {/* Scrollable content area */}
-                <div className="flex-1 overflow-y-auto px-10 py-6">
+                <div className="flex-1 overflow-y-auto px-8 py-6">
                   {/* Salutation */}
-                  <div className="mb-6">
-                    <p className="text-lg italic font-serif" style={{ color: '#6b5b4f' }}>
+                  <div className="mb-4">
+                    <p
+                      style={{
+                        fontFamily: "var(--font-caveat), 'Caveat', cursive",
+                        fontSize: '28px',
+                        color: '#2a2520',
+                      }}
+                    >
                       Dear future {profile.nickname || 'me'},
                     </p>
                   </div>
@@ -1376,38 +1457,46 @@ export default function LettersPage() {
                   <div
                     className="prose max-w-none"
                     style={{
-                      fontFamily: 'Georgia, "Times New Roman", serif',
-                      fontSize: '18px',
-                      lineHeight: 2,
-                      color: '#3d352e',
+                      fontFamily: "var(--font-caveat), 'Caveat', cursive",
+                      fontSize: '24px',
+                      lineHeight: 1.8,
+                      color: '#2a2520',
                     }}
                     dangerouslySetInnerHTML={{ __html: selectedLetter.text }}
                   />
 
                   {/* Signature */}
-                  <div className="mt-10 text-right">
-                    <p className="text-lg italic font-serif" style={{ color: '#6b5b4f' }}>
-                      With love,
+                  <div className="mt-8 text-right">
+                    <p
+                      style={{
+                        fontFamily: "var(--font-caveat), 'Caveat', cursive",
+                        fontSize: '22px',
+                        color: '#4a3f35',
+                      }}
+                    >
+                      — Past {profile.nickname || 'me'}
                     </p>
                     <p
-                      className="text-xl font-serif mt-2"
-                      style={{ color: '#4a3f35', fontStyle: 'italic' }}
+                      className="text-xs mt-1 italic"
+                      style={{ color: 'rgba(139,115,85,0.6)' }}
                     >
-                      Past {profile.nickname || 'me'}
+                      {format(new Date(selectedLetter.createdAt), 'MMMM d, yyyy')}
+                      {selectedLetter.letterLocation && ` • ${selectedLetter.letterLocation}`}
                     </p>
                   </div>
                 </div>
 
-                {/* Flourish - fixed at bottom */}
-                <div className="px-8 py-4 flex justify-center flex-shrink-0 border-t border-amber-200/30">
-                  <div className="text-2xl opacity-30" style={{ color: '#8B7355' }}>
-                    ~ ✧ ~
-                  </div>
-                </div>
+                {/* Decorative bottom edge */}
+                <div
+                  className="h-3 shrink-0"
+                  style={{
+                    background: 'linear-gradient(to top, rgba(139,115,85,0.06), transparent)',
+                  }}
+                />
               </div>
 
               {/* Action buttons */}
-              <div className="flex justify-center gap-3 mt-4 flex-shrink-0">
+              <div className="flex justify-center gap-3 mt-4 shrink-0">
                 <motion.button
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.98 }}
@@ -1415,10 +1504,10 @@ export default function LettersPage() {
                   disabled={isDownloading}
                   className="px-6 py-3 rounded-full text-sm font-medium flex items-center gap-2 relative overflow-hidden"
                   style={{
-                    background: 'linear-gradient(135deg, #f5f0e8 0%, #efe8dc 100%)',
-                    border: '1px solid rgba(196,154,108,0.4)',
+                    background: '#f5f0e6',
+                    border: '1px solid rgba(139,115,85,0.3)',
                     color: '#5a4a3e',
-                    boxShadow: '0 4px 15px rgba(139,115,85,0.2), inset 0 1px 0 rgba(255,255,255,0.5)',
+                    boxShadow: '0 4px 12px rgba(139,115,85,0.15)',
                     opacity: isDownloading ? 0.7 : 1,
                   }}
                 >
@@ -1434,8 +1523,8 @@ export default function LettersPage() {
                     </>
                   ) : (
                     <>
-                      <span style={{ fontSize: '14px' }}>✦</span>
-                      <span>Save as Image</span>
+                      <span style={{ fontSize: '14px' }}>📷</span>
+                      <span>Save</span>
                     </>
                   )}
                 </motion.button>
@@ -1445,28 +1534,30 @@ export default function LettersPage() {
                   onClick={() => setShowLetterModal(false)}
                   className="px-8 py-3 rounded-full text-sm font-medium"
                   style={{
-                    background: 'linear-gradient(135deg, #c49a6c 0%, #a67c52 100%)',
+                    background: 'linear-gradient(135deg, #8B7355 0%, #6b5a45 100%)',
                     color: '#fff',
-                    boxShadow: '0 4px 20px rgba(196,154,108,0.4)',
+                    boxShadow: '0 4px 15px rgba(139,115,85,0.3)',
                   }}
                 >
                   Close
                 </motion.button>
               </div>
 
-              {/* Hidden capture element - renders full letter without scroll for image export */}
+              {/* Hidden capture element - Postcard style for download */}
               <div
                 ref={letterCaptureRef}
                 style={{
                   position: 'absolute',
                   left: '-9999px',
                   top: 0,
-                  width: '600px',
-                  background: '#faf8f5',
+                  width: '900px',
+                  minWidth: '900px',
+                  background: '#f5f0e6',
                   borderRadius: '8px',
-                  padding: '0',
+                  border: '1px solid #e0d5c5',
+                  padding: '32px',
                   visibility: 'hidden',
-                  fontFamily: 'Georgia, Times, "Times New Roman", serif',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                 }}
               >
                 {/* Paper texture overlay */}
@@ -1474,138 +1565,140 @@ export default function LettersPage() {
                   style={{
                     position: 'absolute',
                     inset: 0,
-                    background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
-                    opacity: 0.03,
-                    pointerEvents: 'none',
+                    opacity: 0.3,
                     borderRadius: '8px',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                    pointerEvents: 'none',
                   }}
                 />
 
-                {/* Decorative corner */}
+                {/* Header with stamp area */}
                 <div
                   style={{
-                    position: 'absolute',
-                    top: '16px',
-                    right: '16px',
-                    fontSize: '24px',
-                    opacity: 0.2,
-                    color: '#8B7355',
+                    position: 'relative',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: '24px',
+                    paddingBottom: '20px',
+                    borderBottom: '1px solid rgba(139,115,85,0.2)',
                   }}
                 >
-                  ❧
-                </div>
-
-                {/* Header */}
-                <div
-                  style={{
-                    padding: '24px 32px 12px',
-                    textAlign: 'center',
-                    borderBottom: '1px solid rgba(217, 180, 140, 0.5)',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 12px',
-                      background: 'linear-gradient(135deg, #d4a574 0%, #c49a6c 100%)',
-                      boxShadow: '0 4px 12px rgba(196,154,108,0.4)',
-                    }}
-                  >
-                    <span style={{ fontSize: '20px' }}>✉</span>
+                  <div style={{ fontSize: '12px', color: 'rgba(139,115,85,0.6)', textTransform: 'uppercase', letterSpacing: '3px', fontWeight: '500' }}>
+                    Postcard
                   </div>
-                  <h2
-                    style={{
-                      fontSize: '20px',
-                      fontFamily: 'Georgia, Times, "Times New Roman", serif',
-                      letterSpacing: '0.05em',
-                      marginBottom: '8px',
-                      color: '#4a3f35',
-                      fontWeight: 'normal',
-                    }}
-                  >
-                    A Letter From The Past
-                  </h2>
-                  <p style={{ fontSize: '14px', color: '#8B7355' }}>
-                    Written on {format(new Date(selectedLetter.createdAt), 'MMMM d, yyyy')}
-                  </p>
-                  {selectedLetter.letterLocation && (
-                    <p style={{ fontSize: '12px', color: '#8B7355', marginTop: '4px', fontStyle: 'italic' }}>
-                      from {selectedLetter.letterLocation}
-                    </p>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flexShrink: 0 }}>
+                    {/* Postmark */}
+                    <div
+                      style={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '50%',
+                        border: '3px solid rgba(139,69,69,0.5)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transform: 'rotate(-15deg)',
+                        position: 'relative',
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: '4px',
+                          borderRadius: '50%',
+                          border: '2px solid rgba(139,69,69,0.3)',
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: 'rgba(139,69,69,0.6)', fontWeight: 'bold', letterSpacing: '1px' }}>
+                        {(selectedLetter.letterLocation || 'SOMEWHERE').toUpperCase().slice(0, 8)}
+                      </span>
+                      <span style={{ fontSize: '14px', color: 'rgba(139,69,69,0.6)', fontWeight: 'bold', marginTop: '2px' }}>
+                        {format(new Date(selectedLetter.createdAt), 'dd.MM.yy')}
+                      </span>
+                    </div>
+                    {/* Stamp */}
+                    <div
+                      style={{
+                        width: '65px',
+                        height: '78px',
+                        background: 'linear-gradient(145deg, #faf8f5, #f0ebe0)',
+                        border: '3px dashed rgba(139,115,85,0.5)',
+                        borderRadius: '3px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                      }}
+                    >
+                      <span style={{ fontSize: '28px', marginBottom: '4px' }}>{themeStamps[themeName]?.icon || '🍃'}</span>
+                      <span style={{ fontSize: '8px', color: themeStamps[themeName]?.color || '#5E8B5A', fontWeight: 'bold', letterSpacing: '1px' }}>HEARTH</span>
+                      <span style={{ fontSize: '10px', color: '#8B7355', fontWeight: 'bold', marginTop: '2px' }}>₹ 5</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Content - no scroll, full height */}
-                <div style={{ padding: '24px 40px' }}>
-                  {/* Salutation */}
+                {/* Content */}
+                <div style={{ position: 'relative', padding: '12px 0' }}>
                   <p
                     style={{
-                      fontSize: '18px',
-                      fontStyle: 'italic',
-                      fontFamily: 'Georgia, Times, "Times New Roman", serif',
-                      color: '#6b5b4f',
+                      fontSize: '32px',
+                      fontFamily: "var(--font-caveat), 'Caveat', cursive",
+                      color: '#2a2520',
                       marginBottom: '24px',
-                      fontWeight: 'normal',
                     }}
                   >
                     Dear future {profile.nickname || 'me'},
                   </p>
 
-                  {/* Letter content */}
                   <div
                     style={{
-                      fontFamily: 'Georgia, Times, "Times New Roman", serif',
-                      fontSize: '18px',
-                      lineHeight: '2',
-                      color: '#3d352e',
-                      fontWeight: 'normal',
+                      fontFamily: "var(--font-caveat), 'Caveat', cursive",
+                      fontSize: '26px',
+                      lineHeight: 1.9,
+                      color: '#2a2520',
                     }}
                     dangerouslySetInnerHTML={{ __html: selectedLetter.text }}
                   />
 
-                  {/* Signature */}
                   <div style={{ marginTop: '40px', textAlign: 'right' }}>
                     <p
                       style={{
-                        fontSize: '18px',
-                        fontStyle: 'italic',
-                        fontFamily: 'Georgia, Times, "Times New Roman", serif',
-                        color: '#6b5b4f',
-                        fontWeight: 'normal',
+                        fontSize: '26px',
+                        fontFamily: "var(--font-caveat), 'Caveat', cursive",
+                        color: '#4a3f35',
                       }}
                     >
-                      With love,
+                      — Past {profile.nickname || 'me'}
                     </p>
                     <p
                       style={{
-                        fontSize: '20px',
-                        fontFamily: 'Georgia, Times, "Times New Roman", serif',
+                        fontSize: '13px',
+                        marginTop: '6px',
+                        color: 'rgba(139,115,85,0.6)',
                         fontStyle: 'italic',
-                        marginTop: '8px',
-                        color: '#4a3f35',
-                        fontWeight: 'normal',
                       }}
                     >
-                      Past {profile.nickname || 'me'}
+                      {format(new Date(selectedLetter.createdAt), 'MMMM d, yyyy')}
+                      {selectedLetter.letterLocation && ` • ${selectedLetter.letterLocation}`}
                     </p>
                   </div>
                 </div>
 
-                {/* Flourish */}
+                {/* Footer */}
                 <div
                   style={{
-                    padding: '16px 32px',
+                    position: 'relative',
+                    marginTop: '24px',
+                    paddingTop: '16px',
+                    borderTop: '1px solid rgba(139,115,85,0.15)',
                     textAlign: 'center',
-                    borderTop: '1px solid rgba(217, 180, 140, 0.3)',
                   }}
                 >
-                  <span style={{ fontSize: '24px', opacity: 0.3, color: '#8B7355' }}>
-                    ~ ✧ ~
+                  <span style={{ fontSize: '11px', color: 'rgba(139,115,85,0.5)', letterSpacing: '3px', fontWeight: '500' }}>
+                    HEARTH • A LETTER FROM THE PAST
                   </span>
                 </div>
               </div>

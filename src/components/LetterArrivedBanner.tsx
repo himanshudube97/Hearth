@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { toPng } from 'html-to-image'
 import { useThemeStore } from '@/store/theme'
+import { themes, ThemeName } from '@/lib/themes'
 
 interface ArrivedLetter {
   id: string
@@ -16,6 +17,21 @@ interface ArrivedLetter {
 
 interface LetterArrivedBannerProps {
   nickname?: string
+}
+
+// Theme-specific stamps
+const themeStamps: Record<ThemeName, { icon: string; color: string }> = {
+  rivendell: { icon: '🍃', color: '#5E8B5A' },
+  hobbiton: { icon: '🌻', color: '#60B060' },
+  winterSunset: { icon: '❄️', color: '#E8945A' },
+  cherryBlossom: { icon: '🌸', color: '#E8A0B8' },
+  northernLights: { icon: '✨', color: '#4ECCA3' },
+  mistyMountains: { icon: '⛰️', color: '#8BA4B8' },
+  gentleRain: { icon: '🌧️', color: '#6B8FAD' },
+  cosmos: { icon: '🌟', color: '#9D8CFF' },
+  candlelight: { icon: '🕯️', color: '#E8A050' },
+  oceanTwilight: { icon: '🌊', color: '#50A0C8' },
+  quietSnow: { icon: '❄️', color: '#88A8C8' },
 }
 
 // Floating sparkle particles for reading phase
@@ -111,8 +127,149 @@ function StarBurst({ delay }: { delay: number }) {
   )
 }
 
+// Ink writing effect - words appear as if being written
+function InkWriteText({ text, delay = 0 }: { text: string; delay?: number }) {
+  // Strip HTML and split into words
+  const plainText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  const words = plainText.split(' ')
+
+  return (
+    <p style={{ fontFamily: "var(--font-caveat), 'Caveat', cursive", fontSize: '24px', lineHeight: 1.8, color: '#2a2520' }}>
+      {words.map((word, i) => (
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            delay: delay + i * 0.06,
+            duration: 0.25,
+            ease: 'easeOut',
+          }}
+          style={{ display: 'inline-block', marginRight: '0.3em' }}
+        >
+          {word}
+        </motion.span>
+      ))}
+    </p>
+  )
+}
+
+// Vintage postmark stamp
+function Postmark({ date, location }: { date: string; location: string | null }) {
+  const formattedDate = format(new Date(date), 'dd.MM.yy')
+  const displayLocation = location || 'SOMEWHERE'
+
+  return (
+    <div
+      className="relative flex items-center justify-center"
+      style={{
+        width: 80,
+        height: 80,
+        transform: 'rotate(-12deg)',
+      }}
+    >
+      {/* Outer circle */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: '50%',
+          border: '3px solid rgba(139, 69, 69, 0.5)',
+        }}
+      />
+      {/* Inner circle */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 6,
+          borderRadius: '50%',
+          border: '2px solid rgba(139, 69, 69, 0.4)',
+        }}
+      />
+      {/* Text */}
+      <div className="text-center" style={{ color: 'rgba(139, 69, 69, 0.6)' }}>
+        <div style={{ fontSize: 10, fontWeight: 'bold', letterSpacing: 1 }}>
+          {displayLocation.toUpperCase().slice(0, 10)}
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 'bold', marginTop: 2 }}>
+          {formattedDate}
+        </div>
+      </div>
+      {/* Wavy lines */}
+      <div
+        style={{
+          position: 'absolute',
+          right: -30,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: 40,
+          height: 30,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+        }}
+      >
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            style={{
+              height: 2,
+              background: 'rgba(139, 69, 69, 0.4)',
+              borderRadius: 1,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Vintage stamp
+function PostageStamp({ themeName }: { themeName: ThemeName }) {
+  const stamp = themeStamps[themeName] || themeStamps.rivendell
+
+  return (
+    <div
+      style={{
+        width: 60,
+        height: 72,
+        background: '#f8f4f0',
+        border: '2px dashed rgba(139, 115, 85, 0.4)',
+        borderRadius: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      }}
+    >
+      <div style={{ fontSize: 24, marginBottom: 4 }}>{stamp.icon}</div>
+      <div
+        style={{
+          fontSize: 8,
+          fontWeight: 'bold',
+          color: stamp.color,
+          letterSpacing: 1,
+        }}
+      >
+        HEARTH
+      </div>
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 'bold',
+          color: '#8B7355',
+          marginTop: 2,
+        }}
+      >
+        ₹ 5
+      </div>
+    </div>
+  )
+}
+
 export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerProps) {
-  const { theme } = useThemeStore()
+  const { theme, themeName } = useThemeStore()
   const [arrivedLetters, setArrivedLetters] = useState<ArrivedLetter[]>([])
   const [currentLetterIndex, setCurrentLetterIndex] = useState(0)
   const [showModal, setShowModal] = useState(false)
@@ -215,13 +372,21 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
     setTimeout(() => setEnvelopePhase('reading'), 2500)
   }
 
-  const handleCloseLetter = () => {
+  const handleCloseLetter = async () => {
     const currentLetter = arrivedLetters[currentLetterIndex]
     if (currentLetter) {
+      // Mark as viewed in sessionStorage
       const viewedIds = sessionStorage.getItem('viewedLetterIds')
       const viewedSet = viewedIds ? new Set(JSON.parse(viewedIds)) : new Set()
       viewedSet.add(currentLetter.id)
       sessionStorage.setItem('viewedLetterIds', JSON.stringify([...viewedSet]))
+
+      // Mark as viewed in database so it shows in Letters tab
+      try {
+        await fetch(`/api/letters/${currentLetter.id}/viewed`, { method: 'POST' })
+      } catch (error) {
+        console.error('Failed to mark letter as viewed:', error)
+      }
     }
 
     if (currentLetterIndex < arrivedLetters.length - 1) {
@@ -418,19 +583,20 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                 )}
               </AnimatePresence>
 
-              {/* Reading phase - Letter content */}
+              {/* Reading phase - Vintage Postcard Design */}
               <AnimatePresence>
                 {envelopePhase === 'reading' && (
                   <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
+                    initial={{ scale: 0.9, opacity: 0, rotateY: -10 }}
+                    animate={{ scale: 1, opacity: 1, rotateY: 0 }}
                     exit={{ scale: 0.9, opacity: 0 }}
-                    transition={{ type: 'spring', duration: 0.6 }}
+                    transition={{ type: 'spring', duration: 0.8 }}
                     className="relative mx-4 flex flex-col items-center"
                     style={{
-                      width: '90vw',
-                      maxWidth: '650px',
+                      width: '95vw',
+                      maxWidth: '900px',
                       maxHeight: 'calc(100vh - 120px)',
+                      perspective: '1000px',
                     }}
                   >
                     {/* Floating sparkles */}
@@ -438,110 +604,103 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                       <FloatingSparkle key={i} delay={0.1 * i} index={i} />
                     ))}
 
-                    {/* Paper letter design - A4 proportions */}
+                    {/* Postcard container */}
                     <motion.div
-                      initial={{ rotateX: -10 }}
+                      initial={{ rotateX: -5 }}
                       animate={{ rotateX: 0 }}
                       transition={{ duration: 0.5 }}
                       className="relative flex-1 w-full flex flex-col overflow-hidden min-h-0"
-                      style={{ perspective: '1000px' }}
                     >
-                      {/* Paper shadow */}
+                      {/* Postcard shadow */}
                       <div
-                        className="absolute inset-0 rounded-lg"
+                        className="absolute inset-0 rounded-sm"
                         style={{
-                          background: 'rgba(0,0,0,0.3)',
-                          filter: 'blur(20px)',
-                          transform: 'translateY(10px)',
+                          background: 'rgba(0,0,0,0.25)',
+                          filter: 'blur(25px)',
+                          transform: 'translateY(15px) rotate(1deg)',
                         }}
                       />
 
-                      {/* Main paper */}
+                      {/* Main postcard */}
                       <div
-                        className="relative rounded-lg flex-1 flex flex-col overflow-hidden min-h-0"
+                        className="relative rounded-sm flex-1 flex flex-col overflow-hidden min-h-0"
                         style={{
-                          background: 'linear-gradient(165deg, #faf8f5 0%, #f5f0e8 50%, #efe8dc 100%)',
+                          background: '#f5f0e6',
                           boxShadow: `
-                            0 2px 4px rgba(0,0,0,0.1),
+                            0 1px 2px rgba(0,0,0,0.08),
+                            0 4px 8px rgba(0,0,0,0.08),
                             0 8px 16px rgba(0,0,0,0.1),
-                            0 16px 32px rgba(0,0,0,0.15),
-                            inset 0 0 80px rgba(139,119,101,0.05)
+                            inset 0 0 60px rgba(139,119,101,0.04)
                           `,
+                          border: '1px solid #e0d5c5',
                         }}
                       >
                         {/* Paper texture overlay */}
                         <div
-                          className="absolute inset-0 pointer-events-none opacity-30 rounded-lg"
+                          className="absolute inset-0 pointer-events-none opacity-40"
                           style={{
-                            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E")`,
                           }}
                         />
 
-                        {/* Decorative corner flourish */}
+                        {/* Worn edge effect - top */}
                         <div
-                          className="absolute top-4 right-4 text-3xl opacity-20"
-                          style={{ color: '#8B7355' }}
-                        >
-                          ❧
-                        </div>
+                          className="absolute top-0 left-0 right-0 h-2 pointer-events-none"
+                          style={{
+                            background: 'linear-gradient(to bottom, rgba(139,115,85,0.08), transparent)',
+                          }}
+                        />
 
-                        {/* Letter header - fixed */}
-                        <div className="pt-6 pb-3 px-8 text-center border-b border-amber-200/50 flex-shrink-0">
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.2, type: 'spring' }}
-                            className="inline-block mb-4"
-                          >
-                            <div
-                              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-                              style={{
-                                background: 'linear-gradient(135deg, #d4a574 0%, #c49a6c 100%)',
-                                boxShadow: '0 4px 12px rgba(196,154,108,0.4)',
-                              }}
+                        {/* Fold line in the middle */}
+                        <div
+                          className="absolute left-[5%] right-[5%] top-1/2 h-px pointer-events-none"
+                          style={{
+                            background: 'rgba(139,115,85,0.08)',
+                            boxShadow: '0 1px 0 rgba(255,255,255,0.5)',
+                          }}
+                        />
+
+                        {/* Postcard header with stamp and postmark */}
+                        <div className="relative pt-4 pb-3 px-6 shrink-0">
+                          {/* Stamp and Postmark row */}
+                          <div className="flex justify-between items-start mb-4">
+                            {/* Left side - decorative */}
+                            <motion.div
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.3 }}
+                              className="text-xs uppercase tracking-widest"
+                              style={{ color: 'rgba(139,115,85,0.5)' }}
                             >
-                              <span className="text-2xl">✉</span>
-                            </div>
-                          </motion.div>
+                              Postcard
+                            </motion.div>
 
-                          <motion.h2
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                            className="text-xl font-serif tracking-wide mb-2"
-                            style={{ color: '#4a3f35' }}
-                          >
-                            A Letter From The Past
-                          </motion.h2>
+                            {/* Right side - Stamp and Postmark */}
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: 0.2, type: 'spring' }}
+                              className="flex items-start gap-2"
+                            >
+                              <Postmark date={currentLetter.createdAt} location={currentLetter.letterLocation} />
+                              <PostageStamp themeName={themeName} />
+                            </motion.div>
+                          </div>
 
-                          <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.4 }}
-                            className="text-sm"
-                            style={{ color: '#8B7355' }}
-                          >
-                            Written on {format(new Date(currentLetter.createdAt), 'MMMM d, yyyy')}
-                            {currentLetter.letterLocation && (
-                              <span className="block mt-1 text-xs italic">
-                                from {currentLetter.letterLocation}
-                              </span>
-                            )}
-                          </motion.p>
-
+                          {/* Letter count indicator */}
                           {arrivedLetters.length > 1 && (
                             <motion.div
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
-                              transition={{ delay: 0.5 }}
-                              className="mt-3 flex items-center justify-center gap-2"
+                              transition={{ delay: 0.4 }}
+                              className="flex items-center gap-2 justify-center"
                             >
                               {arrivedLetters.map((_, i) => (
                                 <div
                                   key={i}
                                   className="w-2 h-2 rounded-full transition-all"
                                   style={{
-                                    background: i === currentLetterIndex ? '#c49a6c' : '#d4c4b0',
+                                    background: i === currentLetterIndex ? '#8B7355' : '#d4c4b0',
                                     transform: i === currentLetterIndex ? 'scale(1.3)' : 'scale(1)',
                                   }}
                                 />
@@ -550,75 +709,74 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                           )}
                         </div>
 
+                        {/* Divider line */}
+                        <div
+                          className="mx-6 h-px"
+                          style={{ background: 'rgba(139,115,85,0.15)' }}
+                        />
+
                         {/* Scrollable content area */}
-                        <div className="flex-1 overflow-y-auto px-10 py-6">
-                          {/* Letter salutation */}
+                        <div className="flex-1 overflow-y-auto px-8 py-6">
+                          {/* Letter salutation - with ink effect */}
                           <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
                             transition={{ delay: 0.5 }}
-                            className="mb-6"
+                            className="mb-4"
                           >
                             <p
-                              className="text-lg italic font-serif"
-                              style={{ color: '#6b5b4f' }}
+                              style={{
+                                fontFamily: "var(--font-caveat), 'Caveat', cursive",
+                                fontSize: '28px',
+                                color: '#2a2520',
+                              }}
                             >
                               Dear future {displayName},
                             </p>
                           </motion.div>
 
-                          {/* Letter content */}
+                          {/* Letter content - ink writing effect */}
                           <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.6 }}
                           >
-                            <div
-                              className="prose max-w-none"
-                              style={{
-                                fontFamily: 'Georgia, "Times New Roman", serif',
-                                fontSize: '18px',
-                                lineHeight: 2,
-                                color: '#3d352e',
-                              }}
-                              dangerouslySetInnerHTML={{ __html: currentLetter.text }}
-                            />
+                            <InkWriteText text={currentLetter.text} delay={0.8} />
                           </motion.div>
 
                           {/* Letter signature */}
                           <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.7 }}
-                            className="mt-10 text-right"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1.5 }}
+                            className="mt-8 text-right"
                           >
                             <p
-                              className="text-lg italic font-serif"
-                              style={{ color: '#6b5b4f' }}
-                            >
-                              With love,
-                            </p>
-                            <p
-                              className="text-xl font-serif mt-2"
                               style={{
+                                fontFamily: "var(--font-caveat), 'Caveat', cursive",
+                                fontSize: '22px',
                                 color: '#4a3f35',
-                                fontStyle: 'italic',
                               }}
                             >
-                              Past {displayName}
+                              — Past {displayName}
+                            </p>
+                            <p
+                              className="text-xs mt-1 italic"
+                              style={{ color: 'rgba(139,115,85,0.6)' }}
+                            >
+                              {format(new Date(currentLetter.createdAt), 'MMMM d, yyyy')}
+                              {currentLetter.letterLocation && ` • ${currentLetter.letterLocation}`}
                             </p>
                           </motion.div>
                         </div>
 
-                        {/* Decorative bottom flourish */}
-                        <div className="px-8 py-4 flex justify-center flex-shrink-0 border-t border-amber-200/30">
-                          <div
-                            className="text-2xl opacity-30"
-                            style={{ color: '#8B7355' }}
-                          >
-                            ~ ✧ ~
-                          </div>
-                        </div>
+                        {/* Decorative bottom edge */}
+                        <div
+                          className="h-3 shrink-0"
+                          style={{
+                            background: 'linear-gradient(to top, rgba(139,115,85,0.06), transparent)',
+                          }}
+                        />
                       </div>
                     </motion.div>
 
@@ -626,8 +784,8 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.9 }}
-                      className="flex justify-center gap-3 mt-4 flex-shrink-0"
+                      transition={{ delay: 1.8 }}
+                      className="flex justify-center gap-3 mt-4 shrink-0"
                     >
                       <motion.button
                         whileHover={{ scale: 1.05, y: -2 }}
@@ -636,10 +794,10 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                         disabled={isDownloading}
                         className="px-6 py-3 rounded-full text-sm font-medium flex items-center gap-2 relative overflow-hidden"
                         style={{
-                          background: 'linear-gradient(135deg, #f5f0e8 0%, #efe8dc 100%)',
-                          border: '1px solid rgba(196,154,108,0.4)',
+                          background: '#f5f0e6',
+                          border: '1px solid rgba(139,115,85,0.3)',
                           color: '#5a4a3e',
-                          boxShadow: '0 4px 15px rgba(139,115,85,0.2), inset 0 1px 0 rgba(255,255,255,0.5)',
+                          boxShadow: '0 4px 12px rgba(139,115,85,0.15)',
                           opacity: isDownloading ? 0.7 : 1,
                         }}
                       >
@@ -655,8 +813,8 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                           </>
                         ) : (
                           <>
-                            <span style={{ fontSize: '14px' }}>✦</span>
-                            <span>Save as Image</span>
+                            <span style={{ fontSize: '14px' }}>📷</span>
+                            <span>Save</span>
                           </>
                         )}
                       </motion.button>
@@ -666,98 +824,123 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                         onClick={handleCloseLetter}
                         className="px-8 py-3 rounded-full text-sm font-medium relative overflow-hidden"
                         style={{
-                          background: 'linear-gradient(135deg, #c49a6c 0%, #a67c52 100%)',
+                          background: 'linear-gradient(135deg, #8B7355 0%, #6b5a45 100%)',
                           color: '#fff',
-                          boxShadow: '0 4px 20px rgba(196,154,108,0.4)',
+                          boxShadow: '0 4px 15px rgba(139,115,85,0.3)',
                         }}
                       >
                         <span className="relative z-10">
                           {currentLetterIndex < arrivedLetters.length - 1
                             ? 'Next Letter →'
-                            : 'Close & Cherish'
+                            : 'Close & Keep'
                           }
                         </span>
                       </motion.button>
                     </motion.div>
 
-                    {/* Hidden capture element for download */}
+                    {/* Hidden capture element for download - Postcard style */}
                     <div
                       ref={letterCaptureRef}
                       style={{
                         position: 'absolute',
                         left: '-9999px',
                         top: 0,
-                        width: '600px',
-                        background: 'linear-gradient(165deg, #faf8f5 0%, #f5f0e8 50%, #efe8dc 100%)',
+                        width: '900px',
+                        minWidth: '900px',
+                        background: '#f5f0e6',
                         borderRadius: '8px',
+                        border: '1px solid #e0d5c5',
+                        padding: '32px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                       }}
                     >
-                      {/* Decorative corner */}
+                      {/* Paper texture overlay */}
                       <div
                         style={{
                           position: 'absolute',
-                          top: '16px',
-                          right: '16px',
-                          fontSize: '24px',
-                          opacity: 0.2,
-                          color: '#8B7355',
+                          inset: 0,
+                          opacity: 0.3,
+                          borderRadius: '8px',
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                          pointerEvents: 'none',
                         }}
-                      >
-                        ❧
-                      </div>
+                      />
 
-                      {/* Header */}
+                      {/* Header with stamp area */}
                       <div
                         style={{
-                          padding: '24px 32px 12px',
-                          textAlign: 'center',
-                          borderBottom: '1px solid rgba(217, 180, 140, 0.5)',
+                          position: 'relative',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '24px',
+                          paddingBottom: '20px',
+                          borderBottom: '1px solid rgba(139,115,85,0.2)',
                         }}
                       >
-                        <div
-                          style={{
-                            width: '48px',
-                            height: '48px',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            margin: '0 auto 12px',
-                            background: 'linear-gradient(135deg, #d4a574 0%, #c49a6c 100%)',
-                            boxShadow: '0 4px 12px rgba(196,154,108,0.4)',
-                          }}
-                        >
-                          <span style={{ fontSize: '20px' }}>✉</span>
+                        <div style={{ fontSize: '12px', color: 'rgba(139,115,85,0.6)', textTransform: 'uppercase', letterSpacing: '3px', fontWeight: '500' }}>
+                          Postcard
                         </div>
-                        <h2
-                          style={{
-                            fontSize: '20px',
-                            fontFamily: 'serif',
-                            letterSpacing: '0.05em',
-                            marginBottom: '8px',
-                            color: '#4a3f35',
-                          }}
-                        >
-                          A Letter From The Past
-                        </h2>
-                        <p style={{ fontSize: '14px', color: '#8B7355' }}>
-                          Written on {currentLetter && format(new Date(currentLetter.createdAt), 'MMMM d, yyyy')}
-                        </p>
-                        {currentLetter?.letterLocation && (
-                          <p style={{ fontSize: '12px', color: '#8B7355', marginTop: '4px', fontStyle: 'italic' }}>
-                            from {currentLetter.letterLocation}
-                          </p>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flexShrink: 0 }}>
+                          {/* Postmark for capture */}
+                          <div
+                            style={{
+                              width: '80px',
+                              height: '80px',
+                              borderRadius: '50%',
+                              border: '3px solid rgba(139,69,69,0.5)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transform: 'rotate(-15deg)',
+                              position: 'relative',
+                            }}
+                          >
+                            <div
+                              style={{
+                                position: 'absolute',
+                                inset: '4px',
+                                borderRadius: '50%',
+                                border: '2px solid rgba(139,69,69,0.3)',
+                              }}
+                            />
+                            <span style={{ fontSize: '10px', color: 'rgba(139,69,69,0.6)', fontWeight: 'bold', letterSpacing: '1px' }}>
+                              {(currentLetter?.letterLocation || 'SOMEWHERE').toUpperCase().slice(0, 8)}
+                            </span>
+                            <span style={{ fontSize: '14px', color: 'rgba(139,69,69,0.6)', fontWeight: 'bold', marginTop: '2px' }}>
+                              {currentLetter && format(new Date(currentLetter.createdAt), 'dd.MM.yy')}
+                            </span>
+                          </div>
+                          {/* Stamp for capture */}
+                          <div
+                            style={{
+                              width: '65px',
+                              height: '78px',
+                              background: 'linear-gradient(145deg, #faf8f5, #f0ebe0)',
+                              border: '3px dashed rgba(139,115,85,0.5)',
+                              borderRadius: '3px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                            }}
+                          >
+                            <span style={{ fontSize: '28px', marginBottom: '4px' }}>{themeStamps[themeName]?.icon || '🍃'}</span>
+                            <span style={{ fontSize: '8px', color: themeStamps[themeName]?.color || '#5E8B5A', fontWeight: 'bold', letterSpacing: '1px' }}>HEARTH</span>
+                            <span style={{ fontSize: '10px', color: '#8B7355', fontWeight: 'bold', marginTop: '2px' }}>₹ 5</span>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Content */}
-                      <div style={{ padding: '24px 40px' }}>
+                      <div style={{ position: 'relative', padding: '12px 0' }}>
                         <p
                           style={{
-                            fontSize: '18px',
-                            fontStyle: 'italic',
-                            fontFamily: 'serif',
-                            color: '#6b5b4f',
+                            fontSize: '32px',
+                            fontFamily: "var(--font-caveat), 'Caveat', cursive",
+                            color: '#2a2520',
                             marginBottom: '24px',
                           }}
                         >
@@ -766,10 +949,10 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
 
                         <div
                           style={{
-                            fontFamily: 'Georgia, "Times New Roman", serif',
-                            fontSize: '18px',
-                            lineHeight: 2,
-                            color: '#3d352e',
+                            fontFamily: "var(--font-caveat), 'Caveat', cursive",
+                            fontSize: '26px',
+                            lineHeight: 1.9,
+                            color: '#2a2520',
                           }}
                           dangerouslySetInnerHTML={{ __html: currentLetter?.text || '' }}
                         />
@@ -777,38 +960,39 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                         <div style={{ marginTop: '40px', textAlign: 'right' }}>
                           <p
                             style={{
-                              fontSize: '18px',
-                              fontStyle: 'italic',
-                              fontFamily: 'serif',
-                              color: '#6b5b4f',
-                            }}
-                          >
-                            With love,
-                          </p>
-                          <p
-                            style={{
-                              fontSize: '20px',
-                              fontFamily: 'serif',
-                              fontStyle: 'italic',
-                              marginTop: '8px',
+                              fontSize: '26px',
+                              fontFamily: "var(--font-caveat), 'Caveat', cursive",
                               color: '#4a3f35',
                             }}
                           >
-                            Past {displayName}
+                            — Past {displayName}
+                          </p>
+                          <p
+                            style={{
+                              fontSize: '13px',
+                              marginTop: '6px',
+                              color: 'rgba(139,115,85,0.6)',
+                              fontStyle: 'italic',
+                            }}
+                          >
+                            {currentLetter && format(new Date(currentLetter.createdAt), 'MMMM d, yyyy')}
+                            {currentLetter?.letterLocation && ` • ${currentLetter.letterLocation}`}
                           </p>
                         </div>
                       </div>
 
-                      {/* Flourish */}
+                      {/* Footer */}
                       <div
                         style={{
-                          padding: '16px 32px',
+                          position: 'relative',
+                          marginTop: '24px',
+                          paddingTop: '16px',
+                          borderTop: '1px solid rgba(139,115,85,0.15)',
                           textAlign: 'center',
-                          borderTop: '1px solid rgba(217, 180, 140, 0.3)',
                         }}
                       >
-                        <span style={{ fontSize: '24px', opacity: 0.3, color: '#8B7355' }}>
-                          ~ ✧ ~
+                        <span style={{ fontSize: '11px', color: 'rgba(139,115,85,0.5)', letterSpacing: '3px', fontWeight: '500' }}>
+                          HEARTH • A LETTER FROM THE PAST
                         </span>
                       </div>
                     </div>
