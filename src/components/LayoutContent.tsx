@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import Background from '@/components/Background'
 import Navigation from '@/components/Navigation'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
+import CursorPicker from '@/components/CursorPicker'
 
 export default function LayoutContent({
   children,
@@ -18,6 +19,7 @@ export default function LayoutContent({
     return (
       <>
         {children}
+        <CursorPicker />
         <ThemeSwitcher />
       </>
     )
@@ -31,6 +33,7 @@ export default function LayoutContent({
       <main className="relative z-10 min-h-screen pt-20 pb-8 px-4">
         {children}
       </main>
+      <CursorPicker />
       <ThemeSwitcher />
     </>
   )
