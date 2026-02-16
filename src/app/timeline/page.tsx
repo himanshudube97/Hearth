@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { format, isToday, isYesterday } from 'date-fns'
 import { useThemeStore } from '@/store/theme'
 import { useJournalStore, JournalEntry } from '@/store/journal'
+import { useProfileStore } from '@/store/profile'
 import { useEntries, useEntryStats } from '@/hooks/useEntries'
 import EntryCard from '@/components/EntryCard'
 
@@ -18,7 +19,13 @@ interface GroupedEntries {
 export default function TimelinePage() {
   const router = useRouter()
   const { theme } = useThemeStore()
+  const { profile, fetchProfile } = useProfileStore()
   const { stats, loading: statsLoading } = useEntryStats()
+
+  // Fetch profile for nickname
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
 
   // Navigation state
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
@@ -181,7 +188,7 @@ export default function TimelinePage() {
           className="text-2xl font-light text-center mb-6"
           style={{ color: theme.text.primary }}
         >
-          your story unfolds
+          {profile.nickname ? `${profile.nickname}'s story unfolds` : 'your story unfolds'}
         </motion.h1>
 
         {/* Stats bar */}

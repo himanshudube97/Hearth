@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { format, addWeeks, addMonths, addYears, isBefore, addDays } from 'date-fns'
+import { format, addWeeks, addMonths, addYears, isBefore, addDays, startOfDay } from 'date-fns'
 import { useThemeStore } from '@/store/theme'
+import { useProfileStore } from '@/store/profile'
 import Editor from '@/components/Editor'
+import DatePicker from '@/components/DatePicker'
 
 type RecipientType = 'self' | 'friend'
 
@@ -550,6 +552,12 @@ function SuccessMessage({ recipientType, recipientName, unlockDate, onWriteAnoth
 
 export default function LettersPage() {
   const { theme } = useThemeStore()
+  const { profile, fetchProfile } = useProfileStore()
+
+  // Fetch profile for nickname
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
 
   // Form state
   const [recipientType, setRecipientType] = useState<RecipientType>('self')
@@ -573,6 +581,37 @@ export default function LettersPage() {
     recipientName?: string
     unlockDate: Date
   } | null>(null)
+
+  // Letters list state
+  const [myLetters, setMyLetters] = useState<{
+    id: string
+    text: string
+    createdAt: string
+    unlockDate: string | null
+    isSealed: boolean
+    letterLocation: string | null
+    recipientEmail: string | null
+    recipientName: string | null
+    hasArrived: boolean
+  }[]>([])
+  const [selectedLetter, setSelectedLetter] = useState<typeof myLetters[0] | null>(null)
+  const [showLetterModal, setShowLetterModal] = useState(false)
+
+  // Fetch user's letters
+  useEffect(() => {
+    const fetchLetters = async () => {
+      try {
+        const res = await fetch('/api/letters/mine')
+        if (res.ok) {
+          const data = await res.json()
+          setMyLetters(data.letters)
+        }
+      } catch (error) {
+        console.error('Failed to fetch letters:', error)
+      }
+    }
+    fetchLetters()
+  }, [showSuccess]) // Refetch after sending a new letter
 
   const handleSendLetter = async () => {
     if (!letterText.trim() || letterText === '<p></p>') return
@@ -637,11 +676,23 @@ export default function LettersPage() {
     setCustomDate(dateStr)
     if (dateStr) {
       const date = new Date(dateStr)
-      const minDate = addDays(new Date(), 7) // Minimum 1 week
-      if (!isNaN(date.getTime()) && !isBefore(date, minDate)) {
+      // For self: minimum tomorrow, for friend: minimum 1 week
+      const minDate = recipientType === 'self'
+        ? addDays(new Date(), 1)
+        : addDays(new Date(), 7)
+      // Compare dates only (ignore time) by using startOfDay
+      if (!isNaN(date.getTime()) && !isBefore(startOfDay(date), startOfDay(minDate))) {
         setUnlockDate(date)
+        setShowDatePicker(false)
       }
     }
+  }
+
+  // Get minimum date based on recipient type
+  const getMinDate = () => {
+    return recipientType === 'self'
+      ? addDays(new Date(), 1) // Tomorrow for self
+      : addDays(new Date(), 7) // 1 week for friends
   }
 
   const hasContent = letterText.trim() && letterText !== '<p></p>'
@@ -852,7 +903,7 @@ export default function LettersPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm" style={{ color: theme.text.muted }}>
                 {recipientType === 'self'
-                  ? 'Dear future me,'
+                  ? profile.nickname ? `Dear future ${profile.nickname},` : 'Dear future me,'
                   : friendName ? `Dear ${friendName},` : 'Dear friend,'
                 }
               </span>
@@ -967,11 +1018,11 @@ export default function LettersPage() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  onClick={() => setShowDatePicker(true)}
                   className="px-3 py-1.5 rounded-full text-sm"
                   style={{
-                    background: showDatePicker ? `${theme.accent.primary}30` : theme.glass.bg,
-                    border: `1px solid ${showDatePicker ? theme.accent.primary : theme.glass.border}`,
+                    background: theme.glass.bg,
+                    border: `1px solid ${theme.glass.border}`,
                     color: theme.text.primary,
                   }}
                 >
@@ -979,32 +1030,15 @@ export default function LettersPage() {
                 </motion.button>
               </div>
 
-              {/* Custom Date Picker */}
-              <AnimatePresence>
-                {showDatePicker && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mb-4"
-                  >
-                    <p className="text-xs mb-2" style={{ color: theme.text.muted }}>
-                      Minimum 1 week from today
-                    </p>
-                    <input
-                      type="date"
-                      value={customDate}
-                      onChange={(e) => handleCustomDateChange(e.target.value)}
-                      min={format(addDays(new Date(), 7), 'yyyy-MM-dd')}
-                      className="px-4 py-2 rounded-xl bg-transparent outline-none text-sm"
-                      style={{
-                        border: `1px solid ${theme.glass.border}`,
-                        color: theme.text.primary,
-                      }}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Date Picker Modal */}
+              <DatePicker
+                value={customDate}
+                onChange={handleCustomDateChange}
+                minDate={getMinDate()}
+                mode="modal"
+                isOpen={showDatePicker}
+                onClose={() => setShowDatePicker(false)}
+              />
 
               {/* Selected Date Display */}
               <motion.div
@@ -1069,7 +1103,223 @@ export default function LettersPage() {
             </p>
           </motion.div>
         )}
+
+        {/* Your Letters Section */}
+        {myLetters.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-16 pt-8 border-t"
+            style={{ borderColor: theme.glass.border }}
+          >
+            <h2
+              className="text-lg font-light mb-6 text-center"
+              style={{ color: theme.text.secondary }}
+            >
+              Your Letters
+            </h2>
+
+            <div className="space-y-3">
+              {myLetters.map((letter, index) => {
+                const hasArrived = letter.hasArrived
+                const isFriendLetter = !!letter.recipientEmail
+
+                return (
+                  <motion.div
+                    key={letter.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={() => {
+                      if (hasArrived) {
+                        setSelectedLetter(letter)
+                        setShowLetterModal(true)
+                      }
+                    }}
+                    className={`p-4 rounded-xl ${hasArrived ? 'cursor-pointer' : ''}`}
+                    style={{
+                      background: hasArrived
+                        ? `linear-gradient(135deg, ${theme.accent.warm}15, ${theme.accent.primary}08)`
+                        : theme.glass.bg,
+                      border: `1px solid ${hasArrived ? theme.accent.warm + '40' : theme.glass.border}`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">
+                          {isFriendLetter ? '💌' : hasArrived ? '✨' : '✉️'}
+                        </span>
+                        <div>
+                          <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
+                            {isFriendLetter
+                              ? `To ${letter.recipientName}`
+                              : 'Letter to self'
+                            }
+                          </p>
+                          <p className="text-xs" style={{ color: theme.text.muted }}>
+                            {hasArrived
+                              ? `Arrived • Written ${format(new Date(letter.createdAt), 'MMM d, yyyy')}`
+                              : isFriendLetter
+                              ? `Delivers ${format(new Date(letter.unlockDate!), 'MMM d, yyyy')}`
+                              : `Opens ${format(new Date(letter.unlockDate!), 'MMM d, yyyy')}`
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        {hasArrived ? (
+                          <span className="text-xs px-2 py-1 rounded-full" style={{
+                            background: `${theme.accent.warm}20`,
+                            color: theme.accent.warm,
+                          }}>
+                            Read
+                          </span>
+                        ) : (
+                          <span style={{ color: theme.text.muted }}>🔒</span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
       </div>
+
+      {/* Letter Reading Modal */}
+      <AnimatePresence>
+        {showLetterModal && selectedLetter && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            style={{ background: 'rgba(5,5,15,0.95)' }}
+            onClick={() => setShowLetterModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative mx-4 flex flex-col"
+              style={{
+                width: '90vw',
+                maxWidth: '650px',
+                height: '85vh',
+                maxHeight: '900px',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Paper letter design */}
+              <div
+                className="relative rounded-lg flex-1 flex flex-col"
+                style={{
+                  background: 'linear-gradient(165deg, #faf8f5 0%, #f5f0e8 50%, #efe8dc 100%)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                }}
+              >
+                {/* Decorative corner */}
+                <div
+                  className="absolute top-4 right-4 text-2xl opacity-20"
+                  style={{ color: '#8B7355' }}
+                >
+                  ❧
+                </div>
+
+                {/* Header - fixed */}
+                <div className="pt-6 pb-3 px-8 text-center border-b border-amber-200/50 flex-shrink-0">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
+                    style={{
+                      background: 'linear-gradient(135deg, #d4a574 0%, #c49a6c 100%)',
+                      boxShadow: '0 4px 12px rgba(196,154,108,0.4)',
+                    }}
+                  >
+                    <span className="text-xl">✉</span>
+                  </div>
+
+                  <h2
+                    className="text-xl font-serif tracking-wide mb-2"
+                    style={{ color: '#4a3f35' }}
+                  >
+                    A Letter From The Past
+                  </h2>
+
+                  <p className="text-sm" style={{ color: '#8B7355' }}>
+                    Written on {format(new Date(selectedLetter.createdAt), 'MMMM d, yyyy')}
+                    {selectedLetter.letterLocation && (
+                      <span className="block mt-1 text-xs italic">
+                        from {selectedLetter.letterLocation}
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {/* Scrollable content area */}
+                <div className="flex-1 overflow-y-auto px-10 py-6">
+                  {/* Salutation */}
+                  <div className="mb-6">
+                    <p className="text-lg italic font-serif" style={{ color: '#6b5b4f' }}>
+                      Dear future {profile.nickname || 'me'},
+                    </p>
+                  </div>
+
+                  {/* Content */}
+                  <div
+                    className="prose max-w-none"
+                    style={{
+                      fontFamily: 'Georgia, "Times New Roman", serif',
+                      fontSize: '18px',
+                      lineHeight: 2,
+                      color: '#3d352e',
+                    }}
+                    dangerouslySetInnerHTML={{ __html: selectedLetter.text }}
+                  />
+
+                  {/* Signature */}
+                  <div className="mt-10 text-right">
+                    <p className="text-lg italic font-serif" style={{ color: '#6b5b4f' }}>
+                      With love,
+                    </p>
+                    <p
+                      className="text-xl font-serif mt-2"
+                      style={{ color: '#4a3f35', fontStyle: 'italic' }}
+                    >
+                      Past {profile.nickname || 'me'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Flourish - fixed at bottom */}
+                <div className="px-8 py-4 flex justify-center flex-shrink-0 border-t border-amber-200/30">
+                  <div className="text-2xl opacity-30" style={{ color: '#8B7355' }}>
+                    ~ ✧ ~
+                  </div>
+                </div>
+              </div>
+
+              {/* Close button */}
+              <div className="text-center mt-4 flex-shrink-0">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowLetterModal(false)}
+                  className="px-8 py-3 rounded-full text-sm font-medium"
+                  style={{
+                    background: 'linear-gradient(135deg, #c49a6c 0%, #a67c52 100%)',
+                    color: '#fff',
+                    boxShadow: '0 4px 20px rgba(196,154,108,0.4)',
+                  }}
+                >
+                  Close
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }

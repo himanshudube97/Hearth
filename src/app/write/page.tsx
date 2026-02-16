@@ -5,12 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { getGreeting, getRandomWhisper, getRandomPrompt } from '@/lib/themes'
 import { useThemeStore } from '@/store/theme'
 import { useJournalStore, JournalEntry, StrokeData } from '@/store/journal'
+import { useProfileStore } from '@/store/profile'
 import { useEntries } from '@/hooks/useEntries'
 import Editor from '@/components/Editor'
 import MoodPicker from '@/components/MoodPicker'
 import DoodleCanvas from '@/components/DoodleCanvas'
 import EntryCard from '@/components/EntryCard'
 import SongEmbed, { isMusicUrl } from '@/components/SongEmbed'
+import BirthdayBanner from '@/components/BirthdayBanner'
+import LetterArrivedBanner from '@/components/LetterArrivedBanner'
 
 export default function WritePage() {
   const [whisper, setWhisper] = useState('')
@@ -20,6 +23,7 @@ export default function WritePage() {
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
 
   const { theme } = useThemeStore()
+  const { profile, fetchProfile } = useProfileStore()
   const {
     currentMood,
     currentText,
@@ -42,6 +46,7 @@ export default function WritePage() {
   useEffect(() => {
     setWhisper(getRandomWhisper())
     setPrompt(getRandomPrompt())
+    fetchProfile()
 
     // Check if we're coming from timeline with an entry to edit
     const editingId = sessionStorage.getItem('editingEntryId')
@@ -139,6 +144,20 @@ export default function WritePage() {
     setGreeting(getGreeting())
   }, [])
 
+  // Build personalized greeting with nickname
+  const nickname = profile.nickname
+  const personalizedGreeting = nickname
+    ? `${greeting}, ${nickname}`
+    : greeting
+
+  // Check if today is the user's birthday
+  const isBirthday = (() => {
+    if (!profile.dateOfBirth) return false
+    const today = new Date()
+    const [, month, day] = profile.dateOfBirth.split('-').map(Number)
+    return today.getMonth() + 1 === month && today.getDate() === day
+  })()
+
   const hasContent = currentText.trim() && currentText !== '<p></p>'
 
   return (
@@ -154,9 +173,15 @@ export default function WritePage() {
           className="text-2xl font-light tracking-wide"
           style={{ color: theme.text.primary }}
         >
-          {greeting}
+          {personalizedGreeting}
         </h1>
       </motion.div>
+
+      {/* Birthday Banner */}
+      {isBirthday && <BirthdayBanner nickname={nickname} />}
+
+      {/* Letter Arrived Banner */}
+      <LetterArrivedBanner nickname={nickname} />
 
       {/* Whisper */}
       <motion.p

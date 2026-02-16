@@ -6,7 +6,6 @@ import Navigation from '@/components/Navigation'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
 import CursorPicker from '@/components/CursorPicker'
 import PageTransition from '@/components/PageTransition'
-import LetterReveal from '@/components/LetterReveal'
 
 export default function LayoutContent({
   children,
@@ -37,7 +36,6 @@ export default function LayoutContent({
           {children}
         </PageTransition>
       </main>
-      <LetterReveal />
       <CursorPicker />
       <ThemeSwitcher />
     </>

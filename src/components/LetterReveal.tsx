@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { useThemeStore } from '@/store/theme'
+import { useProfileStore } from '@/store/profile'
 
 interface ArrivedLetter {
   id: string
@@ -42,11 +43,17 @@ function TwinklingStar({ delay, size, x, y }: { delay: number; size: number; x: 
 
 export default function LetterReveal() {
   const { theme } = useThemeStore()
+  const { profile, fetchProfile } = useProfileStore()
   const [arrivedLetters, setArrivedLetters] = useState<ArrivedLetter[]>([])
   const [currentLetterIndex, setCurrentLetterIndex] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [hasChecked, setHasChecked] = useState(false)
   const [viewedLetterIds, setViewedLetterIds] = useState<Set<string>>(new Set())
+
+  // Fetch profile for nickname
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
 
   // Generate random stars for background
   const stars = Array.from({ length: 50 }, (_, i) => ({
@@ -195,7 +202,7 @@ export default function LetterReveal() {
               style={{ borderColor: `${theme.accent.warm}20` }}
             >
               <span className="text-sm italic" style={{ color: theme.text.muted }}>
-                Dear future me,
+                {profile.nickname ? `Dear future ${profile.nickname},` : 'Dear future me,'}
               </span>
             </div>
 
