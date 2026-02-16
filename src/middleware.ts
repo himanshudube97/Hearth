@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import * as jose from 'jose'
 
 const PUBLIC_PATHS = ['/login', '/api/auth']
 const PUBLIC_EXACT_PATHS = ['/']
@@ -8,56 +9,6 @@ const STATIC_PATHS = ['/_next', '/favicon.ico', '/images']
 const isDevAuth = process.env.USE_DEV_AUTH === 'true'
 const DEV_JWT_SECRET = process.env.DEV_JWT_SECRET || 'dev-secret-key-for-local-development-only-min-32-chars'
 const AUTH_COOKIE_NAME = 'hearth-auth-token'
-
-function base64UrlDecode(str: string): Uint8Array {
-  const base64 = str.replace(/-/g, '+').replace(/_/g, '/')
-  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
-  const decoded = atob(base64 + padding)
-  return Uint8Array.from(decoded, c => c.charCodeAt(0))
-}
-
-async function verifyJwtSignature(token: string, secret: string): Promise<boolean> {
-  const parts = token.split('.')
-  if (parts.length !== 3) return false
-
-  const [headerB64, payloadB64, signatureB64] = parts
-
-  try {
-    // Import the secret key
-    const encoder = new TextEncoder()
-    const keyData = encoder.encode(secret)
-    const cryptoKey = await crypto.subtle.importKey(
-      'raw',
-      keyData,
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify']
-    )
-
-    // Verify signature
-    const signatureInput = encoder.encode(`${headerB64}.${payloadB64}`)
-    const signature = base64UrlDecode(signatureB64)
-
-    const isValid = await crypto.subtle.verify(
-      'HMAC',
-      cryptoKey,
-      signature,
-      signatureInput
-    )
-
-    if (!isValid) return false
-
-    // Check expiration
-    const payload = JSON.parse(new TextDecoder().decode(base64UrlDecode(payloadB64)))
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      return false
-    }
-
-    return true
-  } catch {
-    return false
-  }
-}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -102,7 +53,13 @@ async function checkDevAuth(request: NextRequest): Promise<boolean> {
     return false
   }
 
-  return verifyJwtSignature(token, DEV_JWT_SECRET)
+  try {
+    const secret = new TextEncoder().encode(DEV_JWT_SECRET)
+    await jose.jwtVerify(token, secret)
+    return true
+  } catch {
+    return false
+  }
 }
 
 async function checkSupabaseAuth(request: NextRequest): Promise<boolean> {

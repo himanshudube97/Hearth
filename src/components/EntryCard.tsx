@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { useThemeStore } from '@/store/theme'
 import { JournalEntry } from '@/store/journal'
 import DoodlePreview from './DoodlePreview'
+import SongEmbed from './SongEmbed'
 
 interface EntryCardProps {
   entry: JournalEntry
@@ -104,16 +105,8 @@ export default function EntryCard({ entry, expanded = false, onClick, onEdit }: 
 
       {/* Song */}
       {entry.song && expanded && (
-        <div
-          className="mt-4 p-3 rounded-xl"
-          style={{ background: `${theme.accent.warm}15` }}
-        >
-          <div className="flex items-center gap-2">
-            <span style={{ color: theme.accent.warm }}>♫</span>
-            <span className="text-sm" style={{ color: theme.text.primary }}>
-              {entry.song}
-            </span>
-          </div>
+        <div className="mt-4">
+          <SongEmbed url={entry.song} compact />
         </div>
       )}
 

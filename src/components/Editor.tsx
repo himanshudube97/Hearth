@@ -9,10 +9,15 @@ import { useJournalStore } from '@/store/journal'
 
 interface EditorProps {
   prompt: string
+  value?: string
+  onChange?: (value: string) => void
 }
 
-export default function Editor({ prompt }: EditorProps) {
-  const { currentText, setCurrentText } = useJournalStore()
+export default function Editor({ prompt, value, onChange }: EditorProps) {
+  // Use controlled mode if value/onChange provided, otherwise use global store
+  const { currentText: storeText, setCurrentText: setStoreText } = useJournalStore()
+  const currentText = value !== undefined ? value : storeText
+  const setCurrentText = onChange || setStoreText
   const { theme } = useThemeStore()
 
   const editor = useEditor({

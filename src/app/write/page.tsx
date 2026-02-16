@@ -10,6 +10,7 @@ import Editor from '@/components/Editor'
 import MoodPicker from '@/components/MoodPicker'
 import DoodleCanvas from '@/components/DoodleCanvas'
 import EntryCard from '@/components/EntryCard'
+import SongEmbed, { isMusicUrl } from '@/components/SongEmbed'
 
 export default function WritePage() {
   const [whisper, setWhisper] = useState('')
@@ -257,7 +258,7 @@ export default function WritePage() {
 
         <input
           type="text"
-          placeholder="what are you listening to?"
+          placeholder="paste a song link or song name..."
           value={currentSong}
           onChange={(e) => setCurrentSong(e.target.value)}
           className="flex-1 mx-4 px-4 py-2 rounded-full text-sm bg-transparent outline-none"
@@ -312,6 +313,18 @@ export default function WritePage() {
               Remove
             </button>
           </div>
+        </motion.div>
+      )}
+
+      {/* Song Preview - shows embed for URLs */}
+      {currentSong && isMusicUrl(currentSong) && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          className="mt-4"
+        >
+          <SongEmbed url={currentSong} compact />
         </motion.div>
       )}
 

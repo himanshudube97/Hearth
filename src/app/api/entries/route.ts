@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     const mood = searchParams.get('mood') // e.g., "3" or "2,3,4" for multiple
     const search = searchParams.get('search') // Full text search
     const today = searchParams.get('today') === 'true' // Only today's entries
+    const entryType = searchParams.get('entryType') // e.g., "letter" or "normal"
 
     // What to include
     const includeDoodles = searchParams.get('includeDoodles') !== 'false'
@@ -69,6 +70,7 @@ export async function GET(request: NextRequest) {
       createdAt?: { gte?: Date; lt?: Date }
       mood?: { in: number[] }
       text?: { contains: string; mode: 'insensitive' }
+      entryType?: string
     } = {
       userId: user.id,
     }
@@ -83,6 +85,10 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.text = { contains: search, mode: 'insensitive' }
+    }
+
+    if (entryType) {
+      where.entryType = entryType
     }
 
     // Build query - always include all fields for simplicity
@@ -145,7 +151,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('[POST /api/entries] Body:', JSON.stringify(body).slice(0, 200))
 
-    const { text, mood, song, tags, doodles } = body
+    const { text, mood, song, tags, doodles, entryType, unlockDate, isSealed } = body
 
     // Create preview from text
     const textPreview = createPreview(text)
@@ -161,6 +167,9 @@ export async function POST(request: NextRequest) {
         song: song || null,
         tags: tags ?? [],
         userId: user.id,
+        entryType: entryType || 'normal',
+        unlockDate: unlockDate ? new Date(unlockDate) : null,
+        isSealed: isSealed ?? false,
         doodles: doodles && doodles.length > 0
           ? {
               create: doodles.map((d: { strokes: unknown; positionInEntry?: number }, index: number) => ({

@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth'
 
 const tabs = [
   { href: '/write', label: 'Write', icon: '✎' },
+  { href: '/letters', label: 'Letters', icon: '✉' },
   { href: '/timeline', label: 'Timeline', icon: '☰' },
   { href: '/calendar', label: 'Calendar', icon: '▣' },
   { href: '/constellation', label: 'Stars', icon: '✦' },

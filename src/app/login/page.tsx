@@ -31,8 +31,8 @@ function LoginForm() {
       const data = await response.json()
 
       if (data.success) {
-        router.push(data.redirectTo)
-        router.refresh()
+        // Use window.location for full page reload to ensure cookie is read
+        window.location.href = data.redirectTo || '/write'
       } else {
         setLoginError(data.error || 'Login failed')
       }
