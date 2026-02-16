@@ -381,6 +381,45 @@ const getFoamConfig = (): ISourceOptions => ({
   detectRetina: true,
 })
 
+// Dandelion seeds configuration - soft blurry floating fluff
+const getDandelionConfig = (): ISourceOptions => ({
+  fullScreen: false,
+  background: { color: { value: 'transparent' } },
+  fpsLimit: 30,
+  particles: {
+    number: { value: 18, density: { enable: true } },
+    color: { value: ['#FFFFFF', '#FFF8E8', '#FFFDF5'] },
+    shape: { type: 'circle' },
+    opacity: {
+      value: { min: 0.2, max: 0.5 },
+    },
+    size: {
+      value: { min: 4, max: 10 },
+    },
+    move: {
+      enable: true,
+      speed: { min: 0.03, max: 0.1 },
+      direction: 'top-right' as const,
+      random: true,
+      straight: false,
+      outModes: { default: 'out' as const },
+      drift: { min: -0.1, max: 0.1 },
+    },
+    wobble: {
+      enable: true,
+      distance: 8,
+      speed: { min: -0.2, max: 0.2 },
+    },
+    shadow: {
+      enable: true,
+      color: '#FFFFFF',
+      blur: 8,
+      offset: { x: 0, y: 0 },
+    },
+  },
+  detectRetina: true,
+})
+
 // Snowflakes configuration - peaceful evening snowfall (very slow, straight down)
 const getSnowflakesConfig = (): ISourceOptions => ({
   fullScreen: false,
@@ -808,6 +847,7 @@ function BackgroundComponent() {
     if (theme.particles === 'dust') return getDustConfig()
     if (theme.particles === 'foam') return getFoamConfig()
     if (theme.particles === 'snowflakes') return getSnowflakesConfig()
+    if (theme.particles === 'dandelion') return getDandelionConfig()
     return getFirefliesConfig()
   }, [theme.particles])
 
@@ -822,6 +862,7 @@ function BackgroundComponent() {
   const isCandlelight = theme.particles === 'dust'
   const isOceanTwilight = theme.particles === 'foam'
   const isQuietSnow = theme.particles === 'snowflakes'
+  const isHobbiton = theme.particles === 'dandelion'
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
@@ -964,7 +1005,7 @@ function BackgroundComponent() {
             transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
           />
 
-          {/* Decorative vine */}
+          {/* Decorative vine - Left side */}
           <motion.svg
             className="absolute top-0 left-0 w-52 h-52 opacity-[0.15]"
             viewBox="0 0 200 200"
@@ -976,6 +1017,121 @@ function BackgroundComponent() {
             <ellipse cx="40" cy="80" rx="7" ry="11" fill="#5E8B5A" transform="rotate(-30, 40, 80)" />
             <ellipse cx="55" cy="60" rx="6" ry="9" fill="#5E8B5A" transform="rotate(20, 55, 60)" />
           </motion.svg>
+
+          {/* Decorative vine - Right side (mirror) */}
+          <motion.svg
+            className="absolute top-0 right-0 w-52 h-52 opacity-[0.15]"
+            viewBox="0 0 200 200"
+            animate={{ rotate: [1, -1, 1] }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <path d="M200,20 Q150,30 160,80 Q165,120 140,150" fill="none" stroke="#5E8B5A" strokeWidth="2.5" />
+            <path d="M180,0 Q170,40 150,60 Q130,80 140,120" fill="none" stroke="#5E8B5A" strokeWidth="2" />
+            <ellipse cx="160" cy="80" rx="7" ry="11" fill="#5E8B5A" transform="rotate(30, 160, 80)" />
+            <ellipse cx="145" cy="60" rx="6" ry="9" fill="#5E8B5A" transform="rotate(-20, 145, 60)" />
+          </motion.svg>
+        </>
+      )}
+
+      {/* Hobbiton/Shire ambience - sunny day */}
+      {isHobbiton && (
+        <>
+          {/* Sunny sky glow */}
+          <motion.div
+            className="absolute"
+            style={{
+              top: '-15%',
+              left: '20%',
+              width: '60%',
+              height: '45%',
+              background: 'radial-gradient(ellipse at center, rgba(135, 206, 235, 0.12) 0%, rgba(176, 226, 255, 0.06) 40%, transparent 70%)',
+            }}
+            animate={{ opacity: [0.6, 0.8, 0.6] }}
+            transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Warm sunlight from top-right */}
+          <motion.div
+            className="absolute"
+            style={{
+              top: '-10%',
+              right: '-5%',
+              width: '50%',
+              height: '40%',
+              background: 'radial-gradient(ellipse at center, rgba(255, 245, 180, 0.15) 0%, rgba(255, 240, 150, 0.06) 50%, transparent 70%)',
+            }}
+            animate={{ opacity: [0.7, 0.9, 0.7], scale: [1, 1.03, 1] }}
+            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Rolling green hills */}
+          <svg className="absolute bottom-0 left-0 w-full h-[40%]" viewBox="0 0 100 40" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="hill-sunny-1" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#2D5A30" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#1A3A1C" stopOpacity="0.7" />
+              </linearGradient>
+              <linearGradient id="hill-sunny-2" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#264D28" stopOpacity="0.65" />
+                <stop offset="100%" stopColor="#153518" stopOpacity="0.85" />
+              </linearGradient>
+              <linearGradient id="hill-sunny-3" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#1F4020" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#0F2510" stopOpacity="1" />
+              </linearGradient>
+            </defs>
+            {/* Back hill - lighter */}
+            <path d="M0,28 Q18,16 35,22 T65,18 T90,24 L100,22 L100,40 L0,40 Z" fill="url(#hill-sunny-1)" />
+            {/* Middle hill */}
+            <path d="M0,34 Q22,22 45,28 T75,24 T100,30 L100,40 L0,40 Z" fill="url(#hill-sunny-2)" />
+            {/* Front hill */}
+            <path d="M0,40 Q28,30 55,35 T85,32 L100,36 L100,40 L0,40 Z" fill="url(#hill-sunny-3)" />
+          </svg>
+
+          {/* River shimmer at bottom */}
+          <motion.div
+            className="absolute"
+            style={{
+              bottom: '5%',
+              left: '0%',
+              width: '100%',
+              height: '12%',
+              background: 'linear-gradient(90deg, transparent 0%, rgba(100, 180, 220, 0.08) 20%, rgba(120, 200, 240, 0.12) 50%, rgba(100, 180, 220, 0.08) 80%, transparent 100%)',
+              filter: 'blur(15px)',
+            }}
+            animate={{ opacity: [0.4, 0.7, 0.4], x: [-10, 10, -10] }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* River sparkles */}
+          <motion.div
+            className="absolute"
+            style={{
+              bottom: '8%',
+              left: '30%',
+              width: '40%',
+              height: '6%',
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.06) 75%, transparent 100%)',
+              filter: 'blur(8px)',
+            }}
+            animate={{ opacity: [0.3, 0.6, 0.3], scaleX: [1, 1.1, 1] }}
+            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Distant green glow - meadow feel */}
+          <motion.div
+            className="absolute"
+            style={{
+              bottom: '20%',
+              left: '10%',
+              width: '80%',
+              height: '25%',
+              background: 'radial-gradient(ellipse at 50% 80%, rgba(100, 180, 100, 0.06) 0%, transparent 60%)',
+              filter: 'blur(30px)',
+            }}
+            animate={{ opacity: [0.4, 0.6, 0.4] }}
+            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+          />
         </>
       )}
 

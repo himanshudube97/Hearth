@@ -1,6 +1,6 @@
 // Theme definitions for Hearth
 
-export type ThemeName = 'rivendell' | 'winterSunset' | 'cherryBlossom' | 'northernLights' | 'mistyMountains' | 'gentleRain' | 'cosmos' | 'candlelight' | 'oceanTwilight' | 'quietSnow'
+export type ThemeName = 'rivendell' | 'hobbiton' | 'winterSunset' | 'cherryBlossom' | 'northernLights' | 'mistyMountains' | 'gentleRain' | 'cosmos' | 'candlelight' | 'oceanTwilight' | 'quietSnow'
 
 export interface Theme {
   name: string
@@ -35,8 +35,8 @@ export interface Theme {
   }
   moodEmojis: string[]
   moodLabels: string[]
-  particles: 'fireflies' | 'snow' | 'sakura' | 'aurora' | 'mist' | 'rain' | 'stars' | 'dust' | 'foam' | 'snowflakes'
-  ambience: 'forest' | 'sunset' | 'spring' | 'arctic' | 'mountains' | 'rainy' | 'cosmos' | 'candle' | 'ocean' | 'snowy'
+  particles: 'fireflies' | 'snow' | 'sakura' | 'aurora' | 'mist' | 'rain' | 'stars' | 'dust' | 'foam' | 'snowflakes' | 'dandelion'
+  ambience: 'forest' | 'sunset' | 'spring' | 'arctic' | 'mountains' | 'rainy' | 'cosmos' | 'candle' | 'ocean' | 'snowy' | 'shire'
 }
 
 // Rivendell Sunset - Forest greens with fireflies
@@ -75,6 +75,44 @@ export const rivendellTheme: Theme = {
   moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
   particles: 'fireflies',
   ambience: 'forest',
+}
+
+// Hobbiton - Sunny day in the Shire
+export const hobbitonTheme: Theme = {
+  name: 'Hobbiton',
+  description: 'A sunny day by the river in the Shire',
+  bg: {
+    primary: '#0D1A12',
+    secondary: '#142A1C',
+    gradient: 'linear-gradient(180deg, #1A3525 0%, #122A1A 30%, #0D1A12 70%, #0A1510 100%)',
+  },
+  text: {
+    primary: '#E8F5E0',
+    secondary: '#C0D8B0',
+    muted: '#7AA068',
+  },
+  accent: {
+    primary: '#60B060',
+    secondary: '#88C888',
+    warm: '#F0E070',
+    highlight: '#98D8E8',
+  },
+  glass: {
+    bg: 'rgba(20, 42, 28, 0.5)',
+    border: 'rgba(96, 176, 96, 0.15)',
+    blur: '28px',
+  },
+  moods: {
+    0: '#5A6858',
+    1: '#6A8860',
+    2: '#60B060',
+    3: '#88C888',
+    4: '#F0E070',
+  },
+  moodEmojis: ['🌧️', '🌱', '🌿', '☀️', '🌈'],
+  moodLabels: ['Cloudy', 'Growing', 'Fresh', 'Sunny', 'Blessed'],
+  particles: 'dandelion',
+  ambience: 'shire',
 }
 
 // Winter Sunset - Warm oranges and snow at dusk
@@ -421,6 +459,7 @@ export const quietSnowTheme: Theme = {
 
 export const themes: Record<ThemeName, Theme> = {
   rivendell: rivendellTheme,
+  hobbiton: hobbitonTheme,
   winterSunset: winterSunsetTheme,
   cherryBlossom: cherryBlossomTheme,
   northernLights: northernLightsTheme,
@@ -481,6 +520,11 @@ export const whispers = [
   "The world grows quiet under snow.",
   "Stillness is its own kind of beauty.",
   "Let the cold air clear your mind.",
+  "Home is where the heart rests.",
+  "Simple joys are the truest ones.",
+  "There's magic in ordinary days.",
+  "A warm hearth mends many things.",
+  "Good food, good friends, good life.",
 ]
 
 // Journal prompts
