@@ -151,7 +151,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('[POST /api/entries] Body:', JSON.stringify(body).slice(0, 200))
 
-    const { text, mood, song, tags, doodles, entryType, unlockDate, isSealed } = body
+    const {
+      text, mood, song, tags, doodles, entryType, unlockDate, isSealed,
+      recipientEmail, recipientName, senderName, letterLocation
+    } = body
 
     // Create preview from text
     const textPreview = createPreview(text)
@@ -170,6 +173,11 @@ export async function POST(request: NextRequest) {
         entryType: entryType || 'normal',
         unlockDate: unlockDate ? new Date(unlockDate) : null,
         isSealed: isSealed ?? false,
+        // Letter-specific fields
+        recipientEmail: recipientEmail || null,
+        recipientName: recipientName || null,
+        senderName: senderName || null,
+        letterLocation: letterLocation || null,
         doodles: doodles && doodles.length > 0
           ? {
               create: doodles.map((d: { strokes: unknown; positionInEntry?: number }, index: number) => ({

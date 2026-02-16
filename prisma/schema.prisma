@@ -36,12 +36,21 @@ model JournalEntry {
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Letter-specific fields (for letters to friends)
+  recipientEmail  String?   // Friend's email address
+  recipientName   String?   // Friend's name for personalization
+  senderName      String?   // How sender wants to be identified
+  letterLocation  String?   // Where the letter was written from (e.g., "Himachal Pradesh")
+  isDelivered     Boolean   @default(false)  // Has the letter been sent/delivered
+  deliveredAt     DateTime? // When the letter was delivered
+
   doodles     Doodle[]
 
   // Indexes for scalable queries
   @@index([userId, createdAt(sort: Desc)]) // Timeline queries
   @@index([userId, mood])                   // Mood filtering
   @@index([userId, createdAt, mood])        // Combined filters
+  @@index([unlockDate, isDelivered])        // For cron job to find due letters
   @@map("journal_entries")
 }
 
