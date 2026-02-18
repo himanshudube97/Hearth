@@ -23,7 +23,7 @@ services:
       target: dev
     container_name: hearth-app
     ports:
-      - "3000:3000"
+      - "3111:3111"
     env_file:
       - .env
     environment:

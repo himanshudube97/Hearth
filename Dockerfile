@@ -33,10 +33,10 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/prisma ./prisma
 
-EXPOSE 3000
+EXPOSE 3111
 
 # Start dev server
-CMD ["pnpm", "dev", "--hostname", "0.0.0.0"]
+CMD ["pnpm", "dev", "--hostname", "0.0.0.0", "--port", "3111"]
 
 # ==================== BUILDER ====================
 FROM base AS builder
@@ -75,9 +75,9 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3111
 
-ENV PORT=3000
+ENV PORT=3111
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["sh", "-c", "node server.js"]
