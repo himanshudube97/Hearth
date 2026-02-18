@@ -49,3 +49,6 @@ public/sw.js.map
 public/workbox-*.js.map
 public/swe-worker-*.js
 public/swe-worker-*.js.map
+
+# worktrees
+.worktrees/
