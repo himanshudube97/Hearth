@@ -1,0 +1,149 @@
+'use client'
+
+import React, { memo } from 'react'
+import { motion } from 'framer-motion'
+import { useThemeStore } from '@/store/theme'
+import { useDiaryStore } from '@/store/diary'
+import { diaryThemes } from '@/lib/diaryThemes'
+
+interface Entry {
+  id: string
+  mood?: number
+  createdAt: string
+}
+
+interface EntrySelectorProps {
+  entries: Entry[]
+  currentEntryId: string | null
+  onEntrySelect: (entryId: string | null) => void
+  onNewEntry?: () => void
+  className?: string
+}
+
+const EntrySelector = memo(function EntrySelector({
+  entries,
+  currentEntryId,
+  onEntrySelect,
+  onNewEntry,
+  className = '',
+}: EntrySelectorProps) {
+  const { theme } = useThemeStore()
+  const { currentDiaryTheme } = useDiaryStore()
+  const diaryTheme = diaryThemes[currentDiaryTheme]
+
+  const isGlass = currentDiaryTheme === 'glass'
+  const accentColor = theme.accent.warm
+  const textColor = isGlass ? theme.text.primary : diaryTheme.pages.textColor
+  const mutedColor = isGlass ? theme.text.muted : diaryTheme.pages.mutedColor
+  const bgColor = isGlass ? theme.glass.bg : diaryTheme.pages.background
+
+  // Sort entries by creation time (newest first)
+  const sortedEntries = [...entries].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
+
+  // Check if we're on a "new entry" (null currentEntryId)
+  const isNewEntry = currentEntryId === null
+
+  if (entries.length === 0 && !onNewEntry) {
+    return null
+  }
+
+  return (
+    <div className={`flex items-center justify-center gap-1 ${className}`}>
+      {/* Entry dots */}
+      {sortedEntries.map((entry, index) => {
+        const isActive = entry.id === currentEntryId
+        const entryNumber = sortedEntries.length - index
+        const moodColor = entry.mood !== undefined
+          ? theme.moods[entry.mood as keyof typeof theme.moods]
+          : mutedColor
+
+        return (
+          <motion.button
+            key={entry.id}
+            onClick={() => onEntrySelect(entry.id)}
+            className="relative group"
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.9 }}
+            title={`Entry ${entryNumber} - ${new Date(entry.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+          >
+            {/* Entry dot with mood color */}
+            <motion.div
+              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium transition-all"
+              style={{
+                background: isActive ? moodColor : 'transparent',
+                border: `2px solid ${isActive ? moodColor : mutedColor}`,
+                color: isActive ? 'white' : mutedColor,
+                opacity: isActive ? 1 : 0.6,
+              }}
+              animate={{
+                scale: isActive ? 1.1 : 1,
+              }}
+            >
+              {entryNumber}
+            </motion.div>
+
+            {/* Hover tooltip */}
+            <motion.div
+              className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-[10px] whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              style={{
+                background: bgColor,
+                color: textColor,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              }}
+            >
+              {new Date(entry.createdAt).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+              })}
+            </motion.div>
+          </motion.button>
+        )
+      })}
+
+      {/* New entry button */}
+      {onNewEntry && (
+        <motion.button
+          onClick={() => {
+            onEntrySelect(null)
+            onNewEntry()
+          }}
+          className="relative group"
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.9 }}
+          title="New entry"
+        >
+          <motion.div
+            className="w-6 h-6 rounded-full flex items-center justify-center text-sm transition-all"
+            style={{
+              background: isNewEntry ? accentColor : 'transparent',
+              border: `2px ${isNewEntry ? 'solid' : 'dashed'} ${isNewEntry ? accentColor : mutedColor}`,
+              color: isNewEntry ? 'white' : mutedColor,
+              opacity: isNewEntry ? 1 : 0.6,
+            }}
+            animate={{
+              scale: isNewEntry ? 1.1 : 1,
+            }}
+          >
+            +
+          </motion.div>
+
+          {/* Hover tooltip */}
+          <motion.div
+            className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-[10px] whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10"
+            style={{
+              background: bgColor,
+              color: textColor,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            }}
+          >
+            New entry
+          </motion.div>
+        </motion.button>
+      )}
+    </div>
+  )
+})
+
+export default EntrySelector

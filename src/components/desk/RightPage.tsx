@@ -1,23 +1,22 @@
 'use client'
 
-import React, { memo, useState, useEffect, useCallback } from 'react'
+import React, { memo, useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getStroke } from 'perfect-freehand'
 import { useThemeStore } from '@/store/theme'
 import { useDiaryStore } from '@/store/diary'
 import { diaryThemes, DiaryTheme } from '@/lib/diaryThemes'
-import { useJournalStore } from '@/store/journal'
+import { useJournalStore, StrokeData } from '@/store/journal'
 import { getRandomPrompt } from '@/lib/themes'
+import PhotoBlock from './PhotoBlock'
 
-// Line height must match the line pattern spacing
 const LINE_HEIGHT = 32
-// Top offset to match the left page's line positioning (70px from page - 20px padding = 50px from content)
-const TOP_OFFSET = 50
+const DOODLE_DRAFT_KEY = 'hearth_desk_doodle_draft'
 
-// Helper to get line pattern based on diary theme (for text areas)
+// Helper to get line pattern
 function getLinePattern(diaryTheme: DiaryTheme): string {
   switch (diaryTheme.pages.lineStyle) {
     case 'ruled':
-      // Line appears at bottom of each 32px cell, text sits above it
       return `repeating-linear-gradient(
         180deg,
         transparent 0px,
@@ -36,44 +35,343 @@ function getLinePattern(diaryTheme: DiaryTheme): string {
   }
 }
 
+// SVG path from stroke points
+function getSvgPathFromStroke(stroke: number[][]): string {
+  if (!stroke.length) return ''
+  const d = stroke.reduce(
+    (acc, [x0, y0], i, arr) => {
+      const [x1, y1] = arr[(i + 1) % arr.length]
+      acc.push(x0, y0, (x0 + x1) / 2, (y0 + y1) / 2)
+      return acc
+    },
+    ['M', ...stroke[0], 'Q']
+  )
+  d.push('Z')
+  return d.join(' ')
+}
+
+interface Point {
+  x: number
+  y: number
+  pressure?: number
+}
+
+interface Photo {
+  id?: string
+  url: string
+  rotation: number
+  position: 1 | 2
+  spread: number
+}
+
 interface Entry {
   id: string
   text: string
   mood: number
   song?: string | null
-  doodles?: Array<{ strokes: unknown[] }>
+  spreads?: number
+  photos?: Photo[]
+  doodles?: Array<{ strokes: StrokeData[]; spread?: number }>
   createdAt: string
 }
 
 interface RightPageProps {
   entry: Entry | null
   isNewEntry: boolean
+  currentSpread?: number
+  photos?: Photo[]
+  onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
   onSaveComplete?: () => void
 }
 
-const RightPage = memo(function RightPage({ entry, isNewEntry, onSaveComplete }: RightPageProps) {
+// Compact Doodle Canvas
+const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
+  strokes,
+  onStrokesChange,
+  doodleColors,
+  canvasBackground,
+  canvasBorder,
+  textColor,
+  mutedColor,
+}: {
+  strokes: StrokeData[]
+  onStrokesChange: (strokes: StrokeData[]) => void
+  doodleColors: string[]
+  canvasBackground: string
+  canvasBorder: string
+  textColor: string
+  mutedColor: string
+}) {
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const [localStrokes, setLocalStrokes] = useState<StrokeData[]>(strokes)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [currentPoints, setCurrentPoints] = useState<Point[]>([])
+  const [activeBrush, setActiveBrush] = useState(1)
+  const [selectedColor, setSelectedColor] = useState<string>(doodleColors[0])
+
+  const brushes = [
+    { name: 'S', size: 2 },
+    { name: 'M', size: 4 },
+    { name: 'L', size: 8 },
+  ]
+
+  const getPointFromEvent = useCallback((e: React.PointerEvent): Point => {
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (!rect) return { x: 0, y: 0 }
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      pressure: e.pressure || 0.5,
+    }
+  }, [])
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault()
+    setIsDrawing(true)
+    setCurrentPoints([getPointFromEvent(e)])
+  }, [getPointFromEvent])
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDrawing) return
+    e.preventDefault()
+    setCurrentPoints(prev => [...prev, getPointFromEvent(e)])
+  }, [isDrawing, getPointFromEvent])
+
+  const handlePointerUp = useCallback(() => {
+    if (!isDrawing) return
+    setIsDrawing(false)
+
+    if (currentPoints.length > 0) {
+      const brush = brushes[activeBrush]
+      const newStroke: StrokeData = {
+        points: currentPoints.map(p => [p.x, p.y, p.pressure || 0.5]),
+        color: selectedColor,
+        size: brush.size,
+      }
+      const newStrokes = [...localStrokes, newStroke]
+      setLocalStrokes(newStrokes)
+      onStrokesChange(newStrokes)
+    }
+
+    setCurrentPoints([])
+  }, [isDrawing, currentPoints, activeBrush, selectedColor, localStrokes, onStrokesChange, brushes])
+
+  const clearCanvas = () => {
+    setLocalStrokes([])
+    setCurrentPoints([])
+    onStrokesChange([])
+  }
+
+  const renderStroke = (strokeData: StrokeData, index: number) => {
+    const outlinePoints = getStroke(strokeData.points, {
+      size: strokeData.size,
+      thinning: 0.5,
+      smoothing: 0.5,
+      streamline: 0.5,
+    })
+    const pathData = getSvgPathFromStroke(outlinePoints)
+    return <path key={index} d={pathData} fill={strokeData.color} opacity={0.9} />
+  }
+
+  const renderCurrentStroke = () => {
+    if (currentPoints.length === 0) return null
+    const brush = brushes[activeBrush]
+    const outlinePoints = getStroke(
+      currentPoints.map(p => [p.x, p.y, p.pressure || 0.5]),
+      { size: brush.size, thinning: 0.5, smoothing: 0.5, streamline: 0.5 }
+    )
+    const pathData = getSvgPathFromStroke(outlinePoints)
+    return <path d={pathData} fill={selectedColor} opacity={0.9} />
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Compact Toolbar */}
+      <div className="flex items-center gap-1 mb-1">
+        {brushes.map((brush, index) => (
+          <button
+            key={brush.name}
+            onClick={() => setActiveBrush(index)}
+            className="w-6 h-6 rounded text-[10px] transition-all"
+            style={{
+              background: activeBrush === index ? `${selectedColor}20` : 'rgba(0,0,0,0.03)',
+              border: activeBrush === index ? `1px solid ${selectedColor}` : '1px solid rgba(0,0,0,0.08)',
+              color: textColor,
+            }}
+          >
+            {brush.name}
+          </button>
+        ))}
+        <div className="flex-1" />
+        {doodleColors.slice(0, 4).map((color) => (
+          <button
+            key={color}
+            onClick={() => setSelectedColor(color)}
+            className="w-4 h-4 rounded-full transition-all"
+            style={{
+              background: color,
+              border: selectedColor === color ? '2px solid rgba(0,0,0,0.3)' : '1px solid rgba(0,0,0,0.1)',
+              transform: selectedColor === color ? 'scale(1.2)' : 'scale(1)',
+            }}
+          />
+        ))}
+        <button
+          onClick={clearCanvas}
+          className="text-[10px] ml-1"
+          style={{ color: mutedColor }}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Canvas */}
+      <div
+        ref={canvasRef}
+        className="flex-1 relative touch-none rounded-lg overflow-hidden"
+        style={{
+          background: canvasBackground,
+          border: `1px solid ${canvasBorder}`,
+          cursor: 'crosshair',
+          minHeight: '100px',
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+      >
+        <svg className="absolute inset-0 w-full h-full">
+          {localStrokes.map((stroke, index) => renderStroke(stroke, index))}
+          {renderCurrentStroke()}
+        </svg>
+        {localStrokes.length === 0 && !isDrawing && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-[10px]" style={{ color: mutedColor, opacity: 0.5 }}>Draw here</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+})
+
+// Doodle Preview for existing entries
+const DoodlePreview = memo(function DoodlePreview({
+  strokes,
+  canvasBackground,
+  canvasBorder,
+}: {
+  strokes: StrokeData[]
+  canvasBackground: string
+  canvasBorder: string
+}) {
+  if (!strokes || strokes.length === 0) return null
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  strokes.forEach(stroke => {
+    stroke.points.forEach(([x, y]) => {
+      minX = Math.min(minX, x)
+      minY = Math.min(minY, y)
+      maxX = Math.max(maxX, x)
+      maxY = Math.max(maxY, y)
+    })
+  })
+
+  const padding = 10
+  const width = maxX - minX + padding * 2
+  const height = maxY - minY + padding * 2
+
+  return (
+    <div
+      className="h-24 rounded-lg overflow-hidden"
+      style={{
+        background: canvasBackground,
+        border: `1px solid ${canvasBorder}`,
+      }}
+    >
+      <svg
+        viewBox={`${minX - padding} ${minY - padding} ${width} ${height}`}
+        className="w-full h-full"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {strokes.map((stroke, index) => {
+          const outlinePoints = getStroke(stroke.points, {
+            size: stroke.size,
+            thinning: 0.5,
+            smoothing: 0.5,
+            streamline: 0.5,
+          })
+          const pathData = getSvgPathFromStroke(outlinePoints)
+          return <path key={index} d={pathData} fill={stroke.color} opacity={0.9} />
+        })}
+      </svg>
+    </div>
+  )
+})
+
+const RightPage = memo(function RightPage({
+  entry,
+  isNewEntry,
+  currentSpread = 1,
+  photos = [],
+  onPhotoAdd,
+  onSaveComplete,
+}: RightPageProps) {
   const { theme } = useThemeStore()
   const { currentDiaryTheme } = useDiaryStore()
   const diaryTheme = diaryThemes[currentDiaryTheme]
-  const { currentMood, currentSong, currentDoodleStrokes, resetCurrentEntry } = useJournalStore()
+  const { currentMood, currentSong, currentDoodleStrokes, setDoodleStrokes, resetCurrentEntry } = useJournalStore()
   const [prompt, setPrompt] = useState('')
   const [text, setText] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [pendingPhotos, setPendingPhotos] = useState<Photo[]>([])
 
   const accentColor = theme.accent.warm
   const isGlass = currentDiaryTheme === 'glass'
-
-  // Use theme colors for glass, diary theme colors otherwise
   const textColor = isGlass ? theme.text.primary : diaryTheme.pages.textColor
   const mutedColor = isGlass ? theme.text.muted : diaryTheme.pages.mutedColor
-
-  // Get line pattern for this theme
   const linePattern = getLinePattern(diaryTheme)
 
   useEffect(() => {
     setPrompt(getRandomPrompt())
   }, [])
+
+  // Load doodle draft from localStorage
+  useEffect(() => {
+    if (isNewEntry) {
+      try {
+        const draft = localStorage.getItem(DOODLE_DRAFT_KEY)
+        if (draft) {
+          const parsed = JSON.parse(draft) as StrokeData[]
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setDoodleStrokes(parsed)
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load doodle draft:', e)
+      }
+    }
+  }, [isNewEntry, setDoodleStrokes])
+
+  const handleStrokesChange = useCallback((strokes: StrokeData[]) => {
+    try {
+      localStorage.setItem(DOODLE_DRAFT_KEY, JSON.stringify(strokes))
+    } catch (e) {
+      console.error('Failed to save doodle draft:', e)
+    }
+    setDoodleStrokes(strokes)
+  }, [setDoodleStrokes])
+
+  const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
+    const rotation = position === 1 ? -8 + Math.floor(Math.random() * 6) : 5 + Math.floor(Math.random() * 6)
+    const newPhoto: Photo = {
+      url: dataUrl,
+      position,
+      spread: currentSpread,
+      rotation,
+    }
+    setPendingPhotos(prev => [...prev.filter(p => !(p.position === position && p.spread === currentSpread)), newPhoto])
+    onPhotoAdd?.(position, dataUrl)
+  }, [currentSpread, onPhotoAdd])
 
   const refreshPrompt = useCallback(() => {
     setPrompt(getRandomPrompt())
@@ -84,15 +382,9 @@ const RightPage = memo(function RightPage({ entry, isNewEntry, onSaveComplete }:
 
     setSaving(true)
     try {
-      // Build doodles array from current strokes
       const doodlesToSave = currentDoodleStrokes.length > 0
-        ? [{ strokes: currentDoodleStrokes }]
+        ? [{ strokes: currentDoodleStrokes, spread: currentSpread }]
         : []
-
-      console.log('[RightPage] Saving entry with doodles:', {
-        strokeCount: currentDoodleStrokes.length,
-        doodlesToSave,
-      })
 
       const res = await fetch('/api/entries', {
         method: 'POST',
@@ -102,22 +394,23 @@ const RightPage = memo(function RightPage({ entry, isNewEntry, onSaveComplete }:
           mood: currentMood,
           song: currentSong || null,
           doodles: doodlesToSave,
+          photos: pendingPhotos,
+          spreads: currentSpread,
         }),
       })
 
       if (res.ok) {
         setSaved(true)
         setText('')
+        setPendingPhotos([])
         resetCurrentEntry()
         setPrompt(getRandomPrompt())
-        // Clear doodle draft from localStorage
         try {
-          localStorage.removeItem('hearth_desk_doodle_draft')
+          localStorage.removeItem(DOODLE_DRAFT_KEY)
         } catch (e) {
           console.error('Failed to clear doodle draft:', e)
         }
 
-        // Notify parent and reset after delay
         setTimeout(() => {
           setSaved(false)
           onSaveComplete?.()
@@ -133,64 +426,97 @@ const RightPage = memo(function RightPage({ entry, isNewEntry, onSaveComplete }:
     } finally {
       setSaving(false)
     }
-  }, [text, currentMood, currentSong, currentDoodleStrokes, resetCurrentEntry, onSaveComplete])
+  }, [text, currentMood, currentSong, currentDoodleStrokes, currentSpread, pendingPhotos, resetCurrentEntry, onSaveComplete])
+
+  // Get current spread photos
+  const spreadPhotos = [...photos, ...pendingPhotos].filter(p => p.spread === currentSpread)
+  const spreadDoodle = entry?.doodles?.find(d => (d.spread || 1) === currentSpread)
 
   if (isNewEntry) {
-    // New entry mode - show editor
     return (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.5 }}
-        className="h-full flex flex-col relative"
+        className="h-full flex flex-col"
       >
-        {/* Prompt - positioned at top */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex-shrink-0" style={{ height: `${TOP_OFFSET - 10}px` }}>
-          <div className="flex items-start gap-2">
+        {/* Photo Block */}
+        <div className="mb-3 flex-shrink-0">
+          <div
+            className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
+            style={{ color: mutedColor }}
+          >
+            Add Photos
+          </div>
+          <PhotoBlock
+            photos={spreadPhotos}
+            spread={currentSpread}
+            onPhotoAdd={handlePhotoAdd}
+          />
+        </div>
+
+        {/* Writing Area with Prompt */}
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex items-start gap-2 mb-1 flex-shrink-0">
             <div
-              className="text-sm italic flex-1 leading-relaxed"
+              className="text-xs italic flex-1 leading-relaxed"
               style={{ color: mutedColor }}
             >
               {prompt}
             </div>
             <button
               onClick={refreshPrompt}
-              className="text-sm opacity-50 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+              className="text-xs opacity-50 hover:opacity-100 transition-opacity"
               style={{ color: accentColor }}
               title="New prompt"
             >
               ↻
             </button>
           </div>
-        </div>
-
-        {/* Writing area with integrated line pattern - starts below prompt */}
-        <div className="flex-1 relative min-h-0 overflow-hidden">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Begin writing your thoughts..."
-            className="w-full h-full resize-none outline-none"
+            placeholder="Begin writing..."
+            className="flex-1 w-full resize-none outline-none text-sm"
             style={{
               color: textColor,
               fontFamily: 'var(--font-caveat), Georgia, serif',
-              fontSize: '22px',
+              fontSize: '18px',
               lineHeight: `${LINE_HEIGHT}px`,
               caretColor: accentColor,
               backgroundColor: 'transparent',
               backgroundImage: linePattern !== 'none' ? linePattern : 'none',
               backgroundSize: diaryTheme.pages.lineStyle === 'dotted' ? '20px 20px' : undefined,
-              backgroundPositionY: `${TOP_OFFSET}px`, // Shift lines down to match left page
-              backgroundAttachment: 'local', // Lines scroll with text
-              paddingTop: `${TOP_OFFSET}px`, // Match left page offset
+              backgroundAttachment: 'local',
             }}
           />
         </div>
 
-        {/* Footer with save */}
-        <div className="mt-4 flex justify-between items-center flex-shrink-0">
+        {/* Doodle Area */}
+        <div className="mt-2 flex-shrink-0" style={{ height: '140px' }}>
+          <div
+            className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium"
+            style={{ color: mutedColor }}
+          >
+            Draw
+          </div>
+          <div style={{ height: '120px' }}>
+            <CompactDoodleCanvas
+              strokes={currentDoodleStrokes}
+              onStrokesChange={handleStrokesChange}
+              doodleColors={isGlass ? [theme.text.primary, theme.accent.primary, theme.accent.warm, theme.text.muted] : diaryTheme.doodle.defaultColors}
+              canvasBackground={isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground}
+              canvasBorder={isGlass ? 'rgba(255,255,255,0.2)' : diaryTheme.doodle.canvasBorder}
+              textColor={textColor}
+              mutedColor={mutedColor}
+            />
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="mt-2 flex justify-between items-center flex-shrink-0">
           <div className="text-xs" style={{ color: mutedColor }}>
-            {text.length > 0 && `${text.length} characters`}
+            {text.length > 0 && `${text.length} chars`}
           </div>
 
           <AnimatePresence mode="wait">
@@ -214,7 +540,7 @@ const RightPage = memo(function RightPage({ entry, isNewEntry, onSaveComplete }:
                 exit={{ opacity: 0, scale: 0.8 }}
                 onClick={handleSave}
                 disabled={saving}
-                className="px-6 py-2.5 rounded-full text-sm font-medium"
+                className="px-5 py-2 rounded-full text-sm font-medium"
                 style={{
                   background: accentColor,
                   color: 'white',
@@ -229,26 +555,16 @@ const RightPage = memo(function RightPage({ entry, isNewEntry, onSaveComplete }:
             ) : null}
           </AnimatePresence>
         </div>
-
-        {/* Decorative corner */}
-        <div
-          className="absolute bottom-4 right-4 w-8 h-8 pointer-events-none"
-          style={{
-            borderRight: `2px solid ${accentColor}20`,
-            borderBottom: `2px solid ${accentColor}20`,
-          }}
-        />
       </motion.div>
     )
   }
 
-  // Viewing existing entry - show text content
-  // Convert HTML back to plain text without creating extra newlines
+  // Viewing existing entry
   const plainText = entry?.text
     ? entry.text
-        .replace(/<\/p><p>/g, '\n')     // Replace paragraph breaks with single newline
-        .replace(/<br\s*\/?>/gi, '\n')  // Replace <br> with newline
-        .replace(/<[^>]*>/g, '')        // Remove all remaining HTML tags (don't add newlines)
+        .replace(/<\/p><p>/g, '\n')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]*>/g, '')
         .replace(/&nbsp;/g, ' ')
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
@@ -263,20 +579,29 @@ const RightPage = memo(function RightPage({ entry, isNewEntry, onSaveComplete }:
       transition={{ delay: 0.3, duration: 0.5 }}
       className="h-full flex flex-col"
     >
-      {/* Entry content with integrated line pattern - matches write mode offset */}
+      {/* Photos */}
+      {spreadPhotos.length > 0 && (
+        <div className="mb-3 flex-shrink-0">
+          <PhotoBlock
+            photos={spreadPhotos}
+            spread={currentSpread}
+            disabled
+          />
+        </div>
+      )}
+
+      {/* Text content */}
       <div
         className="flex-1 overflow-auto whitespace-pre-wrap"
         style={{
           color: textColor,
           fontFamily: 'var(--font-caveat), Georgia, serif',
-          fontSize: '20px',
+          fontSize: '18px',
           lineHeight: `${LINE_HEIGHT}px`,
           backgroundColor: 'transparent',
           backgroundImage: linePattern !== 'none' ? linePattern : 'none',
           backgroundSize: diaryTheme.pages.lineStyle === 'dotted' ? '20px 20px' : undefined,
-          backgroundPositionY: `${TOP_OFFSET}px`, // Shift lines down to match left page
-          backgroundAttachment: 'local', // Lines scroll with text
-          paddingTop: `${TOP_OFFSET}px`, // Match write mode and left page offset
+          backgroundAttachment: 'local',
         }}
       >
         {plainText || (
@@ -286,8 +611,25 @@ const RightPage = memo(function RightPage({ entry, isNewEntry, onSaveComplete }:
         )}
       </div>
 
+      {/* Doodle preview */}
+      {spreadDoodle?.strokes && spreadDoodle.strokes.length > 0 && (
+        <div className="mt-2 flex-shrink-0">
+          <div
+            className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium"
+            style={{ color: mutedColor }}
+          >
+            Doodle
+          </div>
+          <DoodlePreview
+            strokes={spreadDoodle.strokes}
+            canvasBackground={isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground}
+            canvasBorder={isGlass ? 'rgba(255,255,255,0.2)' : diaryTheme.doodle.canvasBorder}
+          />
+        </div>
+      )}
+
       {/* Footer */}
-      <div className="mt-4 pt-4 border-t flex-shrink-0" style={{ borderColor: `${mutedColor}20` }}>
+      <div className="mt-2 pt-2 border-t flex-shrink-0" style={{ borderColor: `${mutedColor}20` }}>
         <div className="flex justify-between items-center">
           <div className="text-xs" style={{ color: mutedColor }}>
             {plainText.length} characters

@@ -8,72 +8,78 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String         @id @default(cuid())
+  email     String         @unique
   name      String?
   avatar    String?
-  provider  String   @default("dev") // "dev" | "google"
-  profile   Json?    // Stores answers to thoughtful "about me" questions
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  provider  String         @default("dev") // "dev" | "google"
+  profile   Json? // Stores answers to thoughtful "about me" questions
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
   entries   JournalEntry[]
 
   // Lemon Squeezy subscription fields
   lemonSqueezyCustomerId String?   @unique
   subscriptionId         String?   @unique
-  subscriptionStatus     String?   // "active", "cancelled", "past_due", "on_trial", "paused"
-  variantId              String?   // which variant/plan they subscribed to
+  subscriptionStatus     String? // "active", "cancelled", "past_due", "on_trial", "paused"
+  variantId              String? // which variant/plan they subscribed to
   currentPeriodEnd       DateTime? // when current billing period ends (renews_at)
 
   // E2EE fields
   e2eeEnabled                Boolean   @default(false)
-  encryptedMasterKey         String?   // Master key encrypted with daily key
-  masterKeyIV                String?   // IV for master key encryption
-  masterKeySalt              String?   // Salt for PBKDF2 derivation
-  recoveryKeyHash            String?   // Hash to verify recovery key
-  encryptedMasterKeyRecovery String?   // Master key encrypted with recovery key
-  recoveryKeyIV              String?   // IV for recovery encryption
+  encryptedMasterKey         String? // Master key encrypted with daily key
+  masterKeyIV                String? // IV for master key encryption
+  masterKeySalt              String? // Salt for PBKDF2 derivation
+  recoveryKeyHash            String? // Hash to verify recovery key
+  encryptedMasterKeyRecovery String? // Master key encrypted with recovery key
+  recoveryKeyIV              String? // IV for recovery encryption
   e2eeSetupAt                DateTime?
 
   @@map("users")
 }
 
 model JournalEntry {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   text        String
-  textPreview String?  // First ~150 chars for list views, avoids sending full text
-  mood        Int      @default(2) // 0-4: Heavy, Low, Okay, Good, Radiant
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  textPreview String? // First ~150 chars for list views, avoids sending full text
+  mood        Int       @default(2) // 0-4: Heavy, Low, Okay, Good, Radiant
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   song        String?
-  entryType   String   @default("normal") // normal, letter, unsent_letter, ephemeral
+  entryType   String    @default("normal") // normal, letter, unsent_letter, ephemeral
   unlockDate  DateTime?
-  isSealed    Boolean  @default(false)
+  isSealed    Boolean   @default(false)
   expiresAt   DateTime?
-  tags        String[] @default([])
+  tags        String[]  @default([])
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Letter-specific fields (for letters to friends)
-  recipientEmail  String?   // Friend's email address
-  recipientName   String?   // Friend's name for personalization
-  senderName      String?   // How sender wants to be identified
-  letterLocation  String?   // Where the letter was written from (e.g., "Himachal Pradesh")
-  isDelivered     Boolean   @default(false)  // Has the letter been sent/delivered
-  deliveredAt     DateTime? // When the letter was delivered
-  isViewed        Boolean   @default(false)  // Has the user viewed this letter after it arrived
+  recipientEmail String? // Friend's email address
+  recipientName  String? // Friend's name for personalization
+  senderName     String? // How sender wants to be identified
+  letterLocation String? // Where the letter was written from (e.g., "Himachal Pradesh")
+  isDelivered    Boolean   @default(false) // Has the letter been sent/delivered
+  deliveredAt    DateTime? // When the letter was delivered
+  isViewed       Boolean   @default(false) // Has the user viewed this letter after it arrived
 
   // E2EE fields
-  encryptionType  String  @default("server")  // "server" | "e2ee"
-  e2eeIV          String? // IV for E2EE entries (client-side encryption)
+  encryptionType String  @default("server") // "server" | "e2ee"
+  e2eeIV         String? // IV for E2EE entries (client-side encryption)
 
-  doodles     Doodle[]
+  // Multi-spread page layout fields
+  spreads    Int     @default(1) // Number of spreads (1-3)
+  isArchived Boolean @default(false) // Soft delete flag for two-step deletion
+
+  doodles Doodle[]
+  photos  EntryPhoto[]
 
   // Indexes for scalable queries
   @@index([userId, createdAt(sort: Desc)]) // Timeline queries
-  @@index([userId, mood])                   // Mood filtering
-  @@index([userId, createdAt, mood])        // Combined filters
-  @@index([unlockDate, isDelivered])        // For cron job to find due letters
+  @@index([userId, mood]) // Mood filtering
+  @@index([userId, createdAt, mood]) // Combined filters
+  @@index([unlockDate, isDelivered]) // For cron job to find due letters
+  @@index([userId, isArchived]) // For archive queries
   @@map("journal_entries")
 }
 
@@ -81,20 +87,37 @@ model Doodle {
   id              String       @id @default(cuid())
   journalEntryId  String
   journalEntry    JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
-  strokes         Json         // Array of stroke data
+  strokes         Json // Array of stroke data
   positionInEntry Int          @default(0)
+  spread          Int          @default(1) // Which spread this doodle belongs to (1-3)
   createdAt       DateTime     @default(now())
 
+  @@unique([journalEntryId, spread]) // One doodle per spread
   @@map("doodles")
 }
 
+model EntryPhoto {
+  id        String   @id @default(cuid())
+  entryId   String
+  spread    Int // Which spread (1, 2, or 3)
+  position  Int // 1 or 2 (left or right photo in the polaroid layout)
+  url       String // Data URL (phase 1) or cloud URL (phase 2)
+  rotation  Int      @default(0) // Tilt angle for polaroid effect (-15 to 15)
+  createdAt DateTime @default(now())
+
+  entry JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, spread, position]) // One photo per position per spread
+  @@map("entry_photos")
+}
+
 model BookQuote {
-  id          String   @id @default(cuid())
-  quoteText   String
-  bookTitle   String
-  author      String?
-  mood        Int?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  quoteText String
+  bookTitle String
+  author    String?
+  mood      Int?
+  createdAt DateTime @default(now())
 
   @@map("book_quotes")
 }
