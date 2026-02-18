@@ -865,7 +865,7 @@ function BackgroundComponent() {
   const isHobbiton = theme.particles === 'dandelion'
 
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
       {/* Base gradient */}
       <div className="absolute inset-0" style={{ background: theme.bg.gradient }} />
 
