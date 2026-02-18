@@ -167,7 +167,7 @@ model JournalEntry {
 
   // New fields
   spreads       Int      @default(1)  // Number of spreads (1-3)
-  archivedAt    DateTime?             // Soft delete timestamp
+  isArchived    Boolean  @default(false)  // Soft delete flag
 
   // Relations
   photos        EntryPhoto[]
@@ -233,9 +233,31 @@ BookSpread (updated)
 └── AddSpreadButton         # "+ Add pages" (if < 3 spreads)
 ```
 
+### Empty States
+
+**Photo slots (empty):**
+```
+┌ ─ ─ ─ ─ ─ ┐
+│           │
+│    📷     │   Dotted polaroid frame
+│   + Add   │   Feels like empty photo corners in a scrapbook
+│           │
+└ ─ ─ ─ ─ ─ ┘
+```
+
+**Doodle area (empty):**
+```
+┌ ─ ─ ─ ─ ─ ─ ─ ─ ┐
+│                 │
+│    🎨 Draw      │   Dotted canvas border
+│    here...      │   Clear affordance, low pressure
+│                 │
+└ ─ ─ ─ ─ ─ ─ ─ ─ ┘
+```
+
 ### New Components Needed
 
-1. **PhotoSlot** — Empty state, upload trigger, photo display with tilt
+1. **PhotoSlot** — Dotted frame empty state, upload trigger, photo display with tilt
 2. **CameraModal** — Webcam preview, capture, retake/use flow
 3. **PhotoBlock** — Container for two PhotoSlots with overlapping layout
 4. **SpreadNavigation** — Page dots, spread switching
@@ -274,7 +296,7 @@ Current: Single spread, left page = mood/song/doodle, right page = text
 New: Multi-spread, left = music/text, right = photos/text/doodle
 
 **Migration Steps:**
-1. Add new schema fields (spreads, archivedAt)
+1. Add new schema fields (spreads, isArchived)
 2. Create EntryPhoto model
 3. Update EntryDoodle with spread field
 4. Migrate existing entries:
@@ -284,11 +306,11 @@ New: Multi-spread, left = music/text, right = photos/text/doodle
    - No photos (legacy entries)
 5. Update components incrementally
 
-## Open Questions
+## Resolved Questions
 
-1. **Photo size limit?** Suggest 5MB max, resize to 1200px width client-side
-2. **Doodle per spread vs per entry?** Design says per spread — confirm this scales well
-3. **Archive retention?** Keep archived entries forever, or auto-delete after 1 year?
+1. **Photo size limit:** 5MB max upload, resize to 1200px width client-side, crop to fit polaroid aspect ratio (4:5 or square)
+2. **Doodle per spread:** Yes, one doodle per spread. 3 spreads = up to 3 separate doodles.
+3. **Archive retention:** No auto-delete. Simple `isArchived: Boolean` flag. Entry stays in archive until user permanently deletes.
 
 ## Success Criteria
 
