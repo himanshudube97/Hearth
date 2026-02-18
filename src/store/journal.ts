@@ -54,6 +54,7 @@ interface JournalStore {
   setActiveTab: (tab: 'write' | 'timeline' | 'calendar') => void
   setDoodleMode: (mode: boolean) => void
   addDoodleStroke: (stroke: StrokeData) => void
+  setDoodleStrokes: (strokes: StrokeData[]) => void
   clearDoodleStrokes: () => void
   resetCurrentEntry: () => void
 }
@@ -79,6 +80,7 @@ export const useJournalStore = create<JournalStore>((set) => ({
   addDoodleStroke: (stroke) => set((state) => ({
     currentDoodleStrokes: [...state.currentDoodleStrokes, stroke]
   })),
+  setDoodleStrokes: (strokes) => set({ currentDoodleStrokes: strokes }),
   clearDoodleStrokes: () => set({ currentDoodleStrokes: [] }),
   resetCurrentEntry: () => set({
     currentText: '',

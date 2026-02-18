@@ -79,12 +79,14 @@ const PageWrapper = memo(function PageWrapper({
   diaryTheme,
   isGlass,
   glassSettings,
+  skipLinePattern = false,
 }: {
   children: React.ReactNode
   side: 'left' | 'right'
   diaryTheme: DiaryTheme
   isGlass: boolean
   glassSettings: { bg: string; blur: string; border: string }
+  skipLinePattern?: boolean
 }) {
   const isLeft = side === 'left'
   const paperColor = diaryTheme.pages.background
@@ -123,8 +125,8 @@ const PageWrapper = memo(function PageWrapper({
         />
       )}
 
-      {/* Line pattern */}
-      {linePattern !== 'none' && (
+      {/* Line pattern (skip for right page - it handles its own lines for proper scrolling) */}
+      {linePattern !== 'none' && !skipLinePattern && (
         <div
           className="absolute pointer-events-none"
           style={{
@@ -379,7 +381,7 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
         </div>
 
         {/* Right page */}
-        <PageWrapper side="right" diaryTheme={diaryTheme} isGlass={currentDiaryTheme === 'glass'} glassSettings={theme.glass}>
+        <PageWrapper side="right" diaryTheme={diaryTheme} isGlass={currentDiaryTheme === 'glass'} glassSettings={theme.glass} skipLinePattern>
           <RightPage
             entry={currentEntry}
             isNewEntry={isNewEntrySpread}

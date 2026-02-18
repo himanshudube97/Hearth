@@ -319,7 +319,7 @@ const LeftPage = memo(function LeftPage({ entry, isNewEntry, spreadDate }: LeftP
   const { theme } = useThemeStore()
   const { currentDiaryTheme } = useDiaryStore()
   const diaryTheme = diaryThemes[currentDiaryTheme]
-  const { currentMood, setCurrentMood, currentSong, setCurrentSong, addDoodleStroke, clearDoodleStrokes } = useJournalStore()
+  const { currentMood, setCurrentMood, currentSong, setCurrentSong, currentDoodleStrokes, setDoodleStrokes } = useJournalStore()
   const [songInput, setSongInput] = useState(entry?.song || currentSong || '')
   const [localStrokes, setLocalStrokes] = useState<StrokeData[]>([])
 
@@ -337,27 +337,38 @@ const LeftPage = memo(function LeftPage({ entry, isNewEntry, spreadDate }: LeftP
         const draft = localStorage.getItem(DOODLE_DRAFT_KEY)
         if (draft) {
           const parsed = JSON.parse(draft) as StrokeData[]
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
             setLocalStrokes(parsed)
+            // Also update journal store so RightPage can access strokes on save
+            setDoodleStrokes(parsed)
+            console.log('[LeftPage] Loaded doodle draft:', parsed.length, 'strokes')
           }
         }
       } catch (e) {
         console.error('Failed to load doodle draft:', e)
       }
     }
-  }, [isNewEntry])
+  }, [isNewEntry, setDoodleStrokes])
+
+  // Clear local strokes when journal store is reset (after save)
+  useEffect(() => {
+    if (isNewEntry && currentDoodleStrokes.length === 0 && localStrokes.length > 0) {
+      console.log('[LeftPage] Clearing local strokes after save')
+      setLocalStrokes([])
+    }
+  }, [isNewEntry, currentDoodleStrokes.length, localStrokes.length])
 
   // Save doodle strokes to localStorage and journal store
   const handleStrokesChange = useCallback((strokes: StrokeData[]) => {
+    console.log('[LeftPage] Strokes changed:', strokes.length, 'strokes')
     try {
       localStorage.setItem(DOODLE_DRAFT_KEY, JSON.stringify(strokes))
     } catch (e) {
       console.error('Failed to save doodle draft:', e)
     }
-    // Update journal store
-    clearDoodleStrokes()
-    strokes.forEach(stroke => addDoodleStroke(stroke))
-  }, [addDoodleStroke, clearDoodleStrokes])
+    // Update journal store with all strokes at once
+    setDoodleStrokes(strokes)
+  }, [setDoodleStrokes])
 
   // Mood options
   const moods = [
