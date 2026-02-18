@@ -10,7 +10,6 @@ import SongEmbed from '@/components/SongEmbed'
 
 // Line height must match the line pattern spacing
 const LINE_HEIGHT = 32
-const TOP_OFFSET = 50
 
 interface Entry {
   id: string
@@ -91,14 +90,16 @@ const LeftPage = memo(function LeftPage({
     setCurrentSong(value)
   }, [setCurrentSong])
 
-  // Sync song input when entry changes
+  // Sync song input when entry changes - use initializer pattern
+  const entrySong = entry?.song
   useEffect(() => {
-    if (entry?.song) {
-      setSongInput(entry.song)
-    } else if (isNewEntry) {
-      setSongInput(currentSong || '')
+    if (entrySong) {
+      setSongInput(entrySong)
+    } else if (isNewEntry && currentSong) {
+      setSongInput(currentSong)
     }
-  }, [entry?.song, isNewEntry, currentSong])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entrySong, isNewEntry])
 
   if (isNewEntry) {
     return (

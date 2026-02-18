@@ -96,12 +96,13 @@ async function processImage(file: File): Promise<string> {
 const PhotoSlot = memo(function PhotoSlot({
   photo,
   position,
-  spread,
+  spread: _spread, // Used by parent for tracking, not needed here
   onPhotoAdd,
   onCameraCapture,
   disabled = false,
   className = '',
 }: PhotoSlotProps) {
+  void _spread // Acknowledge unused parameter
   const { theme } = useThemeStore()
   const { currentDiaryTheme } = useDiaryStore()
   const diaryTheme = diaryThemes[currentDiaryTheme]

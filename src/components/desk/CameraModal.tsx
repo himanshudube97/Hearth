@@ -137,7 +137,8 @@ const CameraModal = memo(function CameraModal({
   // Start camera when modal opens
   useEffect(() => {
     if (isOpen && !capturedImage) {
-      startCamera()
+      // Use void to indicate intentional fire-and-forget
+      void startCamera()
     }
     return () => {
       stopCamera()
@@ -147,9 +148,10 @@ const CameraModal = memo(function CameraModal({
   // Restart camera when facing mode changes
   useEffect(() => {
     if (isOpen && isStreaming) {
-      startCamera()
+      void startCamera()
     }
-  }, [facingMode]) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facingMode])
 
   const handleClose = useCallback(() => {
     stopCamera()

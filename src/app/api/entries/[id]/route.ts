@@ -133,13 +133,9 @@ export async function PUT(
     if (e2eeIV !== undefined) updateData.e2eeIV = e2eeIV
 
     // Update the entry
-    const entry = await prisma.journalEntry.update({
+    await prisma.journalEntry.update({
       where: { id },
       data: updateData,
-      include: {
-        doodles: true,
-        photos: true,
-      },
     })
 
     // Add new photos if provided (append-only)
