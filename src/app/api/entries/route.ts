@@ -22,20 +22,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
 
     // Pagination params
-    const cursor = searchParams.get('cursor') // Entry ID for cursor-based pagination
+    const cursor = searchParams.get('cursor')
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50)
 
     // Filter params
-    const year = searchParams.get('year') // e.g., "2024"
-    const month = searchParams.get('month') // e.g., "2024-02"
-    const mood = searchParams.get('mood') // e.g., "3" or "2,3,4" for multiple
-    const search = searchParams.get('search') // Full text search
-    const today = searchParams.get('today') === 'true' // Only today's entries
-    const entryType = searchParams.get('entryType') // e.g., "letter" or "normal"
+    const year = searchParams.get('year')
+    const month = searchParams.get('month')
+    const mood = searchParams.get('mood')
+    const search = searchParams.get('search')
+    const today = searchParams.get('today') === 'true'
+    const entryType = searchParams.get('entryType')
+    const includeArchived = searchParams.get('includeArchived') === 'true'
 
     // What to include
     const includeDoodles = searchParams.get('includeDoodles') !== 'false'
-    const previewOnly = searchParams.get('previewOnly') === 'true' // Don't include full text
+    const includePhotos = searchParams.get('includePhotos') !== 'false'
 
     // Build date range filter
     let dateFilter: { gte?: Date; lt?: Date } | undefined
@@ -47,7 +48,6 @@ export async function GET(request: NextRequest) {
       todayEnd.setHours(23, 59, 59, 999)
       dateFilter = { gte: todayStart, lt: todayEnd }
     } else if (month) {
-      // month format: "2024-02"
       const [y, m] = month.split('-').map(Number)
       const monthStart = new Date(y, m - 1, 1)
       const monthEnd = new Date(y, m, 1)
@@ -72,8 +72,11 @@ export async function GET(request: NextRequest) {
       mood?: { in: number[] }
       text?: { contains: string; mode: 'insensitive' }
       entryType?: string
+      isArchived?: boolean
     } = {
       userId: user.id,
+      // Exclude archived entries by default
+      isArchived: includeArchived ? undefined : false,
     }
 
     if (dateFilter) {
@@ -92,17 +95,18 @@ export async function GET(request: NextRequest) {
       where.entryType = entryType
     }
 
-    // Build query - always include all fields for simplicity
+    // Build query
     const entries = await prisma.journalEntry.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: limit + 1, // Take one extra to check if there's more
+      take: limit + 1,
       ...(cursor && {
         cursor: { id: cursor },
-        skip: 1, // Skip the cursor itself
+        skip: 1,
       }),
       include: {
         doodles: includeDoodles,
+        photos: includePhotos,
       },
     })
 
@@ -113,18 +117,16 @@ export async function GET(request: NextRequest) {
 
     // Decrypt and transform entries
     const transformedEntries = returnEntries.map(entry => {
-      // Only server-decrypt entries that use server encryption
-      // E2EE entries are decrypted client-side
       const isE2EE = entry.encryptionType === 'e2ee'
       const decrypted = isE2EE ? entry : decryptEntryFields(entry)
 
       return {
         ...decrypted,
-        // Generate preview on the fly if not stored (only for server-encrypted)
         textPreview: isE2EE ? decrypted.textPreview : (decrypted.textPreview || createPreview(decrypted.text)),
-        // Include doodles array even if empty
         doodles: entry.doodles || [],
-        // Include E2EE fields
+        photos: entry.photos || [],
+        spreads: entry.spreads || 1,
+        isArchived: entry.isArchived,
         encryptionType: entry.encryptionType,
         e2eeIV: entry.e2eeIV,
       }
@@ -165,19 +167,19 @@ export async function POST(request: NextRequest) {
     const {
       text, mood, song, tags, doodles, entryType, unlockDate, isSealed,
       recipientEmail, recipientName, senderName, letterLocation,
-      encryptionType, e2eeIV // E2EE fields
+      encryptionType, e2eeIV,
+      // New fields
+      photos, spreads,
     } = body
 
-    // Check if this is an E2EE entry (already encrypted client-side)
+    // Check if this is an E2EE entry
     const isE2EE = encryptionType === 'e2ee'
 
-    // Create preview from text (before encryption) - only for server-encrypted entries
-    // For E2EE entries, we can't create a meaningful preview since text is encrypted
+    // Create preview
     const textPreview = isE2EE ? '[Encrypted]' : createPreview(text)
     console.log('[POST /api/entries] Preview:', textPreview?.slice(0, 50), 'E2EE:', isE2EE)
 
-    // Encrypt sensitive fields only for server-encrypted entries
-    // E2EE entries are already encrypted client-side
+    // Encrypt sensitive fields
     const encryptedText = isE2EE ? text : encrypt(text)
     const encryptedTextPreview = isE2EE ? textPreview : encrypt(textPreview)
     const encryptedSenderName = senderName ? (isE2EE ? senderName : encrypt(senderName)) : null
@@ -197,7 +199,7 @@ export async function POST(request: NextRequest) {
         entryType: entryType || 'normal',
         unlockDate: unlockDate ? new Date(unlockDate) : null,
         isSealed: isSealed ?? false,
-        // Letter-specific fields (recipientEmail NOT encrypted - needed for sending)
+        // Letter-specific fields
         recipientEmail: recipientEmail || null,
         recipientName: encryptedRecipientName,
         senderName: encryptedSenderName,
@@ -205,33 +207,49 @@ export async function POST(request: NextRequest) {
         // E2EE fields
         encryptionType: encryptionType || 'server',
         e2eeIV: e2eeIV || null,
+        // New multi-spread fields
+        spreads: spreads ?? 1,
+        isArchived: false,
+        // Create doodles
         doodles: doodles && doodles.length > 0
           ? {
-              create: doodles.map((d: { strokes: unknown; positionInEntry?: number }, index: number) => ({
+              create: doodles.map((d: { strokes: unknown; positionInEntry?: number; spread?: number }, index: number) => ({
                 strokes: d.strokes,
                 positionInEntry: d.positionInEntry ?? index,
+                spread: d.spread ?? 1,
+              })),
+            }
+          : undefined,
+        // Create photos
+        photos: photos && photos.length > 0
+          ? {
+              create: photos.map((p: { url: string; position: number; spread: number; rotation?: number }) => ({
+                url: p.url,
+                position: p.position,
+                spread: p.spread,
+                rotation: p.rotation ?? 0,
               })),
             }
           : undefined,
       },
       include: {
         doodles: true,
+        photos: true,
       },
     })
 
     console.log('[POST /api/entries] Created entry:', entry.id)
 
-    // Only server-decrypt if it's a server-encrypted entry
-    // E2EE entries are returned as-is for client-side decryption
     const responseEntry = isE2EE ? entry : decryptEntryFields(entry)
     return NextResponse.json({
       ...responseEntry,
       encryptionType: entry.encryptionType,
       e2eeIV: entry.e2eeIV,
+      spreads: entry.spreads,
+      photos: entry.photos,
     }, { status: 201 })
   } catch (error) {
     console.error('Error creating entry:', error)
-    // Return more details in development
     const message = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { error: 'Failed to create entry', details: message },
