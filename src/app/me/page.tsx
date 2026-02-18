@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useAuthStore } from '@/store/auth'
 import { useProfileStore, ProfileKey } from '@/store/profile'
+import { useE2EEStore } from '@/store/e2ee'
 import DatePicker from '@/components/DatePicker'
 
 interface Question {
@@ -278,6 +279,118 @@ const QuestionCard = memo(function QuestionCard({
   )
 })
 
+// E2EE Settings Component
+const E2EESettings = memo(function E2EESettings() {
+  const { theme } = useThemeStore()
+  const { isEnabled, isUnlocked, setShowSetupModal, loading: e2eeLoading } = useE2EEStore()
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.8,
+        delay: 0.95,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className="p-6 rounded-2xl"
+      style={{
+        background: theme.glass.bg,
+        backdropFilter: `blur(${theme.glass.blur})`,
+        border: `1px solid ${theme.glass.border}`,
+      }}
+    >
+      <div className="flex items-start gap-4">
+        <div
+          className="p-3 rounded-xl"
+          style={{
+            background: isEnabled ? `${theme.accent.primary}20` : `${theme.text.muted}10`,
+          }}
+        >
+          <svg
+            className="w-6 h-6"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={isEnabled ? theme.accent.primary : theme.text.muted}
+            strokeWidth="1.5"
+          >
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </div>
+
+        <div className="flex-1">
+          <h3
+            className="text-base font-medium mb-1"
+            style={{ color: theme.text.primary }}
+          >
+            End-to-End Encryption
+          </h3>
+          <p
+            className="text-sm mb-4"
+            style={{ color: theme.text.secondary }}
+          >
+            {isEnabled
+              ? isUnlocked
+                ? 'Your new entries are encrypted on your device. Only you can read them.'
+                : 'E2EE is enabled but locked. Unlock to access your encrypted entries.'
+              : 'Encrypt your journal entries with a key only you know. Not even we can read them.'}
+          </p>
+
+          {!isEnabled ? (
+            <motion.button
+              onClick={() => setShowSetupModal(true)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={e2eeLoading}
+              className="px-4 py-2 rounded-xl text-sm font-medium"
+              style={{
+                background: theme.accent.primary,
+                color: '#fff',
+                opacity: e2eeLoading ? 0.5 : 1,
+              }}
+            >
+              {e2eeLoading ? 'Loading...' : 'Enable E2EE'}
+            </motion.button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
+                style={{
+                  background: isUnlocked ? `${theme.accent.primary}20` : `${theme.accent.warm}20`,
+                  color: isUnlocked ? theme.accent.primary : theme.accent.warm,
+                }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{
+                    background: isUnlocked ? theme.accent.primary : theme.accent.warm,
+                  }}
+                />
+                {isUnlocked ? 'Active & Unlocked' : 'Locked'}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {isEnabled && (
+        <div
+          className="mt-4 pt-4"
+          style={{ borderTop: `1px solid ${theme.glass.border}` }}
+        >
+          <p
+            className="text-xs"
+            style={{ color: theme.text.muted }}
+          >
+            New entries you create will be encrypted. Existing entries from before enabling E2EE remain server-encrypted.
+          </p>
+        </div>
+      )}
+    </motion.div>
+  )
+})
+
 export default function MePage() {
   const { theme } = useThemeStore()
   const { user, logout } = useAuthStore()
@@ -391,11 +504,37 @@ export default function MePage() {
         ))}
       </div>
 
-      {/* Divider */}
+      {/* Divider before security */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 0.9 }}
+        className="my-12 flex items-center gap-4"
+      >
+        <div
+          className="flex-1 h-px"
+          style={{ background: theme.glass.border }}
+        />
+        <span
+          className="text-xs italic"
+          style={{ color: theme.text.muted }}
+        >
+          security & privacy
+        </span>
+        <div
+          className="flex-1 h-px"
+          style={{ background: theme.glass.border }}
+        />
+      </motion.div>
+
+      {/* E2EE Settings */}
+      <E2EESettings />
+
+      {/* Final Divider */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, delay: 1 }}
         className="my-12 flex items-center gap-4"
       >
         <div

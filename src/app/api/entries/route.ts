@@ -113,13 +113,20 @@ export async function GET(request: NextRequest) {
 
     // Decrypt and transform entries
     const transformedEntries = returnEntries.map(entry => {
-      const decrypted = decryptEntryFields(entry)
+      // Only server-decrypt entries that use server encryption
+      // E2EE entries are decrypted client-side
+      const isE2EE = entry.encryptionType === 'e2ee'
+      const decrypted = isE2EE ? entry : decryptEntryFields(entry)
+
       return {
         ...decrypted,
-        // Generate preview on the fly if not stored
-        textPreview: decrypted.textPreview || createPreview(decrypted.text),
+        // Generate preview on the fly if not stored (only for server-encrypted)
+        textPreview: isE2EE ? decrypted.textPreview : (decrypted.textPreview || createPreview(decrypted.text)),
         // Include doodles array even if empty
         doodles: entry.doodles || [],
+        // Include E2EE fields
+        encryptionType: entry.encryptionType,
+        e2eeIV: entry.e2eeIV,
       }
     })
 
@@ -157,19 +164,25 @@ export async function POST(request: NextRequest) {
 
     const {
       text, mood, song, tags, doodles, entryType, unlockDate, isSealed,
-      recipientEmail, recipientName, senderName, letterLocation
+      recipientEmail, recipientName, senderName, letterLocation,
+      encryptionType, e2eeIV // E2EE fields
     } = body
 
-    // Create preview from text (before encryption)
-    const textPreview = createPreview(text)
-    console.log('[POST /api/entries] Preview:', textPreview?.slice(0, 50))
+    // Check if this is an E2EE entry (already encrypted client-side)
+    const isE2EE = encryptionType === 'e2ee'
 
-    // Encrypt sensitive fields
-    const encryptedText = encrypt(text)
-    const encryptedTextPreview = encrypt(textPreview)
-    const encryptedSenderName = senderName ? encrypt(senderName) : null
-    const encryptedRecipientName = recipientName ? encrypt(recipientName) : null
-    const encryptedLetterLocation = letterLocation ? encrypt(letterLocation) : null
+    // Create preview from text (before encryption) - only for server-encrypted entries
+    // For E2EE entries, we can't create a meaningful preview since text is encrypted
+    const textPreview = isE2EE ? '[Encrypted]' : createPreview(text)
+    console.log('[POST /api/entries] Preview:', textPreview?.slice(0, 50), 'E2EE:', isE2EE)
+
+    // Encrypt sensitive fields only for server-encrypted entries
+    // E2EE entries are already encrypted client-side
+    const encryptedText = isE2EE ? text : encrypt(text)
+    const encryptedTextPreview = isE2EE ? textPreview : encrypt(textPreview)
+    const encryptedSenderName = senderName ? (isE2EE ? senderName : encrypt(senderName)) : null
+    const encryptedRecipientName = recipientName ? (isE2EE ? recipientName : encrypt(recipientName)) : null
+    const encryptedLetterLocation = letterLocation ? (isE2EE ? letterLocation : encrypt(letterLocation)) : null
 
     console.log('[POST /api/entries] Creating entry for user:', user.id)
 
@@ -189,6 +202,9 @@ export async function POST(request: NextRequest) {
         recipientName: encryptedRecipientName,
         senderName: encryptedSenderName,
         letterLocation: encryptedLetterLocation,
+        // E2EE fields
+        encryptionType: encryptionType || 'server',
+        e2eeIV: e2eeIV || null,
         doodles: doodles && doodles.length > 0
           ? {
               create: doodles.map((d: { strokes: unknown; positionInEntry?: number }, index: number) => ({
@@ -205,9 +221,14 @@ export async function POST(request: NextRequest) {
 
     console.log('[POST /api/entries] Created entry:', entry.id)
 
-    // Decrypt before returning to client
-    const decryptedEntry = decryptEntryFields(entry)
-    return NextResponse.json(decryptedEntry, { status: 201 })
+    // Only server-decrypt if it's a server-encrypted entry
+    // E2EE entries are returned as-is for client-side decryption
+    const responseEntry = isE2EE ? entry : decryptEntryFields(entry)
+    return NextResponse.json({
+      ...responseEntry,
+      encryptionType: entry.encryptionType,
+      e2eeIV: entry.e2eeIV,
+    }, { status: 201 })
   } catch (error) {
     console.error('Error creating entry:', error)
     // Return more details in development

@@ -7,6 +7,7 @@ import { useThemeStore } from '@/store/theme'
 import { useJournalStore, JournalEntry, StrokeData } from '@/store/journal'
 import { useProfileStore } from '@/store/profile'
 import { useEntries } from '@/hooks/useEntries'
+import { useE2EE } from '@/hooks/useE2EE'
 import Editor from '@/components/Editor'
 import MoodPicker from '@/components/MoodPicker'
 import DoodleCanvas from '@/components/DoodleCanvas'
@@ -45,6 +46,9 @@ export default function WritePage() {
     today: true,
     limit: 20,
   })
+
+  // E2EE hook for encrypting entries
+  const { encryptEntryData, isE2EEEnabled, isE2EEReady } = useE2EE()
 
   // Check for doodle draft
   const checkDoodleDraft = useCallback(() => {
@@ -94,17 +98,26 @@ export default function WritePage() {
       const url = isEditing ? `/api/entries/${editingEntry.id}` : '/api/entries'
       const method = isEditing ? 'PUT' : 'POST'
 
+      // Prepare entry data
+      const entryData = {
+        text: currentText,
+        mood: currentMood,
+        song: currentSong || null,
+        doodles: currentDoodleStrokes.length > 0
+          ? [{ strokes: currentDoodleStrokes, positionInEntry: 0 }]
+          : [],
+      }
+
+      // Encrypt if E2EE is ready and this is a new entry
+      // We don't encrypt when editing existing entries to avoid breaking them
+      const finalData = !isEditing
+        ? await encryptEntryData(entryData)
+        : entryData
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: currentText,
-          mood: currentMood,
-          song: currentSong || null,
-          doodles: currentDoodleStrokes.length > 0
-            ? [{ strokes: currentDoodleStrokes, positionInEntry: 0 }]
-            : [],
-        }),
+        body: JSON.stringify(finalData),
       })
 
       const data = await res.json()
@@ -338,13 +351,19 @@ export default function WritePage() {
               transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
               onClick={handleSaveEntry}
               disabled={saving}
-              className="px-6 py-2 rounded-full text-sm font-medium"
+              className="px-6 py-2 rounded-full text-sm font-medium flex items-center gap-2"
               style={{
                 background: theme.accent.primary,
                 color: theme.bg.primary,
                 opacity: saving ? 0.5 : 1,
               }}
             >
+              {isE2EEReady && !editingEntry && (
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              )}
               {saving ? 'Saving...' : editingEntry ? 'Update Entry' : 'Save Entry'}
             </motion.button>
           )}

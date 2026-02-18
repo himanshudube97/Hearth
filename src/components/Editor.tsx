@@ -67,31 +67,93 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
     }
   }, [editor, currentText])
 
+  // Line height in pixels for the ruled lines
+  const lineHeight = 32
+
   return (
     <div
-      className="rounded-2xl p-6"
+      className="rounded-2xl overflow-hidden relative"
       style={{
         background: theme.glass.bg,
         backdropFilter: `blur(${theme.glass.blur})`,
         border: `1px solid ${theme.glass.border}`,
+        boxShadow: `
+          0 4px 24px -4px rgba(0, 0, 0, 0.3),
+          inset 2px 0 8px -4px rgba(0, 0, 0, 0.2)
+        `,
       }}
     >
+      {/* Notebook spine/binding effect */}
       <div
-        className="overflow-y-auto"
+        className="absolute left-0 top-0 bottom-0 w-3"
         style={{
-          maxHeight: '400px',
+          background: `linear-gradient(to right,
+            ${theme.accent.warm}15 0%,
+            ${theme.accent.warm}08 50%,
+            transparent 100%
+          )`,
+          borderRight: `1px solid ${theme.accent.warm}20`,
         }}
-      >
-        <EditorContent
-          editor={editor}
+      />
+
+      {/* Main content area with margin line */}
+      <div className="relative">
+        {/* Left margin line (classic red/warm line) */}
+        <div
+          className="absolute top-0 bottom-0 w-px"
           style={{
-            fontFamily: 'Georgia, Palatino, serif',
-            fontSize: '16px',
-            lineHeight: 2,
-            color: theme.text.primary,
+            left: '48px',
+            background: `${theme.accent.warm}40`,
           }}
         />
+
+        {/* Ruled lines background */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            left: '48px',
+            backgroundImage: `repeating-linear-gradient(
+              to bottom,
+              transparent 0px,
+              transparent ${lineHeight - 1}px,
+              ${theme.text.muted}15 ${lineHeight - 1}px,
+              ${theme.text.muted}15 ${lineHeight}px
+            )`,
+            backgroundPosition: '0 23px',
+          }}
+        />
+
+        {/* Editor wrapper with padding for margin */}
+        <div
+          className="overflow-y-auto relative"
+          style={{
+            maxHeight: '400px',
+            paddingLeft: '56px',
+            paddingRight: '24px',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+          }}
+        >
+          <EditorContent
+            editor={editor}
+            style={{
+              fontFamily: 'Georgia, Palatino, serif',
+              fontSize: '16px',
+              lineHeight: 2,
+              color: theme.text.primary,
+            }}
+          />
+        </div>
       </div>
+
+      {/* Subtle paper texture overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.02]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        }}
+      />
+
       <style jsx global>{`
         .ProseMirror p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
@@ -104,15 +166,21 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
         .ProseMirror:focus {
           outline: none;
         }
+        .ProseMirror p {
+          margin-bottom: 0;
+          padding-bottom: 0;
+        }
         .ProseMirror h1 {
           font-size: 1.5em;
           font-weight: 600;
           color: ${theme.text.primary};
+          line-height: 2;
         }
         .ProseMirror h2 {
           font-size: 1.25em;
           font-weight: 600;
           color: ${theme.text.primary};
+          line-height: 2;
         }
         .ProseMirror blockquote {
           border-left: 3px solid ${theme.accent.primary};

@@ -3,6 +3,7 @@ import { create } from 'zustand'
 export interface JournalEntry {
   id: string
   text: string
+  textPreview?: string
   mood: number
   createdAt: string
   updatedAt: string
@@ -17,6 +18,9 @@ export interface JournalEntry {
   recipientName?: string | null
   senderName?: string | null
   letterLocation?: string | null
+  // E2EE fields
+  encryptionType?: 'server' | 'e2ee'
+  e2eeIV?: string | null
 }
 
 export interface Doodle {

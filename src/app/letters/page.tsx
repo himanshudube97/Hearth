@@ -6,6 +6,7 @@ import { format, addWeeks, addMonths, addYears, isBefore, addDays, startOfDay } 
 import html2canvas from 'html2canvas-pro'
 import { useThemeStore } from '@/store/theme'
 import { useProfileStore } from '@/store/profile'
+import { useE2EE } from '@/hooks/useE2EE'
 import { ThemeName } from '@/lib/themes'
 import Editor from '@/components/Editor'
 import DatePicker from '@/components/DatePicker'
@@ -597,6 +598,7 @@ function SuccessMessage({ recipientType, recipientName, unlockDate, onWriteAnoth
 export default function LettersPage() {
   const { theme, themeName } = useThemeStore()
   const { profile, fetchProfile } = useProfileStore()
+  const { encryptEntryData, isE2EEReady } = useE2EE()
 
   // Fetch profile for nickname
   useEffect(() => {
@@ -716,20 +718,26 @@ export default function LettersPage() {
 
     setSaving(true)
     try {
+      // Prepare entry data
+      const entryData = {
+        text: letterText,
+        mood: 2,
+        entryType: 'letter',
+        unlockDate: unlockDate.toISOString(),
+        isSealed: true,
+        recipientEmail: recipientType === 'friend' ? friendEmail : null,
+        recipientName: recipientType === 'friend' ? friendName : null,
+        senderName: recipientType === 'friend' ? senderName : null,
+        letterLocation: location || null,
+      }
+
+      // Encrypt if E2EE is ready
+      const finalData = await encryptEntryData(entryData)
+
       const res = await fetch('/api/entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: letterText,
-          mood: 2,
-          entryType: 'letter',
-          unlockDate: unlockDate.toISOString(),
-          isSealed: true,
-          recipientEmail: recipientType === 'friend' ? friendEmail : null,
-          recipientName: recipientType === 'friend' ? friendName : null,
-          senderName: recipientType === 'friend' ? senderName : null,
-          letterLocation: location || null,
-        }),
+        body: JSON.stringify(finalData),
       })
 
       if (res.ok) {

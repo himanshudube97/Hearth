@@ -43,9 +43,15 @@ export async function GET(
       )
     }
 
-    // Decrypt before returning
-    const decryptedEntry = decryptEntryFields(entry)
-    return NextResponse.json(decryptedEntry)
+    // Only server-decrypt if it's a server-encrypted entry
+    // E2EE entries are returned as-is for client-side decryption
+    const isE2EE = entry.encryptionType === 'e2ee'
+    const decryptedEntry = isE2EE ? entry : decryptEntryFields(entry)
+    return NextResponse.json({
+      ...decryptedEntry,
+      encryptionType: entry.encryptionType,
+      e2eeIV: entry.e2eeIV,
+    })
   } catch (error) {
     console.error('Error fetching entry:', error)
     return NextResponse.json(
@@ -83,14 +89,17 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { text, mood, song, tags } = body
+    const { text, mood, song, tags, encryptionType, e2eeIV } = body
 
-    // Create preview from text (before encryption)
-    const textPreview = text ? createPreview(text) : undefined
+    // Check if this is an E2EE entry
+    const isE2EE = encryptionType === 'e2ee'
 
-    // Encrypt text fields if provided
-    const encryptedText = text ? encrypt(text) : undefined
-    const encryptedTextPreview = textPreview ? encrypt(textPreview) : undefined
+    // Create preview from text (before encryption) - only for server-encrypted entries
+    const textPreview = text && !isE2EE ? createPreview(text) : (isE2EE ? '[Encrypted]' : undefined)
+
+    // Encrypt text fields if provided (only for server-encrypted entries)
+    const encryptedText = text ? (isE2EE ? text : encrypt(text)) : undefined
+    const encryptedTextPreview = textPreview ? (isE2EE ? textPreview : encrypt(textPreview)) : undefined
 
     const entry = await prisma.journalEntry.update({
       where: { id },
@@ -100,15 +109,23 @@ export async function PUT(
         mood,
         song,
         tags,
+        // Update E2EE fields if provided
+        ...(encryptionType && { encryptionType }),
+        ...(e2eeIV !== undefined && { e2eeIV }),
       },
       include: {
         doodles: true,
       },
     })
 
-    // Decrypt before returning
-    const decryptedEntry = decryptEntryFields(entry)
-    return NextResponse.json(decryptedEntry)
+    // Only server-decrypt if it's a server-encrypted entry
+    const responseIsE2EE = entry.encryptionType === 'e2ee'
+    const decryptedEntry = responseIsE2EE ? entry : decryptEntryFields(entry)
+    return NextResponse.json({
+      ...decryptedEntry,
+      encryptionType: entry.encryptionType,
+      e2eeIV: entry.e2eeIV,
+    })
   } catch (error) {
     console.error('Error updating entry:', error)
     return NextResponse.json(

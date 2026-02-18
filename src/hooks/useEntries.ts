@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { JournalEntry } from '@/store/journal'
+import { useE2EE } from './useE2EE'
 
 interface Pagination {
   hasMore: boolean
@@ -55,6 +56,7 @@ export function useEntries(options: UseEntriesOptions = {}) {
     nextCursor: null,
     limit: 20,
   })
+  const { decryptEntriesFromServer, isE2EEReady } = useE2EE()
 
   const buildUrl = useCallback((cursor?: string) => {
     const params = new URLSearchParams()
@@ -89,7 +91,10 @@ export function useEntries(options: UseEntriesOptions = {}) {
 
       const data: EntriesResponse = await res.json()
 
-      setEntries(prev => reset ? data.entries : [...prev, ...data.entries])
+      // Decrypt E2EE entries client-side
+      const decryptedEntries = await decryptEntriesFromServer(data.entries)
+
+      setEntries(prev => reset ? decryptedEntries : [...prev, ...decryptedEntries])
       setPagination(data.pagination)
       setError(null)
     } catch (err) {
@@ -98,7 +103,7 @@ export function useEntries(options: UseEntriesOptions = {}) {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [buildUrl, pagination.nextCursor])
+  }, [buildUrl, pagination.nextCursor, decryptEntriesFromServer])
 
   const loadMore = useCallback(() => {
     if (!loadingMore && pagination.hasMore) {
@@ -110,10 +115,10 @@ export function useEntries(options: UseEntriesOptions = {}) {
     fetchEntries(true)
   }, [fetchEntries])
 
-  // Fetch when options change
+  // Fetch when options change or E2EE state changes
   useEffect(() => {
     fetchEntries(true)
-  }, [options.month, options.year, options.mood?.join(','), options.search, options.today])
+  }, [options.month, options.year, options.mood?.join(','), options.search, options.today, isE2EEReady])
 
   return {
     entries,
@@ -167,6 +172,7 @@ export function useEntry(id: string | null) {
   const [entry, setEntry] = useState<JournalEntry | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { decryptEntryFromServer, isE2EEReady } = useE2EE()
 
   useEffect(() => {
     if (!id) {
@@ -184,7 +190,9 @@ export function useEntry(id: string | null) {
         }
 
         const data = await res.json()
-        setEntry(data)
+        // Decrypt E2EE entry client-side
+        const decryptedEntry = await decryptEntryFromServer(data)
+        setEntry(decryptedEntry)
         setError(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error')
@@ -194,7 +202,7 @@ export function useEntry(id: string | null) {
     }
 
     fetchEntry()
-  }, [id])
+  }, [id, isE2EEReady, decryptEntryFromServer])
 
   return { entry, loading, error }
 }
