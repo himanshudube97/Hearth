@@ -9,15 +9,20 @@ import { diaryThemes, DiaryTheme } from '@/lib/diaryThemes'
 import LeftPage from './LeftPage'
 import RightPage from './RightPage'
 import PageTurn from './PageTurn'
+import SpreadNavigation from './SpreadNavigation'
+import EntrySelector from './EntrySelector'
 import { PageCorners } from './decorations/PageCorners'
 import { Watermarks } from './decorations/Watermarks'
 import { RibbonBookmark } from './interactive/RibbonBookmark'
 import { FloatingParticles } from './interactive/FloatingParticles'
+import { StrokeData } from '@/store/journal'
 
-interface StrokeData {
-  points: number[][]
-  color: string
-  size: number
+interface Photo {
+  id?: string
+  url: string
+  rotation: number
+  position: 1 | 2
+  spread: number
 }
 
 interface Entry {
@@ -25,7 +30,9 @@ interface Entry {
   text: string
   mood: number
   song?: string | null
-  doodles?: Array<{ strokes: StrokeData[] }>
+  spreads?: number
+  photos?: Photo[]
+  doodles?: Array<{ strokes: StrokeData[]; spread?: number }>
   createdAt: string
 }
 
@@ -35,11 +42,9 @@ interface BookSpreadProps {
 
 // Helper to create darker shade of a color
 function getDarkerShade(color: string): string {
-  // For HSL colors, reduce lightness
   if (color.startsWith('hsl')) {
     return color.replace(/(\d+)%\)$/, (_, l) => `${Math.max(0, parseInt(l) - 6)}%)`)
   }
-  // For rgba, darken slightly
   if (color.startsWith('rgba')) {
     return color.replace(/rgba\(([^)]+)\)/, (_, inner) => {
       const parts = inner.split(',').map((p: string) => p.trim())
@@ -65,7 +70,7 @@ function getLinePattern(diaryTheme: DiaryTheme): string {
     case 'wavy':
       return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='32'%3E%3Cpath d='M0 28 Q25 24 50 28 T100 28' fill='none' stroke='${encodeURIComponent(diaryTheme.pages.lineColor)}' stroke-width='1'/%3E%3C/svg%3E")`
     case 'constellation':
-      return 'none' // Stars handled by FloatingParticles
+      return 'none'
     case 'none':
     default:
       return 'none'
@@ -115,7 +120,6 @@ const PageWrapper = memo(function PageWrapper({
         willChange: 'transform',
       }}
     >
-      {/* Page texture (only if theme has noise texture) */}
       {diaryTheme.pages.noiseTexture && (
         <div
           className="absolute inset-0 opacity-[0.04] pointer-events-none"
@@ -125,7 +129,6 @@ const PageWrapper = memo(function PageWrapper({
         />
       )}
 
-      {/* Line pattern (skip for right page - it handles its own lines for proper scrolling) */}
       {linePattern !== 'none' && !skipLinePattern && (
         <div
           className="absolute pointer-events-none"
@@ -140,7 +143,6 @@ const PageWrapper = memo(function PageWrapper({
         />
       )}
 
-      {/* Margin line (left page only, if theme has it) */}
       {isLeft && diaryTheme.pages.hasMarginLine && (
         <div
           className="absolute top-10 bottom-10 w-px pointer-events-none"
@@ -151,7 +153,6 @@ const PageWrapper = memo(function PageWrapper({
         />
       )}
 
-      {/* Page decorations */}
       <PageCorners
         style={diaryTheme.pages.cornerStyle || 'none'}
         color={diaryTheme.pages.mutedColor}
@@ -161,7 +162,6 @@ const PageWrapper = memo(function PageWrapper({
         color={diaryTheme.pages.textColor}
       />
 
-      {/* Floating particles */}
       {diaryTheme.interactive.floatingParticles !== 'none' && (
         <FloatingParticles
           type={diaryTheme.interactive.floatingParticles}
@@ -169,7 +169,6 @@ const PageWrapper = memo(function PageWrapper({
         />
       )}
 
-      {/* Page content */}
       <div
         className="relative h-full overflow-hidden z-10"
         style={{
@@ -187,7 +186,7 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
   const { currentDiaryTheme } = useDiaryStore()
   const diaryTheme = diaryThemes[currentDiaryTheme]
   const {
-    currentSpread,
+    currentSpread: globalCurrentSpread,
     totalSpreads,
     turnPage,
     isPageTurning,
@@ -198,9 +197,13 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
   } = useDeskStore()
 
   const [entries, setEntries] = useState<Entry[]>([])
+  const [todayEntries, setTodayEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
+  const [entrySpread, setEntrySpread] = useState(1) // Spread within current entry (1-3)
+  const [leftPageText, setLeftPageText] = useState('')
+  const [pendingPhotos, setPendingPhotos] = useState<Photo[]>([])
 
-  // Paper colors from diary theme
   const paperColor = diaryTheme.pages.background
   const paperColorDark = getDarkerShade(paperColor)
 
@@ -212,8 +215,19 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
         const data = await res.json()
         const fetchedEntries = data.entries || []
         setEntries(fetchedEntries)
-        // Total spreads = number of entries + 1 (for new entry page)
         setTotalSpreads(fetchedEntries.length)
+
+        // Filter today's entries
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const todayEnd = new Date()
+        todayEnd.setHours(23, 59, 59, 999)
+
+        const todaysEntries = fetchedEntries.filter((e: Entry) => {
+          const entryDate = new Date(e.createdAt)
+          return entryDate >= today && entryDate <= todayEnd
+        })
+        setTodayEntries(todaysEntries)
       }
     } catch (error) {
       console.error('Failed to fetch entries:', error)
@@ -226,10 +240,8 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
     fetchEntries()
   }, [fetchEntries])
 
-  // Once entries are loaded, go to the latest spread
   useEffect(() => {
     if (!loading && entries.length >= 0) {
-      // Go to the "new entry" spread (after all existing entries)
       goToSpread(entries.length)
     }
   }, [loading, entries.length, goToSpread])
@@ -239,30 +251,82 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
   }, [finishPageTurn])
 
   const handlePrevPage = useCallback(() => {
-    if (currentSpread > 0 && !isPageTurning) {
+    if (globalCurrentSpread > 0 && !isPageTurning) {
       turnPage('backward')
     }
-  }, [currentSpread, isPageTurning, turnPage])
+  }, [globalCurrentSpread, isPageTurning, turnPage])
 
   const handleNextPage = useCallback(() => {
-    if (currentSpread < totalSpreads && !isPageTurning) {
+    if (globalCurrentSpread < totalSpreads && !isPageTurning) {
       turnPage('forward')
     }
-  }, [currentSpread, totalSpreads, isPageTurning, turnPage])
+  }, [globalCurrentSpread, totalSpreads, isPageTurning, turnPage])
 
-  // Called when an entry is saved
   const handleSaveComplete = useCallback(() => {
     fetchEntries()
+    setLeftPageText('')
+    setPendingPhotos([])
+    setEntrySpread(1)
   }, [fetchEntries])
 
-  // Get the entry for current spread (null if it's the "new entry" spread)
-  const currentEntry = currentSpread < entries.length ? entries[entries.length - 1 - currentSpread] : null
-  const isNewEntrySpread = currentSpread === entries.length
+  // Handle spread navigation within an entry
+  const handleSpreadChange = useCallback((spread: number) => {
+    setEntrySpread(spread)
+  }, [])
+
+  const handleAddSpread = useCallback(() => {
+    const currentEntry = entries.find(e => e.id === currentEntryId)
+    const maxSpreads = currentEntry?.spreads || 1
+    if (entrySpread < 3 && entrySpread >= maxSpreads) {
+      setEntrySpread(entrySpread + 1)
+    }
+  }, [currentEntryId, entries, entrySpread])
+
+  // Handle entry selection
+  const handleEntrySelect = useCallback((entryId: string | null) => {
+    setCurrentEntryId(entryId)
+    setEntrySpread(1)
+    setLeftPageText('')
+    setPendingPhotos([])
+  }, [])
+
+  const handleNewEntry = useCallback(() => {
+    setCurrentEntryId(null)
+    setEntrySpread(1)
+    setLeftPageText('')
+    setPendingPhotos([])
+  }, [])
+
+  // Handle photo add
+  const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
+    const rotation = position === 1 ? -8 + Math.floor(Math.random() * 6) : 5 + Math.floor(Math.random() * 6)
+    const newPhoto: Photo = {
+      url: dataUrl,
+      position,
+      spread: entrySpread,
+      rotation,
+    }
+    setPendingPhotos(prev => [...prev.filter(p => !(p.position === position && p.spread === entrySpread)), newPhoto])
+  }, [entrySpread])
+
+  // Get the current entry
+  const currentEntry = currentEntryId
+    ? entries.find(e => e.id === currentEntryId)
+    : (globalCurrentSpread < entries.length ? entries[entries.length - 1 - globalCurrentSpread] : null)
+
+  const isNewEntrySpread = currentEntryId === null && globalCurrentSpread === entries.length
+  const maxSpreadsForEntry = currentEntry?.spreads || 1
 
   // Get date for the spread
   const spreadDate = currentEntry
     ? new Date(currentEntry.createdAt)
     : new Date()
+
+  // Get photos for current spread
+  const currentPhotos = [
+    ...(currentEntry?.photos || []).filter(p => p.spread === entrySpread),
+    ...pendingPhotos.filter(p => p.spread === entrySpread),
+  ]
 
   return (
     <div
@@ -291,6 +355,23 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
         Close Book
       </motion.button>
 
+      {/* Entry selector for multiple entries per day */}
+      {(todayEntries.length > 0 || isNewEntrySpread) && (
+        <motion.div
+          className="absolute -top-14 left-1/2 -translate-x-1/2 z-20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          <EntrySelector
+            entries={todayEntries}
+            currentEntryId={currentEntryId}
+            onEntrySelect={handleEntrySelect}
+            onNewEntry={handleNewEntry}
+          />
+        </motion.div>
+      )}
+
       {/* Page indicator */}
       <motion.div
         className="absolute -top-14 left-0 z-20 px-4 py-2 rounded-full text-xs"
@@ -303,10 +384,10 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
       >
-        {isNewEntrySpread ? 'New Entry' : `Entry ${entries.length - currentSpread} of ${entries.length}`}
+        {isNewEntrySpread ? 'New Entry' : `Entry ${entries.length - globalCurrentSpread} of ${entries.length}`}
       </motion.div>
 
-      {/* Book container - LARGER SIZE for full-page experience */}
+      {/* Book container */}
       <motion.div
         className="relative flex"
         style={{
@@ -323,7 +404,7 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
           <RibbonBookmark color={diaryTheme.interactive.ribbon.color} />
         )}
 
-        {/* Date header spanning both pages */}
+        {/* Date header */}
         <div
           className="absolute -top-1 left-1/2 -translate-x-1/2 z-20 px-6 py-1.5 rounded-b-lg"
           style={{
@@ -349,9 +430,13 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
         {/* Left page */}
         <PageWrapper side="left" diaryTheme={diaryTheme} isGlass={currentDiaryTheme === 'glass'} glassSettings={theme.glass}>
           <LeftPage
-            entry={currentEntry}
+            entry={currentEntry || null}
             isNewEntry={isNewEntrySpread}
             spreadDate={spreadDate}
+            currentSpread={entrySpread}
+            text={leftPageText}
+            onTextChange={setLeftPageText}
+            disabled={!isNewEntrySpread && !!currentEntry}
           />
         </PageWrapper>
 
@@ -367,7 +452,6 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
               : 'inset 3px 0 6px rgba(0,0,0,0.15), inset -3px 0 6px rgba(0,0,0,0.15)',
           }}
         >
-          {/* Binding stitches - hide for glass */}
           {currentDiaryTheme !== 'glass' && [...Array(10)].map((_, i) => (
             <div
               key={i}
@@ -383,14 +467,35 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
         {/* Right page */}
         <PageWrapper side="right" diaryTheme={diaryTheme} isGlass={currentDiaryTheme === 'glass'} glassSettings={theme.glass} skipLinePattern>
           <RightPage
-            entry={currentEntry}
+            entry={currentEntry || null}
             isNewEntry={isNewEntrySpread}
+            currentSpread={entrySpread}
+            photos={currentPhotos}
+            onPhotoAdd={handlePhotoAdd}
             onSaveComplete={handleSaveComplete}
           />
         </PageWrapper>
 
-        {/* LEFT EDGE - Click to go to newer entries (or stay if at latest) */}
-        {currentSpread > 0 && (
+        {/* Spread navigation (within entry) */}
+        {(maxSpreadsForEntry > 1 || isNewEntrySpread) && (
+          <motion.div
+            className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-20"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <SpreadNavigation
+              currentSpread={entrySpread}
+              totalSpreads={isNewEntrySpread ? entrySpread : maxSpreadsForEntry}
+              maxSpreads={3}
+              onSpreadChange={handleSpreadChange}
+              onAddSpread={isNewEntrySpread ? handleAddSpread : undefined}
+            />
+          </motion.div>
+        )}
+
+        {/* Left edge - Previous entry */}
+        {globalCurrentSpread > 0 && (
           <motion.div
             onClick={handlePrevPage}
             className="absolute left-0 top-0 bottom-0 w-14 cursor-pointer z-30 flex items-center justify-center"
@@ -412,8 +517,8 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
           </motion.div>
         )}
 
-        {/* RIGHT EDGE - Click to go to older entries */}
-        {currentSpread < entries.length && (
+        {/* Right edge - Next entry */}
+        {globalCurrentSpread < entries.length && (
           <motion.div
             onClick={handleNextPage}
             className="absolute right-0 top-0 bottom-0 w-14 cursor-pointer z-30 flex items-center justify-center"
@@ -436,7 +541,7 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
         )}
 
         {/* Stack of pages hints */}
-        {currentSpread > 0 && (
+        {globalCurrentSpread > 0 && (
           <div
             className="absolute top-3 bottom-3 left-0 w-2 pointer-events-none z-20"
             style={{
@@ -447,7 +552,7 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
             }}
           />
         )}
-        {currentSpread < entries.length && (
+        {globalCurrentSpread < entries.length && (
           <div
             className="absolute top-3 bottom-3 right-0 w-2 pointer-events-none z-20"
             style={{
