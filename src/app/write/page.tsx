@@ -20,8 +20,10 @@ const DOODLE_DRAFT_KEY = 'hearth_doodle_draft'
 export default function WritePage() {
   const [whisper, setWhisper] = useState('')
   const [prompt, setPrompt] = useState('')
+  const [saveMessage, setSaveMessage] = useState('')
   const [showDoodle, setShowDoodle] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
   const [hasDoodleDraft, setHasDoodleDraft] = useState(false)
   const [photoTopRight, setPhotoTopRight] = useState<string | null>(null)
@@ -125,6 +127,19 @@ export default function WritePage() {
       console.log('Save response:', res.status, data)
 
       if (res.ok) {
+        // Show save confirmation before clearing
+        const messages = [
+          'Your thoughts are safe now',
+          'Tucked away gently',
+          'Written in your heart',
+          'Saved, like a warm memory',
+          'Your words found their home',
+          'Held close, just for you',
+          'A moment, preserved',
+        ]
+        setSaveMessage(messages[Math.floor(Math.random() * messages.length)])
+        setSaved(true)
+
         resetCurrentEntry()
         setEditingEntry(null)
         setPhotoTopRight(null)
@@ -136,6 +151,9 @@ export default function WritePage() {
         } catch (e) {
           console.error('Failed to clear doodle draft:', e)
         }
+
+        // Hide confirmation after delay
+        setTimeout(() => setSaved(false), 3000)
       } else {
         console.error('Save failed:', data)
         alert(`Failed to save: ${data.details || data.error}`)
@@ -398,6 +416,117 @@ export default function WritePage() {
             onClose={handleDoodleClose}
             initialStrokes={currentDoodleStrokes.length > 0 ? currentDoodleStrokes : undefined}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Save Confirmation Overlay */}
+      <AnimatePresence>
+        {saved && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+            style={{ background: `${theme.bg.primary}90` }}
+          >
+            {/* Gentle glow behind */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 0.15 }}
+              exit={{ scale: 1.5, opacity: 0 }}
+              transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute rounded-full"
+              style={{
+                width: 300,
+                height: 300,
+                background: `radial-gradient(circle, ${theme.accent.warm}, transparent)`,
+              }}
+            />
+
+            {/* Content */}
+            <div className="relative flex flex-col items-center gap-5">
+              {/* Animated checkmark circle */}
+              <motion.div
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 200,
+                  damping: 15,
+                  delay: 0.15,
+                }}
+                className="w-16 h-16 rounded-full flex items-center justify-center"
+                style={{
+                  background: `${theme.accent.primary}25`,
+                  border: `2px solid ${theme.accent.primary}60`,
+                }}
+              >
+                <motion.svg
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.4, ease: 'easeOut' }}
+                  className="w-8 h-8"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={theme.accent.primary}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <motion.path
+                    d="M5 13l4 4L19 7"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.5, delay: 0.4, ease: 'easeOut' }}
+                  />
+                </motion.svg>
+              </motion.div>
+
+              {/* Message text */}
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.6, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="text-lg font-light tracking-wide text-center"
+                style={{ color: theme.text.primary }}
+              >
+                {saveMessage}
+              </motion.p>
+
+              {/* Subtle decorative dots floating up */}
+              {[...Array(5)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{
+                    opacity: 0,
+                    y: 20,
+                    x: (i - 2) * 30,
+                    scale: 0,
+                  }}
+                  animate={{
+                    opacity: [0, 0.6, 0],
+                    y: -40 - i * 15,
+                    scale: [0, 1, 0.5],
+                  }}
+                  transition={{
+                    duration: 2,
+                    delay: 0.6 + i * 0.15,
+                    ease: 'easeOut',
+                  }}
+                  className="absolute rounded-full"
+                  style={{
+                    width: 4 + i * 1.5,
+                    height: 4 + i * 1.5,
+                    background: i % 2 === 0 ? theme.accent.warm : theme.accent.primary,
+                    top: '50%',
+                  }}
+                />
+              ))}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

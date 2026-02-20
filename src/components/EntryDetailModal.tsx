@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { useThemeStore } from '@/store/theme'
@@ -51,6 +51,21 @@ export default function EntryDetailModal({ entryId, onClose, onUpdated }: EntryD
     resetAppendState()
     onClose()
   }, [onClose, resetAppendState])
+
+  // Lock background scroll and hide nav when modal is open
+  useEffect(() => {
+    if (entryId) {
+      document.documentElement.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden'
+      const nav = document.querySelector('nav')
+      if (nav) (nav as HTMLElement).style.display = 'none'
+      return () => {
+        document.documentElement.style.overflow = ''
+        document.body.style.overflow = ''
+        if (nav) (nav as HTMLElement).style.display = ''
+      }
+    }
+  }, [entryId])
 
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) handleClose()
@@ -135,8 +150,8 @@ export default function EntryDetailModal({ entryId, onClose, onUpdated }: EntryD
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
-          style={{ background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}
+          className="fixed inset-0 z-999 flex items-center justify-center overflow-hidden"
+          style={{ background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(12px)' }}
           onClick={handleBackdropClick}
         >
           {/* Scrollable container with side padding for photos to overflow into */}
@@ -145,25 +160,9 @@ export default function EntryDetailModal({ entryId, onClose, onUpdated }: EntryD
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-[900px] w-full max-h-[85vh] overflow-y-auto overflow-x-hidden px-[130px]"
+            className="max-w-[900px] w-full max-h-[95vh] overflow-hidden px-[130px] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button — floating above */}
-            <div className="flex justify-end mb-3 pr-2">
-              <motion.button
-                onClick={handleClose}
-                className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{
-                  background: theme.glass.bg,
-                  border: `1px solid ${theme.glass.border}`,
-                  color: theme.text.muted,
-                }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                ✕
-              </motion.button>
-            </div>
 
             {/* Loading state */}
             {loading && (
@@ -220,15 +219,14 @@ export default function EntryDetailModal({ entryId, onClose, onUpdated }: EntryD
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  className="relative"
+                  className="relative flex flex-col flex-1 min-h-0"
                   style={{ overflow: 'visible' }}
                 >
                   {/* THE NOTEBOOK — exact copy of Editor.tsx container */}
                   <div
-                    className="rounded-2xl overflow-hidden relative"
+                    className="rounded-2xl overflow-y-auto overflow-x-hidden relative flex-1 min-h-0"
                     style={{
-                      background: theme.glass.bg,
-                      backdropFilter: `blur(${theme.glass.blur})`,
+                      background: theme.bg.primary,
                       border: `1px solid ${theme.glass.border}`,
                       boxShadow: `
                         0 4px 24px -4px rgba(0, 0, 0, 0.3),
