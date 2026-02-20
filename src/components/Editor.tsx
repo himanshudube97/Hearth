@@ -11,9 +11,10 @@ interface EditorProps {
   prompt: string
   value?: string
   onChange?: (value: string) => void
+  flexible?: boolean // When true, editor fills its parent container instead of fixed 60vh
 }
 
-export default function Editor({ prompt, value, onChange }: EditorProps) {
+export default function Editor({ prompt, value, onChange, flexible }: EditorProps) {
   // Use controlled mode if value/onChange provided, otherwise use global store
   const { currentText: storeText, setCurrentText: setStoreText } = useJournalStore()
   const currentText = value !== undefined ? value : storeText
@@ -72,7 +73,7 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
 
   return (
     <div
-      className="rounded-2xl overflow-hidden relative"
+      className={`rounded-2xl overflow-hidden relative ${flexible ? 'flex-1 min-h-0 flex flex-col' : ''}`}
       style={{
         background: theme.glass.bg,
         backdropFilter: `blur(${theme.glass.blur})`,
@@ -85,7 +86,7 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
     >
       {/* Date header */}
       <div
-        className="text-right pt-3 pr-6"
+        className={`text-right pt-3 pr-6 ${flexible ? 'shrink-0' : ''}`}
         style={{
           fontFamily: 'var(--font-caveat), cursive',
           fontSize: '16px',
@@ -125,7 +126,7 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
       />
 
       {/* Main content area */}
-      <div className="relative">
+      <div className={`relative ${flexible ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
 
         {/* Ruled lines background */}
         <div
@@ -145,9 +146,9 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
 
         {/* Editor wrapper with padding for margin */}
         <div
-          className="overflow-y-auto relative"
+          className={`overflow-y-auto relative ${flexible ? 'flex-1 min-h-0' : ''}`}
           style={{
-            height: '60vh',
+            height: flexible ? undefined : '60vh',
             paddingLeft: '56px',
             paddingRight: '24px',
             paddingTop: '24px',
