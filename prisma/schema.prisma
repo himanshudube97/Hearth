@@ -67,6 +67,9 @@ model JournalEntry {
   encryptionType String  @default("server") // "server" | "e2ee"
   e2eeIV         String? // IV for E2EE entries (client-side encryption)
 
+  // Freehand canvas fields
+  canvasData  String?   // Excalidraw scene JSON (elements + appState + files), encrypted
+
   // Multi-spread page layout fields
   spreads    Int     @default(1) // Number of spreads (1-3)
   isArchived Boolean @default(false) // Soft delete flag for two-step deletion
