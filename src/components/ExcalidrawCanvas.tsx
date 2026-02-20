@@ -1,18 +1,26 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useThemeStore } from '@/store/theme'
 
 const Excalidraw = dynamic(
-  async () => {
-    const mod = await import('@excalidraw/excalidraw')
-    // Load Excalidraw styles alongside the component
-    try { await import('@excalidraw/excalidraw/index.css') } catch { /* handled by bundler */ }
-    return mod.Excalidraw
-  },
+  async () => (await import('@excalidraw/excalidraw')).Excalidraw,
   { ssr: false }
 )
+
+// Load Excalidraw CSS once via link tag (avoids Turbopack exports resolution issues)
+let cssLoaded = false
+function useExcalidrawCSS() {
+  useEffect(() => {
+    if (cssLoaded) return
+    cssLoaded = true
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = '/excalidraw.css'
+    document.head.appendChild(link)
+  }, [])
+}
 
 interface ExcalidrawCanvasProps {
   initialData?: {
@@ -32,6 +40,7 @@ export default function ExcalidrawCanvas({
   onApiReady,
 }: ExcalidrawCanvasProps) {
   const { theme } = useThemeStore()
+  useExcalidrawCSS()
 
   const handleApiReady = useCallback(
     (api: any) => {
