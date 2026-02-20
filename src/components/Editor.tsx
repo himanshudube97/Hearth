@@ -35,7 +35,7 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
     content: currentText,
     editorProps: {
       attributes: {
-        class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px]',
+        class: 'prose prose-invert max-w-none focus:outline-none',
       },
     },
     onUpdate: ({ editor }) => {
@@ -147,7 +147,7 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
         <div
           className="overflow-y-auto relative"
           style={{
-            maxHeight: '700px',
+            height: '60vh',
             paddingLeft: '56px',
             paddingRight: '24px',
             paddingTop: '24px',

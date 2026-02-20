@@ -119,7 +119,6 @@ export default function WritePage() {
         setEditingEntry(null)
         setPhotoTopRight(null)
         setPhotoBottomLeft(null)
-        setWhisper(getRandomWhisper())
         // Clear doodle draft
         try {
           localStorage.removeItem(DOODLE_DRAFT_KEY)
@@ -253,7 +252,7 @@ export default function WritePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative"
+        className="relative mt-5"
         style={{ overflow: 'visible' }}
       >
         <Editor prompt={prompt} />
