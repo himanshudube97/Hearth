@@ -10,6 +10,7 @@ import DoodlePreview from './DoodlePreview'
 import DoodleCanvas from './DoodleCanvas'
 import CollagePhoto from './CollagePhoto'
 import SongEmbed, { isMusicUrl } from './SongEmbed'
+import ExcalidrawCanvas from './ExcalidrawCanvas'
 
 interface EntryDetailModalProps {
   entryId: string | null
@@ -213,6 +214,50 @@ export default function EntryDetailModal({ entryId, onClose, onUpdated }: EntryD
                   </span>
                 </motion.div>
 
+                {entry.entryType === 'canvas' && entry.canvasData ? (
+                  /* ===== CANVAS VIEW — Excalidraw in view mode ===== */
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex flex-col flex-1 min-h-0"
+                  >
+                    <div
+                      className="text-right mb-2"
+                      style={{
+                        fontFamily: 'var(--font-caveat), cursive',
+                        fontSize: '16px',
+                        color: theme.text.muted,
+                        letterSpacing: '0.5px',
+                      }}
+                    >
+                      {format(new Date(entry.createdAt), 'EEEE, MMMM d, yyyy')}
+                    </div>
+                    <div style={{ height: '60vh', minHeight: '350px' }} className="rounded-xl overflow-hidden">
+                      <ExcalidrawCanvas
+                        initialData={JSON.parse(entry.canvasData)}
+                        viewMode={true}
+                      />
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        handleClose()
+                        window.location.href = `/freehand?edit=${entry.id}`
+                      }}
+                      className="mt-3 px-4 py-2 rounded-full text-sm self-center"
+                      style={{
+                        background: theme.glass.bg,
+                        border: `1px solid ${theme.glass.border}`,
+                        color: theme.text.primary,
+                      }}
+                    >
+                      Edit in Freehand
+                    </motion.button>
+                  </motion.div>
+                ) : (
+                  <>
                 {/* ===== NOTEBOOK + PHOTOS — exact Write page layout ===== */}
                 {/* Relative wrapper with overflow:visible so photos can stick out */}
                 <motion.div
@@ -401,8 +446,11 @@ export default function EntryDetailModal({ entryId, onClose, onUpdated }: EntryD
                     onPhotoChange={existingPhotoBottomLeft ? () => {} : setPhotoBottomLeft}
                   />
                 </motion.div>
+                  </>
+                )}
 
-                {/* ===== ACTION BUTTONS — below notebook, exact Write page layout ===== */}
+                {/* ===== ACTION BUTTONS — below notebook, exact Write page layout (hidden for canvas entries) ===== */}
+                {entry.entryType !== 'canvas' && (<>
                 <div className="flex items-center justify-between mt-4">
                   <div className="flex gap-2">
                     {/* Doodle button / preview — same as Write page */}
@@ -525,6 +573,7 @@ export default function EntryDetailModal({ entryId, onClose, onUpdated }: EntryD
                     <SongEmbed url={newSong} compact />
                   </motion.div>
                 )}
+                </>)}
               </>
             )}
           </motion.div>
