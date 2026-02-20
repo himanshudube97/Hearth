@@ -1,7 +1,7 @@
 'use client'
 
 import React, { memo, useRef, useCallback, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useDiaryStore } from '@/store/diary'
 import { diaryThemes } from '@/lib/diaryThemes'
@@ -109,7 +109,6 @@ const PhotoSlot = memo(function PhotoSlot({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isHovering, setIsHovering] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [showOptions, setShowOptions] = useState(false)
 
   const isGlass = currentDiaryTheme === 'glass'
   const mutedColor = isGlass ? theme.text.muted : diaryTheme.pages.mutedColor
@@ -135,7 +134,6 @@ const PhotoSlot = memo(function PhotoSlot({
     }
 
     setIsProcessing(true)
-    setShowOptions(false)
 
     try {
       await processImage(file)
@@ -155,12 +153,10 @@ const PhotoSlot = memo(function PhotoSlot({
 
   const handleUploadClick = useCallback(() => {
     fileInputRef.current?.click()
-    setShowOptions(false)
   }, [])
 
   const handleCameraClick = useCallback(() => {
     onCameraCapture?.()
-    setShowOptions(false)
   }, [onCameraCapture])
 
   // If photo exists, show the polaroid
@@ -221,10 +217,7 @@ const PhotoSlot = memo(function PhotoSlot({
     <motion.div
       className={`relative ${className}`}
       onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => {
-        setIsHovering(false)
-        setShowOptions(false)
-      }}
+      onMouseLeave={() => setIsHovering(false)}
       style={{
         transform: `rotate(${defaultRotation}deg)`,
       }}
@@ -238,79 +231,57 @@ const PhotoSlot = memo(function PhotoSlot({
         className="hidden"
       />
 
-      {/* Dotted polaroid frame placeholder */}
-      <motion.button
-        onClick={() => setShowOptions(!showOptions)}
-        className="w-full flex flex-col items-center justify-center cursor-pointer transition-all"
+      {/* Polaroid frame with upload/camera options inside */}
+      <div
+        className="w-full flex flex-col items-center justify-center"
         style={{
           aspectRatio: '4/5',
           border: `2px dashed ${isHovering ? theme.accent.warm : borderColor}`,
           borderRadius: '4px',
           background: isGlass ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-          padding: '8px 8px 24px 8px',
+          padding: '6px',
         }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        disabled={isProcessing}
       >
-        <div
-          className="flex-1 w-full flex flex-col items-center justify-center gap-1"
-          style={{ color: mutedColor }}
-        >
-          {isProcessing ? (
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              className="text-lg"
-            >
-              ...
-            </motion.div>
-          ) : (
-            <>
-              <span className="text-2xl opacity-50">+</span>
-              <span className="text-[10px] opacity-70">Add photo</span>
-            </>
-          )}
-        </div>
-      </motion.button>
-
-      {/* Options dropdown */}
-      <AnimatePresence>
-        {showOptions && !isProcessing && (
+        {isProcessing ? (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-20 rounded-lg overflow-hidden shadow-lg"
-            style={{
-              background: isGlass ? theme.glass.bg : 'white',
-              backdropFilter: isGlass ? `blur(${theme.glass.blur})` : undefined,
-              border: `1px solid ${isGlass ? theme.glass.border : 'rgba(0,0,0,0.1)'}`,
-              transform: `rotate(${-defaultRotation}deg) translateX(-50%)`,
-            }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            className="text-lg"
+            style={{ color: mutedColor }}
           >
-            <button
-              onClick={handleUploadClick}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-black/5 flex items-center gap-2 whitespace-nowrap"
-              style={{ color: isGlass ? theme.text.primary : '#333' }}
-            >
-              <span>Upload</span>
-            </button>
-            {onCameraCapture && (
-              <button
-                onClick={handleCameraClick}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-black/5 flex items-center gap-2 whitespace-nowrap border-t"
-                style={{
-                  color: isGlass ? theme.text.primary : '#333',
-                  borderColor: 'rgba(0,0,0,0.1)',
-                }}
-              >
-                <span>Take Photo</span>
-              </button>
-            )}
+            ...
           </motion.div>
+        ) : (
+          <div className="flex flex-col items-center gap-1.5 w-full">
+            <motion.button
+              onClick={handleUploadClick}
+              className="w-full py-1.5 rounded text-[10px] flex items-center justify-center gap-1 cursor-pointer"
+              style={{
+                color: mutedColor,
+                background: isGlass ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+              }}
+              whileHover={{ scale: 1.03, backgroundColor: isGlass ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }}
+              whileTap={{ scale: 0.97 }}
+            >
+              Upload
+            </motion.button>
+            {onCameraCapture && (
+              <motion.button
+                onClick={handleCameraClick}
+                className="w-full py-1.5 rounded text-[10px] flex items-center justify-center gap-1 cursor-pointer"
+                style={{
+                  color: mutedColor,
+                  background: isGlass ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                }}
+                whileHover={{ scale: 1.03, backgroundColor: isGlass ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }}
+                whileTap={{ scale: 0.97 }}
+              >
+                Click
+              </motion.button>
+            )}
+          </div>
         )}
-      </AnimatePresence>
+      </div>
     </motion.div>
   )
 })

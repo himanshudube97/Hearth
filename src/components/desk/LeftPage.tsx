@@ -7,6 +7,8 @@ import { useDiaryStore } from '@/store/diary'
 import { diaryThemes } from '@/lib/diaryThemes'
 import { useJournalStore } from '@/store/journal'
 import SongEmbed from '@/components/SongEmbed'
+import { JOURNAL } from '@/lib/journal-constants'
+import { htmlToPlainText, splitTextForSpread } from '@/lib/text-utils'
 
 // Line height must match the line pattern spacing
 const LINE_HEIGHT = 32
@@ -25,6 +27,8 @@ interface LeftPageProps {
   text?: string
   onTextChange?: (text: string) => void
   onPageFull?: (overflowText: string) => void
+  onNavigateRight?: () => void
+  focusTrigger?: number
 }
 
 // Helper to get line pattern based on diary theme
@@ -55,6 +59,8 @@ const LeftPage = memo(function LeftPage({
   text = '',
   onTextChange,
   onPageFull,
+  onNavigateRight,
+  focusTrigger = 0,
 }: LeftPageProps) {
   const { theme } = useThemeStore()
   const { currentDiaryTheme } = useDiaryStore()
@@ -94,30 +100,81 @@ const LeftPage = memo(function LeftPage({
   }, [entrySong, isNewEntry])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [isPageFull, setIsPageFull] = useState(false)
+
+  // Focus textarea when navigating back from right page
+  useEffect(() => {
+    if (focusTrigger > 0 && textareaRef.current) {
+      const textarea = textareaRef.current
+      textarea.focus()
+      const len = textarea.value.length
+      textarea.setSelectionRange(len, len)
+    }
+  }, [focusTrigger])
+
+  // Arrow key navigation: only ArrowRight at the very end of text → right page
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'ArrowRight') {
+      const textarea = e.currentTarget
+      if (textarea.selectionStart === textarea.value.length && textarea.selectionEnd === textarea.value.length) {
+        e.preventDefault()
+        onNavigateRight?.()
+      }
+    }
+  }, [onNavigateRight])
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value
-    const textarea = textareaRef.current
+    if (newText.length > JOURNAL.MAX_CHARS) return
 
-    // When adding text, check overflow BEFORE accepting (DOM already has new value)
-    if (newText.length > text.length && textarea) {
-      if (textarea.scrollHeight > textarea.clientHeight + 2) {
-        // Reject this character - React will revert textarea to `text`
-        // Pass the rejected characters so they appear on the right page
-        setIsPageFull(true)
-        onPageFull?.(newText.slice(text.length))
-        return
+    const textarea = textareaRef.current
+    if (!textarea) {
+      onTextChange?.(newText)
+      return
+    }
+
+    // Use DOM measurement to detect overflow instead of character-count formula
+    const prevValue = textarea.value
+    textarea.value = newText
+
+    if (textarea.scrollHeight <= textarea.clientHeight + 1) {
+      // No overflow — accept all text
+      textarea.value = prevValue
+      onTextChange?.(newText)
+      return
+    }
+
+    // Overflow detected — binary search for the max chars that fit
+    let lo = 0
+    let hi = newText.length
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi + 1) / 2)
+      textarea.value = newText.slice(0, mid)
+      if (textarea.scrollHeight <= textarea.clientHeight + 1) {
+        lo = mid
+      } else {
+        hi = mid - 1
       }
     }
 
-    // When deleting, allow and check if page is no longer full
-    if (newText.length < text.length && isPageFull) {
-      setIsPageFull(false)
+    // Snap to a word/newline boundary so we don't split mid-word
+    let splitAt = lo
+    while (splitAt > 0 && newText[splitAt] !== ' ' && newText[splitAt] !== '\n') {
+      splitAt--
     }
+    if (splitAt === 0) splitAt = lo
 
-    onTextChange?.(newText)
-  }, [text, isPageFull, onPageFull, onTextChange])
+    textarea.value = prevValue
+
+    const fitsText = newText.slice(0, splitAt)
+    const overflowText = newText.slice(splitAt).replace(/^\s+/, '')
+
+    onTextChange?.(fitsText)
+    // Always notify overflow — even if overflowText is empty (e.g. Enter on last line)
+    // so that focus moves to the right page
+    if (onPageFull) {
+      onPageFull(overflowText)
+    }
+  }, [onTextChange, onPageFull])
 
   if (isNewEntry) {
     return (
@@ -127,8 +184,8 @@ const LeftPage = memo(function LeftPage({
         transition={{ delay: 0.2, duration: 0.5 }}
         className="h-full flex flex-col overflow-hidden"
       >
-        {/* Music Section */}
-        <div className="mb-2 flex-shrink-0">
+        {/* Music Section — fixed height to prevent textarea resize on song add */}
+        <div className="mb-2 flex-shrink-0" style={{ minHeight: '68px' }}>
           {isEditingSong || !songInput ? (
             <>
               <div
@@ -180,6 +237,7 @@ const LeftPage = memo(function LeftPage({
             ref={textareaRef}
             value={text}
             onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
             placeholder="What's on your mind today..."
             className="flex-1 min-h-0 w-full resize-none outline-none"
             style={{
@@ -200,25 +258,11 @@ const LeftPage = memo(function LeftPage({
     )
   }
 
-  // Viewing existing entry - show only left page text (before page-break marker)
+  // Viewing existing entry - dynamic split at render time
   const fullText = entry?.text || ''
-  const pageBreakMarker = '<!--page-break-->'
-  const pageBreakIdx = fullText.indexOf(pageBreakMarker)
-  const leftRawText = pageBreakIdx >= 0
-    ? fullText.substring(0, pageBreakIdx)
-    : fullText
-
-  const plainText = leftRawText
-    ? leftRawText
-        .replace(/<\/p><p>/g, '\n')
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<[^>]*>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .trim()
-    : ''
+  const fullPlainText = htmlToPlainText(fullText)
+  const [leftPlainText] = splitTextForSpread(fullPlainText)
+  const plainText = leftPlainText
 
   return (
     <motion.div

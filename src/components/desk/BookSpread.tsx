@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useState, memo, useRef } from 'react'
+import React, { useCallback, useEffect, useState, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useDeskStore } from '@/store/desk'
@@ -199,10 +199,11 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
   const [loading, setLoading] = useState(true)
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
   const [leftPageText, setLeftPageText] = useState('')
+  const [rightPageText, setRightPageText] = useState('')
   const [pendingPhotos, setPendingPhotos] = useState<Photo[]>([])
-  const rightPageTextareaRef = useRef<HTMLTextAreaElement>(null)
-  const pendingOverflowRef = useRef('')
   const [showSavedOverlay, setShowSavedOverlay] = useState(false)
+  const [rightTextareaFocusTrigger, setRightTextareaFocusTrigger] = useState(0)
+  const [leftTextareaFocusTrigger, setLeftTextareaFocusTrigger] = useState(0)
 
   const paperColor = diaryTheme.pages.background
   const paperColorDark = getDarkerShade(paperColor)
@@ -210,7 +211,7 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
   // Fetch entries
   const fetchEntries = useCallback(async () => {
     try {
-      const res = await fetch('/api/entries?limit=100')
+      const res = await fetch('/api/entries?limit=50')
       if (res.ok) {
         const data = await res.json()
         const fetchedEntries = data.entries || []
@@ -263,19 +264,24 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
   }, [globalCurrentSpread, totalSpreads, isPageTurning, turnPage])
 
   const handleLeftPageFull = useCallback((overflowText: string) => {
-    pendingOverflowRef.current = overflowText
-    rightPageTextareaRef.current?.focus()
+    if (overflowText) {
+      setRightPageText(prev => overflowText + prev)
+    }
+    setRightTextareaFocusTrigger(prev => prev + 1)
   }, [])
 
-  const consumeOverflow = useCallback(() => {
-    const text = pendingOverflowRef.current
-    pendingOverflowRef.current = ''
-    return text
+  const handleNavigateRight = useCallback(() => {
+    setRightTextareaFocusTrigger(prev => prev + 1)
+  }, [])
+
+  const handleNavigateLeft = useCallback(() => {
+    setLeftTextareaFocusTrigger(prev => prev + 1)
   }, [])
 
   const handleSaveComplete = useCallback(() => {
     setShowSavedOverlay(true)
     setLeftPageText('')
+    setRightPageText('')
     setPendingPhotos([])
     setCurrentSong('')
 
@@ -289,14 +295,24 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
   const handleEntrySelect = useCallback((entryId: string | null) => {
     setCurrentEntryId(entryId)
     setLeftPageText('')
+    setRightPageText('')
     setPendingPhotos([])
-  }, [])
+    // Sync spread position
+    if (entryId) {
+      const idx = entries.findIndex(e => e.id === entryId)
+      if (idx >= 0) {
+        goToSpread(entries.length - 1 - idx)
+      }
+    }
+  }, [entries, goToSpread])
 
   const handleNewEntry = useCallback(() => {
     setCurrentEntryId(null)
     setLeftPageText('')
+    setRightPageText('')
     setPendingPhotos([])
-  }, [])
+    goToSpread(entries.length)
+  }, [entries.length, goToSpread])
 
   // Handle photo add
   const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
@@ -434,6 +450,8 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
             text={leftPageText}
             onTextChange={setLeftPageText}
             onPageFull={handleLeftPageFull}
+            onNavigateRight={handleNavigateRight}
+            focusTrigger={leftTextareaFocusTrigger}
           />
         </PageWrapper>
 
@@ -469,9 +487,11 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
             photos={currentPhotos}
             onPhotoAdd={handlePhotoAdd}
             onSaveComplete={handleSaveComplete}
-            textareaRef={rightPageTextareaRef}
             leftPageText={leftPageText}
-            consumeOverflow={consumeOverflow}
+            text={rightPageText}
+            onTextChange={setRightPageText}
+            focusTrigger={rightTextareaFocusTrigger}
+            onNavigateLeft={handleNavigateLeft}
           />
         </PageWrapper>
 
@@ -499,7 +519,7 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
         )}
 
         {/* Right edge - Next entry */}
-        {globalCurrentSpread < entries.length && (
+        {globalCurrentSpread < totalSpreads && !isPageTurning && (
           <motion.div
             onClick={handleNextPage}
             className="absolute right-0 top-0 bottom-0 w-14 cursor-pointer z-30 flex items-center justify-center"

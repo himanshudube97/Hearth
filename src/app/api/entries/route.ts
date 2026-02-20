@@ -180,13 +180,14 @@ export async function POST(request: NextRequest) {
     console.log('[POST /api/entries] Preview:', textPreview?.slice(0, 50), 'E2EE:', isE2EE)
 
     // Encrypt sensitive fields
+    console.log('[POST /api/entries] Encrypting text, length:', text?.length || 0)
     const encryptedText = isE2EE ? text : encrypt(text)
     const encryptedTextPreview = isE2EE ? textPreview : encrypt(textPreview)
     const encryptedSenderName = senderName ? (isE2EE ? senderName : encrypt(senderName)) : null
     const encryptedRecipientName = recipientName ? (isE2EE ? recipientName : encrypt(recipientName)) : null
     const encryptedLetterLocation = letterLocation ? (isE2EE ? letterLocation : encrypt(letterLocation)) : null
 
-    console.log('[POST /api/entries] Creating entry for user:', user.id)
+    console.log('[POST /api/entries] Creating entry for user:', user.id, 'photos:', photos?.length || 0, 'doodles:', doodles?.length || 0)
 
     const entry = await prisma.journalEntry.create({
       data: {
@@ -251,6 +252,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating entry:', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
+    const stack = error instanceof Error ? error.stack?.split('\n').slice(0, 3).join('\n') : ''
+    console.error('[POST /api/entries] Stack:', stack)
     return NextResponse.json(
       { error: 'Failed to create entry', details: message },
       { status: 500 }

@@ -8,7 +8,10 @@ import { useDiaryStore } from '@/store/diary'
 import { diaryThemes, DiaryTheme } from '@/lib/diaryThemes'
 import { useJournalStore, StrokeData } from '@/store/journal'
 import { getRandomPrompt } from '@/lib/themes'
+import { JOURNAL } from '@/lib/journal-constants'
+import { htmlToPlainText, splitTextForSpread } from '@/lib/text-utils'
 import PhotoBlock from './PhotoBlock'
+import CompactDoodleCanvas from './CompactDoodleCanvas'
 
 const LINE_HEIGHT = 32
 const DOODLE_DRAFT_KEY = 'hearth_desk_doodle_draft'
@@ -50,12 +53,6 @@ function getSvgPathFromStroke(stroke: number[][]): string {
   return d.join(' ')
 }
 
-interface Point {
-  x: number
-  y: number
-  pressure?: number
-}
-
 interface Photo {
   id?: string
   url: string
@@ -79,179 +76,12 @@ interface RightPageProps {
   photos?: Photo[]
   onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
   onSaveComplete?: () => void
-  textareaRef?: React.RefObject<HTMLTextAreaElement | null>
   leftPageText?: string
-  consumeOverflow?: () => string
+  text?: string
+  onTextChange?: (text: string) => void
+  focusTrigger?: number
+  onNavigateLeft?: () => void
 }
-
-// Compact Doodle Canvas
-const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
-  strokes,
-  onStrokesChange,
-  doodleColors,
-  canvasBackground,
-  canvasBorder,
-  textColor,
-  mutedColor,
-}: {
-  strokes: StrokeData[]
-  onStrokesChange: (strokes: StrokeData[]) => void
-  doodleColors: string[]
-  canvasBackground: string
-  canvasBorder: string
-  textColor: string
-  mutedColor: string
-}) {
-  const canvasRef = useRef<HTMLDivElement>(null)
-  const [localStrokes, setLocalStrokes] = useState<StrokeData[]>(strokes)
-  const [isDrawing, setIsDrawing] = useState(false)
-  const [currentPoints, setCurrentPoints] = useState<Point[]>([])
-  const [activeBrush, setActiveBrush] = useState(1)
-  const [selectedColor, setSelectedColor] = useState<string>(doodleColors[0])
-
-  const brushes = [
-    { name: 'S', size: 2 },
-    { name: 'M', size: 4 },
-    { name: 'L', size: 8 },
-  ]
-
-  const getPointFromEvent = useCallback((e: React.PointerEvent): Point => {
-    const rect = canvasRef.current?.getBoundingClientRect()
-    if (!rect) return { x: 0, y: 0 }
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-      pressure: e.pressure || 0.5,
-    }
-  }, [])
-
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    e.preventDefault()
-    setIsDrawing(true)
-    setCurrentPoints([getPointFromEvent(e)])
-  }, [getPointFromEvent])
-
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDrawing) return
-    e.preventDefault()
-    setCurrentPoints(prev => [...prev, getPointFromEvent(e)])
-  }, [isDrawing, getPointFromEvent])
-
-  const handlePointerUp = useCallback(() => {
-    if (!isDrawing) return
-    setIsDrawing(false)
-
-    if (currentPoints.length > 0) {
-      const brush = brushes[activeBrush]
-      const newStroke: StrokeData = {
-        points: currentPoints.map(p => [p.x, p.y, p.pressure || 0.5]),
-        color: selectedColor,
-        size: brush.size,
-      }
-      const newStrokes = [...localStrokes, newStroke]
-      setLocalStrokes(newStrokes)
-      onStrokesChange(newStrokes)
-    }
-
-    setCurrentPoints([])
-  }, [isDrawing, currentPoints, activeBrush, selectedColor, localStrokes, onStrokesChange, brushes])
-
-  const clearCanvas = () => {
-    setLocalStrokes([])
-    setCurrentPoints([])
-    onStrokesChange([])
-  }
-
-  const renderStroke = (strokeData: StrokeData, index: number) => {
-    const outlinePoints = getStroke(strokeData.points, {
-      size: strokeData.size,
-      thinning: 0.5,
-      smoothing: 0.5,
-      streamline: 0.5,
-    })
-    const pathData = getSvgPathFromStroke(outlinePoints)
-    return <path key={index} d={pathData} fill={strokeData.color} opacity={0.9} />
-  }
-
-  const renderCurrentStroke = () => {
-    if (currentPoints.length === 0) return null
-    const brush = brushes[activeBrush]
-    const outlinePoints = getStroke(
-      currentPoints.map(p => [p.x, p.y, p.pressure || 0.5]),
-      { size: brush.size, thinning: 0.5, smoothing: 0.5, streamline: 0.5 }
-    )
-    const pathData = getSvgPathFromStroke(outlinePoints)
-    return <path d={pathData} fill={selectedColor} opacity={0.9} />
-  }
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Compact Toolbar */}
-      <div className="flex items-center gap-1 mb-1">
-        {brushes.map((brush, index) => (
-          <button
-            key={brush.name}
-            onClick={() => setActiveBrush(index)}
-            className="w-6 h-6 rounded text-[10px] transition-all"
-            style={{
-              background: activeBrush === index ? `${selectedColor}20` : 'rgba(0,0,0,0.03)',
-              border: activeBrush === index ? `1px solid ${selectedColor}` : '1px solid rgba(0,0,0,0.08)',
-              color: textColor,
-            }}
-          >
-            {brush.name}
-          </button>
-        ))}
-        <div className="flex-1" />
-        {doodleColors.slice(0, 4).map((color) => (
-          <button
-            key={color}
-            onClick={() => setSelectedColor(color)}
-            className="w-4 h-4 rounded-full transition-all"
-            style={{
-              background: color,
-              border: selectedColor === color ? '2px solid rgba(0,0,0,0.3)' : '1px solid rgba(0,0,0,0.1)',
-              transform: selectedColor === color ? 'scale(1.2)' : 'scale(1)',
-            }}
-          />
-        ))}
-        <button
-          onClick={clearCanvas}
-          className="text-[10px] ml-1"
-          style={{ color: mutedColor }}
-        >
-          ×
-        </button>
-      </div>
-
-      {/* Canvas */}
-      <div
-        ref={canvasRef}
-        className="flex-1 relative touch-none rounded-lg overflow-hidden"
-        style={{
-          background: canvasBackground,
-          border: `1px solid ${canvasBorder}`,
-          cursor: 'crosshair',
-          minHeight: '100px',
-        }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-      >
-        <svg className="absolute inset-0 w-full h-full">
-          {localStrokes.map((stroke, index) => renderStroke(stroke, index))}
-          {renderCurrentStroke()}
-        </svg>
-        {localStrokes.length === 0 && !isDrawing && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-[10px]" style={{ color: mutedColor, opacity: 0.5 }}>Draw here</span>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-})
 
 // Doodle Preview for existing entries
 const DoodlePreview = memo(function DoodlePreview({
@@ -313,19 +143,23 @@ const RightPage = memo(function RightPage({
   photos = [],
   onPhotoAdd,
   onSaveComplete,
-  textareaRef,
   leftPageText = '',
-  consumeOverflow,
+  text: externalText,
+  onTextChange,
+  focusTrigger = 0,
+  onNavigateLeft,
 }: RightPageProps) {
   const { theme } = useThemeStore()
   const { currentDiaryTheme } = useDiaryStore()
   const diaryTheme = diaryThemes[currentDiaryTheme]
   const { currentMood, currentSong, currentDoodleStrokes, setDoodleStrokes, resetCurrentEntry } = useJournalStore()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [prompt, setPrompt] = useState('')
-  const [text, setText] = useState('')
   const [saving, setSaving] = useState(false)
-  const [isPageFull, setIsPageFull] = useState(false)
-  const internalTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const text = externalText ?? ''
+  const noopSetText = useCallback(() => {}, [])
+  const setText = onTextChange ?? noopSetText
 
   const accentColor = theme.accent.warm
   const isGlass = currentDiaryTheme === 'glass'
@@ -333,12 +167,30 @@ const RightPage = memo(function RightPage({
   const mutedColor = isGlass ? theme.text.muted : diaryTheme.pages.mutedColor
   const linePattern = getLinePattern(diaryTheme)
 
-  // Use external ref if provided, otherwise internal
-  const actualTextareaRef = textareaRef || internalTextareaRef
-
   useEffect(() => {
     setPrompt(getRandomPrompt())
   }, [])
+
+  // Focus textarea when text overflows from left page
+  useEffect(() => {
+    if (focusTrigger > 0 && textareaRef.current) {
+      const textarea = textareaRef.current
+      textarea.focus()
+      const len = textarea.value.length
+      textarea.setSelectionRange(len, len)
+    }
+  }, [focusTrigger])
+
+  // Arrow key navigation: only ArrowLeft at position 0 → left page
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'ArrowLeft') {
+      const textarea = e.currentTarget
+      if (textarea.selectionStart === 0 && textarea.selectionEnd === 0) {
+        e.preventDefault()
+        onNavigateLeft?.()
+      }
+    }
+  }, [onNavigateLeft])
 
   // Load doodle draft from localStorage
   useEffect(() => {
@@ -374,34 +226,27 @@ const RightPage = memo(function RightPage({
     setPrompt(getRandomPrompt())
   }, [])
 
-  // Overflow detection for right page textarea - same pattern as left page
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value
-    const textarea = actualTextareaRef.current
 
-    // When adding text, check overflow BEFORE accepting
-    if (newText.length > text.length && textarea) {
-      if (textarea.scrollHeight > textarea.clientHeight + 2) {
-        setIsPageFull(true)
-        return // Reject - page is full
-      }
+    // Enforce character limit (combined with left page)
+    const totalChars = (leftPageText?.length || 0) + newText.length
+    if (totalChars > JOURNAL.MAX_CHARS && newText.length > text.length) {
+      return
     }
 
-    // When deleting, allow and check if page is no longer full
-    if (newText.length < text.length && isPageFull) {
-      setIsPageFull(false)
+    // Use DOM measurement to check right page capacity
+    const textarea = textareaRef.current
+    if (textarea && newText.length > text.length) {
+      const prevValue = textarea.value
+      textarea.value = newText
+      const overflows = textarea.scrollHeight > textarea.clientHeight + 1
+      textarea.value = prevValue
+      if (overflows) return // right page is full — no third page
     }
 
     setText(newText)
-  }, [text, isPageFull, actualTextareaRef])
-
-  // When focused from auto-switch, consume any overflow characters from the left page
-  const handleTextareaFocus = useCallback(() => {
-    const overflow = consumeOverflow?.()
-    if (overflow) {
-      setText(prev => prev + overflow)
-    }
-  }, [consumeOverflow])
+  }, [text, leftPageText, setText])
 
   const hasAnyText = text.trim().length > 0 || leftPageText.trim().length > 0
 
@@ -414,11 +259,11 @@ const RightPage = memo(function RightPage({
         ? [{ strokes: currentDoodleStrokes }]
         : []
 
-      // Combine left and right page text with page-break marker
+      // Combine left and right page text — NO page-break marker
       const leftHtml = leftPageText.trim() ? `<p>${leftPageText.replace(/\n/g, '</p><p>')}</p>` : ''
       const rightHtml = text.trim() ? `<p>${text.replace(/\n/g, '</p><p>')}</p>` : ''
       const combinedText = leftHtml && rightHtml
-        ? `${leftHtml}<!--page-break-->${rightHtml}`
+        ? `${leftHtml}${rightHtml}`
         : leftHtml || rightHtml
 
       const res = await fetch('/api/entries', {
@@ -429,13 +274,17 @@ const RightPage = memo(function RightPage({
           mood: currentMood,
           song: currentSong || null,
           doodles: doodlesToSave,
-          photos,
+          photos: photos.map(p => ({
+            url: p.url,
+            position: p.position,
+            rotation: p.rotation,
+            spread: 1,
+          })),
         }),
       })
 
       if (res.ok) {
         setText('')
-        setIsPageFull(false)
         resetCurrentEntry()
         setPrompt(getRandomPrompt())
         try {
@@ -446,17 +295,27 @@ const RightPage = memo(function RightPage({
 
         onSaveComplete?.()
       } else {
-        const data = await res.json()
-        console.error('Save failed:', data)
-        alert(`Failed to save: ${data.error || 'Unknown error'}`)
+        const statusCode = res.status
+        let data: Record<string, unknown> = {}
+        try {
+          data = await res.json()
+        } catch {
+          // Response wasn't JSON
+        }
+        console.error(`Save failed [${statusCode}]:`, data)
+        if (statusCode === 401) {
+          alert('Session expired. Please refresh the page and log in again.')
+        } else {
+          alert(`Failed to save (${statusCode}): ${data.error || 'Unknown error'}`)
+        }
       }
     } catch (error) {
       console.error('Failed to save entry:', error)
-      alert('Failed to save entry')
+      alert(`Failed to save entry: ${error instanceof Error ? error.message : 'Network error'}`)
     } finally {
       setSaving(false)
     }
-  }, [text, leftPageText, currentMood, currentSong, currentDoodleStrokes, photos, resetCurrentEntry, onSaveComplete])
+  }, [text, leftPageText, currentMood, currentSong, currentDoodleStrokes, photos, resetCurrentEntry, onSaveComplete, setText])
 
   if (isNewEntry) {
     return (
@@ -499,10 +358,10 @@ const RightPage = memo(function RightPage({
             </button>
           </div>
           <textarea
-            ref={actualTextareaRef}
+            ref={textareaRef}
             value={text}
             onChange={handleTextChange}
-            onFocus={handleTextareaFocus}
+            onKeyDown={handleKeyDown}
             placeholder="Begin writing..."
             className="flex-1 min-h-0 w-full resize-none outline-none"
             style={{
@@ -575,25 +434,11 @@ const RightPage = memo(function RightPage({
     )
   }
 
-  // Viewing existing entry - show only right page text (after page-break marker)
+  // Viewing existing entry - dynamic split at render time
   const fullText = entry?.text || ''
-  const pageBreakMarker = '<!--page-break-->'
-  const pageBreakIdx = fullText.indexOf(pageBreakMarker)
-  const rightRawText = pageBreakIdx >= 0
-    ? fullText.substring(pageBreakIdx + pageBreakMarker.length)
-    : '' // No marker = old entry, right page has no separate text
-
-  const plainText = rightRawText
-    ? rightRawText
-        .replace(/<\/p><p>/g, '\n')
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<[^>]*>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .trim()
-    : ''
+  const fullPlainText = htmlToPlainText(fullText)
+  const [, rightPlainText] = splitTextForSpread(fullPlainText)
+  const plainText = rightPlainText
 
   const entryPhotos = entry?.photos || []
   const entryDoodle = entry?.doodles?.[0]

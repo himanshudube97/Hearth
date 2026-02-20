@@ -1,24 +1,48 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
-import { useDeskStore } from '@/store/desk'
+import { useLayoutMode } from '@/hooks/useMediaQuery'
 import DeskBook from './DeskBook'
+
+// Pre-generate random particle data at module level to keep render pure
+const DUST_PARTICLES = Array.from({ length: 12 }, () => ({
+  width: 1 + Math.random() * 1.5,
+  height: 1 + Math.random() * 1.5,
+  opacity: Math.floor(20 + Math.random() * 30),
+  left: 10 + Math.random() * 80,
+  top: 20 + Math.random() * 60,
+  animY: -25 - Math.random() * 15,
+  animX: (Math.random() - 0.5) * 15,
+  duration: 12 + Math.random() * 8,
+  delay: Math.random() * 8,
+}))
+import MobileJournalEntry from './MobileJournalEntry'
 import { DiaryThemeSelector } from './DiaryThemeSelector'
 import Background from '@/components/Background'
-// Commented out - hiding these elements for cleaner UI
-// import DeskWindow from './DeskWindow'
-// import DeskDrawer from './DeskDrawer'
-// import DeskCandle from './DeskCandle'
 
 export default function DeskScene() {
   const [mounted, setMounted] = useState(false)
   const { theme } = useThemeStore()
-  // const { activeElement } = useDeskStore()
+  const layoutMode = useLayoutMode()
+  const [scaleForTablet, setScaleForTablet] = useState(1)
 
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (layoutMode === 'tablet') {
+      const calcScale = () => setScaleForTablet(Math.min(1, window.innerWidth / 1500))
+      calcScale()
+      window.addEventListener('resize', calcScale)
+      return () => window.removeEventListener('resize', calcScale)
+    }
+  }, [layoutMode])
+
+  const handleMobileClose = useCallback(() => {
+    window.history.back()
   }, [])
 
   if (!mounted) return null
@@ -80,85 +104,58 @@ export default function DeskScene() {
         }}
       />
 
-      {/* Window - HIDDEN
-      <motion.div
-        className="absolute z-20"
-        style={{ top: '6%', left: '50%', transform: 'translateX(-50%)' }}
-        animate={{
-          scale: activeElement === 'window' ? 1.02 : 1,
-          y: activeElement === 'window' ? -5 : 0,
-        }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <DeskWindow />
-      </motion.div>
-      */}
-
-      {/* Book - center */}
-      <motion.div
-        className="absolute z-30"
-        style={{
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-        }}
-      >
-        <DeskBook />
-      </motion.div>
-
-      {/* Candle - HIDDEN
-      <motion.div
-        className="absolute z-20"
-        style={{ bottom: '18%', left: '8%' }}
-        animate={{
-          scale: activeElement === 'candle' ? 1.1 : 1,
-        }}
-        transition={{ duration: 0.3 }}
-      >
-        <DeskCandle />
-      </motion.div>
-      */}
-
-      {/* Drawer - HIDDEN
-      <motion.div
-        className="absolute z-20"
-        style={{ bottom: '12%', right: '8%' }}
-      >
-        <DeskDrawer />
-      </motion.div>
-      */}
-
-      {/* Floating dust particles - reduced count to not compete with background theme particles */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[...Array(12)].map((_, i) => (
+      {layoutMode === 'mobile' ? (
+        <MobileJournalEntry onClose={handleMobileClose} />
+      ) : (
+        <>
+          {/* Book - center */}
           <motion.div
-            key={i}
-            className="absolute rounded-full"
+            className="absolute z-30"
             style={{
-              width: `${1 + Math.random() * 1.5}px`,
-              height: `${1 + Math.random() * 1.5}px`,
-              background: `${theme.accent.warm}${Math.floor(20 + Math.random() * 30).toString(16)}`,
-              left: `${10 + Math.random() * 80}%`,
-              top: `${20 + Math.random() * 60}%`,
-              filter: 'blur(0.5px)',
+              top: '50%',
+              left: '50%',
+              transform: layoutMode === 'tablet'
+                ? `translate(-50%, -50%) scale(${scaleForTablet})`
+                : 'translate(-50%, -50%)',
+              transformOrigin: 'center center',
             }}
-            animate={{
-              y: [0, -25 - Math.random() * 15, 0],
-              x: [0, (Math.random() - 0.5) * 15, 0],
-              opacity: [0.15, 0.4, 0.15],
-            }}
-            transition={{
-              duration: 12 + Math.random() * 8,
-              repeat: Infinity,
-              delay: Math.random() * 8,
-              ease: 'easeInOut',
-            }}
-          />
-        ))}
-      </div>
+          >
+            <DeskBook />
+          </motion.div>
 
-      {/* Diary Theme Selector */}
-      <DiaryThemeSelector />
+          {/* Floating dust particles */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {DUST_PARTICLES.map((p, i) => (
+              <motion.div
+                key={i}
+                className="absolute rounded-full"
+                style={{
+                  width: `${p.width}px`,
+                  height: `${p.height}px`,
+                  background: `${theme.accent.warm}${p.opacity.toString(16)}`,
+                  left: `${p.left}%`,
+                  top: `${p.top}%`,
+                  filter: 'blur(0.5px)',
+                }}
+                animate={{
+                  y: [0, p.animY, 0],
+                  x: [0, p.animX, 0],
+                  opacity: [0.15, 0.4, 0.15],
+                }}
+                transition={{
+                  duration: p.duration,
+                  repeat: Infinity,
+                  delay: p.delay,
+                  ease: 'easeInOut',
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Diary Theme Selector — only on desktop/tablet */}
+          <DiaryThemeSelector />
+        </>
+      )}
     </div>
   )
 }

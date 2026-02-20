@@ -38,9 +38,7 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  experimental: {
-    serverExternalPackages: ["jose"],
-  },
+  serverExternalPackages: ["jose", "@prisma/client", ".prisma/client"],
 };
 
 export default withPWA(nextConfig);
