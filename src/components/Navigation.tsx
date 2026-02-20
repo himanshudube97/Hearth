@@ -10,6 +10,7 @@ import { useProfileStore } from '@/store/profile'
 
 const tabs = [
   { href: '/write', label: 'Write', icon: '✎' },
+  { href: '/freehand', label: 'Freehand', icon: '〰' },
   { href: '/letters', label: 'Letters', icon: '✉' },
   { href: '/timeline', label: 'Timeline', icon: '☰' },
   { href: '/calendar', label: 'Calendar', icon: '▣' },
