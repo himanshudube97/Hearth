@@ -91,3 +91,12 @@ textarea,
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Excalidraw minimal mode — hide library, help, and collaboration UI */
+.excalidraw-minimal .excalidraw .library-button,
+.excalidraw-minimal .excalidraw .HelpButton,
+.excalidraw-minimal .excalidraw [data-testid="library-button"],
+.excalidraw-minimal .excalidraw .collab-button,
+.excalidraw-minimal .excalidraw .UserList {
+  display: none !important;
+}

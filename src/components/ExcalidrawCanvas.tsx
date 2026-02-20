@@ -4,8 +4,44 @@ import { useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useThemeStore } from '@/store/theme'
 
-const Excalidraw = dynamic(
-  async () => (await import('@excalidraw/excalidraw')).Excalidraw,
+// Dynamically import Excalidraw + MainMenu together (SSR disabled)
+const ExcalidrawEditor = dynamic(
+  async () => {
+    const mod = await import('@excalidraw/excalidraw')
+    const { Excalidraw, MainMenu } = mod
+
+    function Editor(props: {
+      excalidrawAPI?: (api: any) => void
+      initialData?: any
+      onChange?: (elements: readonly any[], appState: any, files: any) => void
+      theme?: string
+      viewModeEnabled?: boolean
+      zenModeEnabled?: boolean
+      UIOptions?: any
+    }) {
+      return (
+        <Excalidraw
+          excalidrawAPI={props.excalidrawAPI}
+          initialData={props.initialData}
+          onChange={props.onChange}
+          theme={props.theme as any}
+          viewModeEnabled={props.viewModeEnabled}
+          zenModeEnabled={props.zenModeEnabled}
+          UIOptions={props.UIOptions}
+        >
+          {!props.viewModeEnabled && (
+            <MainMenu>
+              <MainMenu.DefaultItems.ClearCanvas />
+              <MainMenu.DefaultItems.SaveAsImage />
+              <MainMenu.DefaultItems.ChangeCanvasBackground />
+            </MainMenu>
+          )}
+        </Excalidraw>
+      )
+    }
+
+    return Editor
+  },
   { ssr: false }
 )
 
@@ -20,6 +56,22 @@ function useExcalidrawCSS() {
     link.href = '/excalidraw.css'
     document.head.appendChild(link)
   }, [])
+}
+
+// Simplified UI: hide unnecessary canvas actions and tools
+const SIMPLIFIED_UI_OPTIONS = {
+  canvasActions: {
+    changeViewBackgroundColor: false,
+    clearCanvas: true,
+    loadScene: false,
+    saveToActiveFile: false,
+    export: false,
+    toggleTheme: false,
+  },
+  tools: {
+    image: false,
+  },
+  welcomeScreen: false,
 }
 
 interface ExcalidrawCanvasProps {
@@ -51,12 +103,12 @@ export default function ExcalidrawCanvas({
 
   return (
     <div
-      className="w-full h-full rounded-2xl overflow-hidden"
+      className="w-full h-full rounded-2xl overflow-hidden excalidraw-minimal"
       style={{
         border: `1px solid ${theme.glass.border}`,
       }}
     >
-      <Excalidraw
+      <ExcalidrawEditor
         excalidrawAPI={handleApiReady}
         initialData={
           initialData
@@ -77,6 +129,7 @@ export default function ExcalidrawCanvas({
         theme="dark"
         viewModeEnabled={viewMode}
         zenModeEnabled={false}
+        UIOptions={SIMPLIFIED_UI_OPTIONS}
       />
     </div>
   )
