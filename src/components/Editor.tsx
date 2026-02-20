@@ -75,12 +75,14 @@ export default function Editor({ prompt, value, onChange, flexible }: EditorProp
     <div
       className={`rounded-2xl overflow-hidden relative ${flexible ? 'flex-1 min-h-0 flex flex-col' : ''}`}
       style={{
-        background: theme.glass.bg,
+        background: `linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.03) 100%), linear-gradient(180deg, ${theme.accent.warm}15 0%, ${theme.accent.warm}08 100%), ${theme.glass.bg}`,
         backdropFilter: `blur(${theme.glass.blur})`,
-        border: `1px solid ${theme.glass.border}`,
+        border: `1px solid rgba(255,255,255,0.08)`,
         boxShadow: `
-          0 4px 24px -4px rgba(0, 0, 0, 0.3),
-          inset 2px 0 8px -4px rgba(0, 0, 0, 0.2)
+          0 8px 32px -4px rgba(0, 0, 0, 0.4),
+          0 0 0 1px ${theme.accent.warm}15,
+          inset 0 0 80px -10px ${theme.accent.warm}18,
+          inset 0 1px 0 0 rgba(255, 255, 255, 0.08)
         `,
       }}
     >
@@ -120,7 +122,7 @@ export default function Editor({ prompt, value, onChange, flexible }: EditorProp
         className="absolute top-0 bottom-0 w-px"
         style={{
           left: '48px',
-          background: `${theme.accent.warm}40`,
+          background: `${theme.accent.warm}55`,
           zIndex: 1,
         }}
       />
@@ -137,8 +139,8 @@ export default function Editor({ prompt, value, onChange, flexible }: EditorProp
               to bottom,
               transparent 0px,
               transparent ${lineHeight - 1}px,
-              ${theme.text.muted}15 ${lineHeight - 1}px,
-              ${theme.text.muted}15 ${lineHeight}px
+              ${theme.text.muted}30 ${lineHeight - 1}px,
+              ${theme.text.muted}30 ${lineHeight}px
             )`,
             backgroundPosition: '0 24px',
           }}

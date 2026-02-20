@@ -37,6 +37,13 @@ export async function GET() {
         unlockDate: true,
         letterLocation: true,
         isDelivered: true,
+        song: true,
+        photos: {
+          select: { url: true, position: true, spread: true, rotation: true }
+        },
+        doodles: {
+          select: { strokes: true, positionInEntry: true, spread: true }
+        },
       },
     })
 
@@ -45,6 +52,9 @@ export async function GET() {
       ...letter,
       text: safeDecrypt(letter.text),
       letterLocation: safeDecrypt(letter.letterLocation),
+      song: letter.song,
+      photos: letter.photos || [],
+      doodles: letter.doodles || [],
     }))
 
     return NextResponse.json({

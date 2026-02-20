@@ -63,6 +63,11 @@ model JournalEntry {
   deliveredAt    DateTime? // When the letter was delivered
   isViewed       Boolean   @default(false) // Has the user viewed this letter after it arrived
 
+  // Received letter tracking
+  isReceivedLetter  Boolean   @default(false)
+  originalSenderId  String?
+  originalEntryId   String?
+
   // E2EE fields
   encryptionType String  @default("server") // "server" | "e2ee"
   e2eeIV         String? // IV for E2EE entries (client-side encryption)

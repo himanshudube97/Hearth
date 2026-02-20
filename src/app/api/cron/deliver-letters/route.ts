@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { sendLetterEmail, sendSelfLetterNotification } from '@/lib/email'
+import { sendLetterEmail, sendSelfLetterEmail } from '@/lib/email'
 import { safeDecrypt } from '@/lib/encryption'
+import { strokesToDataUrl } from '@/lib/doodle-to-image'
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron, or external service)
 // It checks for letters that are due for delivery and sends them
@@ -35,6 +36,8 @@ export async function GET(request: NextRequest) {
             name: true,
           },
         },
+        photos: { select: { url: true, position: true, spread: true, rotation: true } },
+        doodles: { select: { strokes: true, positionInEntry: true, spread: true } },
       },
       take: 50, // Process in batches to avoid timeout
     })
@@ -55,6 +58,16 @@ export async function GET(request: NextRequest) {
 
     for (const letter of dueLetters) {
       try {
+        // Render doodle to image if exists
+        let doodleDataUrl: string | null = null
+        if (letter.doodles && letter.doodles.length > 0) {
+          const strokes = letter.doodles[0].strokes as { points: number[][]; color: string; size: number }[]
+          doodleDataUrl = await strokesToDataUrl(strokes)
+        }
+
+        const photos = (letter.photos || []).map((p: { url: string; position: number }) => ({ url: p.url, position: p.position }))
+        const songLink = letter.song || null
+
         // Determine if this is a friend letter or self letter
         if (letter.recipientEmail) {
           // Friend letter - send email to recipient
@@ -65,12 +78,15 @@ export async function GET(request: NextRequest) {
           const letterLocation = safeDecrypt(letter.letterLocation)
 
           const { success, error } = await sendLetterEmail({
-            to: letter.recipientEmail,
+            to: letter.recipientEmail!,
             recipientName,
             senderName,
             letterContent,
             letterLocation,
             writtenAt: letter.createdAt,
+            photos,
+            doodleDataUrl,
+            songLink,
           })
 
           if (success) {
@@ -79,10 +95,16 @@ export async function GET(request: NextRequest) {
             results.errors.push(`Failed to send friend letter ${letter.id}: ${error}`)
           }
         } else {
-          // Self letter - send notification to the user
-          const { success, error } = await sendSelfLetterNotification({
-            to: letter.user.email,
+          // Self letter - send full letter content email to the user
+          const { success, error } = await sendSelfLetterEmail({
+            to: letter.user.email!,
             userName: letter.user.name || '',
+            letterContent: safeDecrypt(letter.text),
+            letterLocation: safeDecrypt(letter.letterLocation),
+            writtenAt: letter.createdAt,
+            photos,
+            doodleDataUrl,
+            songLink,
           })
 
           if (success) {
@@ -101,6 +123,57 @@ export async function GET(request: NextRequest) {
             deliveredAt: now,
           },
         })
+
+        // Cross-user delivery: if recipient is a Hearth user, create a received entry
+        if (letter.recipientEmail) {
+          try {
+            const recipientUser = await prisma.user.findUnique({
+              where: { email: letter.recipientEmail },
+            })
+
+            if (recipientUser && recipientUser.id !== letter.userId) {
+              await prisma.journalEntry.create({
+                data: {
+                  text: letter.text,
+                  textPreview: letter.textPreview,
+                  mood: letter.mood,
+                  song: letter.song,
+                  entryType: 'letter',
+                  unlockDate: letter.unlockDate,
+                  isSealed: true,
+                  isDelivered: true,
+                  deliveredAt: new Date(),
+                  isReceivedLetter: true,
+                  originalSenderId: letter.userId,
+                  originalEntryId: letter.id,
+                  senderName: letter.senderName,
+                  recipientName: letter.recipientName,
+                  letterLocation: letter.letterLocation,
+                  encryptionType: letter.encryptionType,
+                  userId: recipientUser.id,
+                  photos: letter.photos.length > 0 ? {
+                    create: letter.photos.map((p: { url: string; position: number; spread: number; rotation: number }) => ({
+                      url: p.url,
+                      position: p.position,
+                      spread: p.spread,
+                      rotation: p.rotation,
+                    }))
+                  } : undefined,
+                  doodles: letter.doodles.length > 0 ? {
+                    create: letter.doodles.map((d: { strokes: any; positionInEntry: number; spread: number }) => ({
+                      strokes: d.strokes as any,
+                      positionInEntry: d.positionInEntry,
+                      spread: d.spread,
+                    }))
+                  } : undefined,
+                },
+              })
+            }
+          } catch (err) {
+            console.error(`Failed to create received entry for ${letter.recipientEmail}:`, err)
+            // Don't fail the whole delivery
+          }
+        }
 
         results.processed++
       } catch (err) {

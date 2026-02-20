@@ -6,6 +6,8 @@ import { format } from 'date-fns'
 import { toPng } from 'html-to-image'
 import { useThemeStore } from '@/store/theme'
 import { themes, ThemeName } from '@/lib/themes'
+import DoodlePreview from '@/components/DoodlePreview'
+import SongEmbed, { isMusicUrl } from '@/components/SongEmbed'
 
 interface ArrivedLetter {
   id: string
@@ -13,6 +15,9 @@ interface ArrivedLetter {
   createdAt: string
   unlockDate: string
   letterLocation: string | null
+  song?: string | null
+  photos?: { url: string; position: number; spread: number; rotation: number }[]
+  doodles?: { strokes: any[]; positionInEntry: number; spread: number }[]
 }
 
 interface LetterArrivedBannerProps {
@@ -768,6 +773,59 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                               {currentLetter.letterLocation && ` • ${currentLetter.letterLocation}`}
                             </p>
                           </motion.div>
+
+                          {/* Photos */}
+                          {currentLetter?.photos && currentLetter.photos.length > 0 && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 1.8 }}
+                              style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '24px' }}
+                            >
+                              {currentLetter.photos.map((photo, i) => (
+                                <div
+                                  key={i}
+                                  style={{
+                                    transform: `rotate(${photo.rotation || (i === 0 ? 7 : -7)}deg)`,
+                                    padding: '6px 6px 20px 6px',
+                                    background: 'white',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                    width: 100,
+                                  }}
+                                >
+                                  <img
+                                    src={photo.url}
+                                    alt=""
+                                    style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover' }}
+                                  />
+                                </div>
+                              ))}
+                            </motion.div>
+                          )}
+
+                          {/* Doodle */}
+                          {currentLetter?.doodles && currentLetter.doodles.length > 0 && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 1.9 }}
+                              style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}
+                            >
+                              <DoodlePreview strokes={currentLetter.doodles[0].strokes} size={180} />
+                            </motion.div>
+                          )}
+
+                          {/* Music */}
+                          {currentLetter?.song && isMusicUrl(currentLetter.song) && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 2.0 }}
+                              style={{ marginTop: '24px' }}
+                            >
+                              <SongEmbed url={currentLetter.song} compact />
+                            </motion.div>
+                          )}
                         </div>
 
                         {/* Decorative bottom edge */}
@@ -979,6 +1037,37 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
                             {currentLetter?.letterLocation && ` • ${currentLetter.letterLocation}`}
                           </p>
                         </div>
+
+                        {/* Photos - capture */}
+                        {currentLetter?.photos && currentLetter.photos.length > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '24px' }}>
+                            {currentLetter.photos.map((photo, i) => (
+                              <div
+                                key={i}
+                                style={{
+                                  transform: `rotate(${photo.rotation || (i === 0 ? 7 : -7)}deg)`,
+                                  padding: '6px 6px 20px 6px',
+                                  background: 'white',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                  width: 100,
+                                }}
+                              >
+                                <img
+                                  src={photo.url}
+                                  alt=""
+                                  style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover' }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Doodle - capture */}
+                        {currentLetter?.doodles && currentLetter.doodles.length > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
+                            <DoodlePreview strokes={currentLetter.doodles[0].strokes} size={180} />
+                          </div>
+                        )}
                       </div>
 
                       {/* Footer */}
