@@ -59,6 +59,47 @@ export default function EntryCard({ entry, onClick }: EntryCardProps) {
     )
   }
 
+  // Canvas entry card (freehand drawing)
+  if (entry.entryType === 'canvas') {
+    return (
+      <motion.div
+        className="rounded-2xl p-4 cursor-pointer"
+        style={{
+          background: theme.glass.bg,
+          backdropFilter: `blur(${theme.glass.blur})`,
+          border: `1px solid ${theme.glass.border}`,
+        }}
+        whileHover={{ scale: 1.01 }}
+        onClick={onClick}
+        layout
+        transition={{ layout: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] } }}
+      >
+        <div className="flex items-center gap-3 mb-2">
+          <span
+            className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
+            style={{ background: `${moodColor}30` }}
+          >
+            {moodEmoji}
+          </span>
+          <div className="flex-1">
+            <span className="text-sm" style={{ color: theme.text.muted }}>
+              {format(new Date(entry.createdAt), 'h:mm a')}
+            </span>
+          </div>
+          <span className="text-sm" style={{ color: theme.accent.primary }}>
+            〰
+          </span>
+        </div>
+        <p
+          className="text-sm line-clamp-2"
+          style={{ color: theme.text.secondary, fontStyle: 'italic' }}
+        >
+          {textPreview || 'Freehand canvas'}
+        </p>
+      </motion.div>
+    )
+  }
+
   // Regular entry card (compact preview)
   return (
     <motion.div
