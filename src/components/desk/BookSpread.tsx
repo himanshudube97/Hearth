@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useState, memo } from 'react'
+import React, { useCallback, useEffect, useState, memo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useDeskStore } from '@/store/desk'
@@ -9,20 +9,18 @@ import { diaryThemes, DiaryTheme } from '@/lib/diaryThemes'
 import LeftPage from './LeftPage'
 import RightPage from './RightPage'
 import PageTurn from './PageTurn'
-import SpreadNavigation from './SpreadNavigation'
 import EntrySelector from './EntrySelector'
 import { PageCorners } from './decorations/PageCorners'
 import { Watermarks } from './decorations/Watermarks'
 import { RibbonBookmark } from './interactive/RibbonBookmark'
 import { FloatingParticles } from './interactive/FloatingParticles'
-import { StrokeData } from '@/store/journal'
+import { StrokeData, useJournalStore } from '@/store/journal'
 
 interface Photo {
   id?: string
   url: string
   rotation: number
   position: 1 | 2
-  spread: number
 }
 
 interface Entry {
@@ -30,9 +28,8 @@ interface Entry {
   text: string
   mood: number
   song?: string | null
-  spreads?: number
   photos?: Photo[]
-  doodles?: Array<{ strokes: StrokeData[]; spread?: number }>
+  doodles?: Array<{ strokes: StrokeData[] }>
   createdAt: string
 }
 
@@ -183,6 +180,7 @@ const PageWrapper = memo(function PageWrapper({
 
 export default function BookSpread({ onClose }: BookSpreadProps) {
   const { theme } = useThemeStore()
+  const { setCurrentSong } = useJournalStore()
   const { currentDiaryTheme } = useDiaryStore()
   const diaryTheme = diaryThemes[currentDiaryTheme]
   const {
@@ -200,9 +198,11 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
   const [todayEntries, setTodayEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
-  const [entrySpread, setEntrySpread] = useState(1) // Spread within current entry (1-3)
   const [leftPageText, setLeftPageText] = useState('')
   const [pendingPhotos, setPendingPhotos] = useState<Photo[]>([])
+  const rightPageTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const pendingOverflowRef = useRef('')
+  const [showSavedOverlay, setShowSavedOverlay] = useState(false)
 
   const paperColor = diaryTheme.pages.background
   const paperColorDark = getDarkerShade(paperColor)
@@ -262,37 +262,38 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
     }
   }, [globalCurrentSpread, totalSpreads, isPageTurning, turnPage])
 
-  const handleSaveComplete = useCallback(() => {
-    fetchEntries()
-    setLeftPageText('')
-    setPendingPhotos([])
-    setEntrySpread(1)
-  }, [fetchEntries])
-
-  // Handle spread navigation within an entry
-  const handleSpreadChange = useCallback((spread: number) => {
-    setEntrySpread(spread)
+  const handleLeftPageFull = useCallback((overflowText: string) => {
+    pendingOverflowRef.current = overflowText
+    rightPageTextareaRef.current?.focus()
   }, [])
 
-  const handleAddSpread = useCallback(() => {
-    const currentEntry = entries.find(e => e.id === currentEntryId)
-    const maxSpreads = currentEntry?.spreads || 1
-    if (entrySpread < 3 && entrySpread >= maxSpreads) {
-      setEntrySpread(entrySpread + 1)
-    }
-  }, [currentEntryId, entries, entrySpread])
+  const consumeOverflow = useCallback(() => {
+    const text = pendingOverflowRef.current
+    pendingOverflowRef.current = ''
+    return text
+  }, [])
+
+  const handleSaveComplete = useCallback(() => {
+    setShowSavedOverlay(true)
+    setLeftPageText('')
+    setPendingPhotos([])
+    setCurrentSong('')
+
+    fetchEntries()
+    setTimeout(() => {
+      setShowSavedOverlay(false)
+    }, 2000)
+  }, [fetchEntries, setCurrentSong])
 
   // Handle entry selection
   const handleEntrySelect = useCallback((entryId: string | null) => {
     setCurrentEntryId(entryId)
-    setEntrySpread(1)
     setLeftPageText('')
     setPendingPhotos([])
   }, [])
 
   const handleNewEntry = useCallback(() => {
     setCurrentEntryId(null)
-    setEntrySpread(1)
     setLeftPageText('')
     setPendingPhotos([])
   }, [])
@@ -303,11 +304,10 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
     const newPhoto: Photo = {
       url: dataUrl,
       position,
-      spread: entrySpread,
       rotation,
     }
-    setPendingPhotos(prev => [...prev.filter(p => !(p.position === position && p.spread === entrySpread)), newPhoto])
-  }, [entrySpread])
+    setPendingPhotos(prev => [...prev.filter(p => p.position !== position), newPhoto])
+  }, [])
 
   // Get the current entry
   const currentEntry = currentEntryId
@@ -315,17 +315,16 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
     : (globalCurrentSpread < entries.length ? entries[entries.length - 1 - globalCurrentSpread] : null)
 
   const isNewEntrySpread = currentEntryId === null && globalCurrentSpread === entries.length
-  const maxSpreadsForEntry = currentEntry?.spreads || 1
 
   // Get date for the spread
   const spreadDate = currentEntry
     ? new Date(currentEntry.createdAt)
     : new Date()
 
-  // Get photos for current spread
+  // Get photos
   const currentPhotos = [
-    ...(currentEntry?.photos || []).filter(p => p.spread === entrySpread),
-    ...pendingPhotos.filter(p => p.spread === entrySpread),
+    ...(currentEntry?.photos || []),
+    ...pendingPhotos,
   ]
 
   return (
@@ -391,8 +390,8 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
       <motion.div
         className="relative flex"
         style={{
-          width: '1100px',
-          height: '720px',
+          width: '1300px',
+          height: '820px',
           transformStyle: 'preserve-3d',
         }}
         initial={{ rotateX: 5, opacity: 0 }}
@@ -428,15 +427,13 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
         </div>
 
         {/* Left page */}
-        <PageWrapper side="left" diaryTheme={diaryTheme} isGlass={currentDiaryTheme === 'glass'} glassSettings={theme.glass}>
+        <PageWrapper side="left" diaryTheme={diaryTheme} isGlass={currentDiaryTheme === 'glass'} glassSettings={theme.glass} skipLinePattern>
           <LeftPage
             entry={currentEntry || null}
             isNewEntry={isNewEntrySpread}
-            spreadDate={spreadDate}
-            currentSpread={entrySpread}
             text={leftPageText}
             onTextChange={setLeftPageText}
-            disabled={!isNewEntrySpread && !!currentEntry}
+            onPageFull={handleLeftPageFull}
           />
         </PageWrapper>
 
@@ -469,30 +466,14 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
           <RightPage
             entry={currentEntry || null}
             isNewEntry={isNewEntrySpread}
-            currentSpread={entrySpread}
             photos={currentPhotos}
             onPhotoAdd={handlePhotoAdd}
             onSaveComplete={handleSaveComplete}
+            textareaRef={rightPageTextareaRef}
+            leftPageText={leftPageText}
+            consumeOverflow={consumeOverflow}
           />
         </PageWrapper>
-
-        {/* Spread navigation (within entry) */}
-        {(maxSpreadsForEntry > 1 || isNewEntrySpread) && (
-          <motion.div
-            className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-20"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            <SpreadNavigation
-              currentSpread={entrySpread}
-              totalSpreads={isNewEntrySpread ? entrySpread : maxSpreadsForEntry}
-              maxSpreads={3}
-              onSpreadChange={handleSpreadChange}
-              onAddSpread={isNewEntrySpread ? handleAddSpread : undefined}
-            />
-          </motion.div>
-        )}
 
         {/* Left edge - Previous entry */}
         {globalCurrentSpread > 0 && (
@@ -573,6 +554,61 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
             >
               <div />
             </PageTurn>
+          )}
+        </AnimatePresence>
+
+        {/* Save success overlay */}
+        <AnimatePresence>
+          {showSavedOverlay && (
+            <motion.div
+              className="absolute inset-0 z-50 flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                background: 'rgba(0, 0, 0, 0.15)',
+                borderRadius: '4px',
+                backdropFilter: 'blur(2px)',
+              }}
+            >
+              <motion.div
+                className="flex flex-col items-center gap-3"
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ type: 'spring', damping: 15, stiffness: 200 }}
+              >
+                <motion.div
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{
+                    background: theme.accent.warm,
+                    boxShadow: `0 4px 20px ${theme.accent.warm}40`,
+                  }}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', damping: 10, stiffness: 200, delay: 0.1 }}
+                >
+                  <motion.span
+                    className="text-2xl text-white"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    ✓
+                  </motion.span>
+                </motion.div>
+                <motion.span
+                  className="text-lg font-serif font-medium"
+                  style={{ color: theme.text.primary }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  Entry Saved
+                </motion.span>
+              </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>
       </motion.div>

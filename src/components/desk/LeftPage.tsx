@@ -1,6 +1,6 @@
 'use client'
 
-import React, { memo, useState, useCallback, useEffect } from 'react'
+import React, { memo, useState, useCallback, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useDiaryStore } from '@/store/diary'
@@ -16,18 +16,15 @@ interface Entry {
   text: string
   mood: number
   song?: string | null
-  spreads?: number
   createdAt: string
 }
 
 interface LeftPageProps {
   entry: Entry | null
   isNewEntry: boolean
-  spreadDate: Date
-  currentSpread?: number // 1-based spread number
   text?: string
   onTextChange?: (text: string) => void
-  disabled?: boolean // For append-only mode on existing entries
+  onPageFull?: (overflowText: string) => void
 }
 
 // Helper to get line pattern based on diary theme
@@ -55,17 +52,17 @@ function getLinePattern(diaryTheme: typeof diaryThemes[keyof typeof diaryThemes]
 const LeftPage = memo(function LeftPage({
   entry,
   isNewEntry,
-  spreadDate,
-  currentSpread = 1,
   text = '',
   onTextChange,
-  disabled = false,
+  onPageFull,
 }: LeftPageProps) {
   const { theme } = useThemeStore()
   const { currentDiaryTheme } = useDiaryStore()
   const diaryTheme = diaryThemes[currentDiaryTheme]
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- mood picker commented out, keeping for future use
   const { currentSong, setCurrentSong, currentMood, setCurrentMood } = useJournalStore()
   const [songInput, setSongInput] = useState(entry?.song || currentSong || '')
+  const [isEditingSong, setIsEditingSong] = useState(!songInput)
 
   const isGlass = currentDiaryTheme === 'glass'
   const accentColor = theme.accent.warm
@@ -73,33 +70,54 @@ const LeftPage = memo(function LeftPage({
   const mutedColor = isGlass ? theme.text.muted : diaryTheme.pages.mutedColor
   const linePattern = getLinePattern(diaryTheme)
 
-  // Show music block only on first spread
-  const showMusicBlock = currentSpread === 1
-
-  // Mood options
-  const moods = [
-    { value: 0, emoji: theme.moodEmojis[0], label: theme.moodLabels[0] },
-    { value: 1, emoji: theme.moodEmojis[1], label: theme.moodLabels[1] },
-    { value: 2, emoji: theme.moodEmojis[2], label: theme.moodLabels[2] },
-    { value: 3, emoji: theme.moodEmojis[3], label: theme.moodLabels[3] },
-    { value: 4, emoji: theme.moodEmojis[4], label: theme.moodLabels[4] },
-  ]
-
   const handleSongChange = useCallback((value: string) => {
     setSongInput(value)
     setCurrentSong(value)
+    if (value && /https?:\/\//.test(value)) {
+      setIsEditingSong(false)
+    }
   }, [setCurrentSong])
 
-  // Sync song input when entry changes - use initializer pattern
+  // Sync song input when entry changes
   const entrySong = entry?.song
   useEffect(() => {
     if (entrySong) {
       setSongInput(entrySong)
+      setIsEditingSong(false)
     } else if (isNewEntry && currentSong) {
       setSongInput(currentSong)
+      setIsEditingSong(false)
+    } else {
+      setIsEditingSong(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entrySong, isNewEntry])
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [isPageFull, setIsPageFull] = useState(false)
+
+  const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value
+    const textarea = textareaRef.current
+
+    // When adding text, check overflow BEFORE accepting (DOM already has new value)
+    if (newText.length > text.length && textarea) {
+      if (textarea.scrollHeight > textarea.clientHeight + 2) {
+        // Reject this character - React will revert textarea to `text`
+        // Pass the rejected characters so they appear on the right page
+        setIsPageFull(true)
+        onPageFull?.(newText.slice(text.length))
+        return
+      }
+    }
+
+    // When deleting, allow and check if page is no longer full
+    if (newText.length < text.length && isPageFull) {
+      setIsPageFull(false)
+    }
+
+    onTextChange?.(newText)
+  }, [text, isPageFull, onPageFull, onTextChange])
 
   if (isNewEntry) {
     return (
@@ -107,48 +125,12 @@ const LeftPage = memo(function LeftPage({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.5 }}
-        className="h-full flex flex-col"
+        className="h-full flex flex-col overflow-hidden"
       >
-        {/* First spread only: Mood + Music */}
-        {showMusicBlock && (
-          <>
-            {/* Mood Section - Compact */}
-            <div className="mb-3 flex-shrink-0">
-              <div
-                className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
-                style={{ color: mutedColor }}
-              >
-                How are you feeling?
-              </div>
-              <div className="flex items-center gap-1.5">
-                {moods.map((mood) => (
-                  <motion.button
-                    key={mood.value}
-                    onClick={() => setCurrentMood(mood.value)}
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-base relative"
-                    style={{
-                      background: currentMood === mood.value
-                        ? `${theme.moods[mood.value as keyof typeof theme.moods]}25`
-                        : 'rgba(0,0,0,0.02)',
-                      border: currentMood === mood.value
-                        ? `2px solid ${theme.moods[mood.value as keyof typeof theme.moods]}`
-                        : '1px solid rgba(0,0,0,0.05)',
-                    }}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    title={mood.label}
-                  >
-                    {mood.emoji}
-                  </motion.button>
-                ))}
-              </div>
-              <div className="mt-1 text-[10px]" style={{ color: mutedColor }}>
-                {theme.moodLabels[currentMood]}
-              </div>
-            </div>
-
-            {/* Music Section */}
-            <div className="mb-3 flex-shrink-0">
+        {/* Music Section */}
+        <div className="mb-2 flex-shrink-0">
+          {isEditingSong || !songInput ? (
+            <>
               <div
                 className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
                 style={{ color: mutedColor }}
@@ -167,28 +149,39 @@ const LeftPage = memo(function LeftPage({
                   background: isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground,
                 }}
               />
-              {songInput && (
-                <div className="mt-2">
-                  <SongEmbed url={songInput} compact audioOnly />
-                </div>
-              )}
+            </>
+          ) : (
+            <div className="relative">
+              <SongEmbed url={songInput} compact audioOnly />
+              <button
+                onClick={() => setIsEditingSong(true)}
+                className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-50 hover:opacity-100 transition-opacity"
+                style={{
+                  background: `${mutedColor}20`,
+                  color: mutedColor,
+                }}
+                title="Change song"
+              >
+                ✎
+              </button>
             </div>
-          </>
-        )}
+          )}
+        </div>
 
         {/* Writing Area */}
-        <div className="flex-1 min-h-0 relative">
+        <div className="flex-1 min-h-0 flex flex-col">
           <div
-            className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium flex-shrink-0"
+            className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium flex-shrink-0"
             style={{ color: mutedColor }}
           >
-            {currentSpread === 1 ? 'Write your thoughts' : `Continue writing (page ${(currentSpread - 1) * 2 + 1})`}
+            Write your thoughts
           </div>
           <textarea
+            ref={textareaRef}
             value={text}
-            onChange={(e) => onTextChange?.(e.target.value)}
-            placeholder={currentSpread === 1 ? "What's on your mind today..." : "Continue your thoughts..."}
-            className="w-full h-full resize-none outline-none flex-1"
+            onChange={handleTextChange}
+            placeholder="What's on your mind today..."
+            className="flex-1 min-h-0 w-full resize-none outline-none"
             style={{
               color: textColor,
               fontFamily: 'var(--font-caveat), Georgia, serif',
@@ -199,28 +192,24 @@ const LeftPage = memo(function LeftPage({
               backgroundImage: linePattern !== 'none' ? linePattern : 'none',
               backgroundSize: diaryTheme.pages.lineStyle === 'dotted' ? '20px 20px' : undefined,
               backgroundAttachment: 'local',
+              overflow: 'hidden',
             }}
           />
-        </div>
-
-        {/* Decorative flourish */}
-        <div className="mt-auto pt-2 flex justify-center flex-shrink-0">
-          <motion.div
-            className="text-lg"
-            style={{ color: accentColor, opacity: 0.3 }}
-            animate={{ opacity: [0.2, 0.4, 0.2] }}
-            transition={{ duration: 4, repeat: Infinity }}
-          >
-            ✦
-          </motion.div>
         </div>
       </motion.div>
     )
   }
 
-  // Viewing existing entry
-  const plainText = entry?.text
-    ? entry.text
+  // Viewing existing entry - show only left page text (before page-break marker)
+  const fullText = entry?.text || ''
+  const pageBreakMarker = '<!--page-break-->'
+  const pageBreakIdx = fullText.indexOf(pageBreakMarker)
+  const leftRawText = pageBreakIdx >= 0
+    ? fullText.substring(0, pageBreakIdx)
+    : fullText
+
+  const plainText = leftRawText
+    ? leftRawText
         .replace(/<\/p><p>/g, '\n')
         .replace(/<br\s*\/?>/gi, '\n')
         .replace(/<[^>]*>/g, '')
@@ -236,48 +225,28 @@ const LeftPage = memo(function LeftPage({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.2, duration: 0.5 }}
-      className="h-full flex flex-col"
+      className="h-full flex flex-col overflow-hidden"
     >
-      {/* First spread: Show mood and song */}
-      {showMusicBlock && (
-        <>
-          {/* Mood display */}
-          <div className="mb-3 flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{theme.moodEmojis[entry?.mood ?? 2]}</span>
-              <div>
-                <div className="text-sm font-medium" style={{ color: textColor }}>
-                  {theme.moodLabels[entry?.mood ?? 2]}
-                </div>
-                <div className="text-xs" style={{ color: mutedColor }}>
-                  {spreadDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                </div>
-              </div>
-            </div>
+      {/* Song display */}
+      {entry?.song && (
+        <div className="mb-3 flex-shrink-0">
+          <div
+            className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
+            style={{ color: mutedColor }}
+          >
+            Listening to
           </div>
-
-          {/* Song display */}
-          {entry?.song && (
-            <div className="mb-3 flex-shrink-0">
-              <div
-                className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
-                style={{ color: mutedColor }}
-              >
-                Listening to
-              </div>
-              <SongEmbed url={entry.song} compact audioOnly />
-            </div>
-          )}
-        </>
+          <SongEmbed url={entry.song} compact audioOnly />
+        </div>
       )}
 
-      {/* Text content with append capability */}
+      {/* Text content - no scroll */}
       <div
-        className="flex-1 overflow-auto whitespace-pre-wrap"
+        className="flex-1 overflow-hidden whitespace-pre-wrap"
         style={{
           color: textColor,
           fontFamily: 'var(--font-caveat), Georgia, serif',
-          fontSize: '18px',
+          fontSize: '20px',
           lineHeight: `${LINE_HEIGHT}px`,
           backgroundColor: 'transparent',
           backgroundImage: linePattern !== 'none' ? linePattern : 'none',
@@ -290,35 +259,6 @@ const LeftPage = memo(function LeftPage({
             No text content
           </span>
         )}
-      </div>
-
-      {/* Append area for existing entries (append-only editing) */}
-      {!disabled && onTextChange && (
-        <div className="mt-2 pt-2 border-t flex-shrink-0" style={{ borderColor: `${mutedColor}20` }}>
-          <textarea
-            value={text}
-            onChange={(e) => onTextChange(e.target.value)}
-            placeholder="Add more thoughts..."
-            className="w-full h-16 resize-none outline-none text-sm"
-            style={{
-              color: textColor,
-              fontFamily: 'var(--font-caveat), Georgia, serif',
-              backgroundColor: 'transparent',
-            }}
-          />
-        </div>
-      )}
-
-      {/* Decorative flourish */}
-      <div className="mt-auto pt-2 flex justify-center flex-shrink-0">
-        <motion.div
-          className="text-lg"
-          style={{ color: accentColor, opacity: 0.3 }}
-          animate={{ opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 4, repeat: Infinity }}
-        >
-          ✦
-        </motion.div>
       </div>
     </motion.div>
   )

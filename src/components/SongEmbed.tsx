@@ -158,10 +158,15 @@ function FloatingNotes({ color }: { color: string }) {
 
 
 // Spinning vinyl record
-function VinylRecord({ isPlaying, color }: { isPlaying: boolean; color: string }) {
+function VinylRecord({ isPlaying, color, size = 'md' }: { isPlaying: boolean; color: string; size?: 'sm' | 'md' }) {
+  const sizeClass = size === 'sm' ? 'w-10 h-10' : 'w-16 h-16'
+  const grooveInset = size === 'sm' ? 'inset-1.5' : 'inset-2'
+  const labelSize = size === 'sm' ? 'w-4 h-4' : 'w-6 h-6'
+  const holeSize = size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2'
+
   return (
     <motion.div
-      className="relative w-16 h-16 rounded-full flex items-center justify-center"
+      className={`relative ${sizeClass} rounded-full flex items-center justify-center flex-shrink-0`}
       style={{
         background: `linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)`,
         boxShadow: `0 0 20px ${color}40`,
@@ -175,20 +180,20 @@ function VinylRecord({ isPlaying, color }: { isPlaying: boolean; color: string }
     >
       {/* Vinyl grooves */}
       <div
-        className="absolute inset-2 rounded-full opacity-30"
+        className={`absolute ${grooveInset} rounded-full opacity-30`}
         style={{
           background: `repeating-radial-gradient(circle at center, transparent 0px, transparent 2px, ${color}20 3px, transparent 4px)`
         }}
       />
       {/* Center label */}
       <div
-        className="w-6 h-6 rounded-full"
+        className={`${labelSize} rounded-full`}
         style={{
           background: `linear-gradient(135deg, ${color} 0%, ${color}80 100%)`,
         }}
       />
       {/* Center hole */}
-      <div className="absolute w-2 h-2 rounded-full bg-black/80" />
+      <div className={`absolute ${holeSize} rounded-full bg-black/80`} />
     </motion.div>
   )
 }
@@ -262,11 +267,11 @@ function AudioOnlyPlayer({
   return (
     <>
       <motion.div
-      layout
-      className="rounded-2xl overflow-hidden relative"
+      className="rounded-2xl overflow-hidden relative flex items-center"
       onClick={(e) => { e.stopPropagation(); if (!isPlaying) handlePlay(e); }}
       onMouseDown={(e) => e.stopPropagation()}
       style={{
+        height: compact ? '64px' : '96px',
         background: isPlaying
           ? `linear-gradient(135deg, ${theme.glass.bg} 0%, ${theme.accent.warm}12 50%, ${theme.accent.cool}08 100%)`
           : `linear-gradient(135deg, ${theme.glass.bg} 0%, ${theme.accent.warm}10 100%)`,
@@ -303,42 +308,48 @@ function AudioOnlyPlayer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="p-4"
+            className={compact ? 'px-3 py-0 w-full' : 'p-4 w-full'}
           >
             {/* Floating notes background */}
             <FloatingNotes color={theme.accent.warm} />
 
-            <div className="flex items-center gap-4 relative z-10">
+            <div className={`flex items-center ${compact ? 'gap-3' : 'gap-4'} relative z-10`}>
               {/* Vinyl */}
-              <VinylRecord isPlaying={true} color={theme.accent.warm} />
+              {compact ? (
+                <VinylRecord isPlaying={true} color={theme.accent.warm} size="sm" />
+              ) : (
+                <VinylRecord isPlaying={true} color={theme.accent.warm} />
+              )}
 
               {/* Center content */}
               <div className="flex-1 flex flex-col items-center justify-center">
                 {/* Visualizer */}
-                <div className="flex items-center gap-6 mb-2">
-                  <AudioVisualizer isPlaying={true} color={theme.accent.cool} />
+                <div className={`flex items-center ${compact ? 'gap-3' : 'gap-6'} ${compact ? 'mb-0' : 'mb-2'}`}>
+                  <AudioVisualizer isPlaying={true} color={theme.accent.cool} size={compact ? 'sm' : 'md'} />
                   <motion.span
-                    className="text-sm font-medium"
+                    className={`${compact ? 'text-xs' : 'text-sm'} font-medium`}
                     style={{ color: theme.text.primary }}
                     animate={{ opacity: [0.6, 1, 0.6] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   >
                     ♫ Now Playing
                   </motion.span>
-                  <AudioVisualizer isPlaying={true} color={theme.accent.warm} />
+                  <AudioVisualizer isPlaying={true} color={theme.accent.warm} size={compact ? 'sm' : 'md'} />
                 </div>
-                <span
-                  className="text-xs"
-                  style={{ color: theme.text.muted }}
-                >
-                  via {platformName}
-                </span>
+                {!compact && (
+                  <span
+                    className="text-xs"
+                    style={{ color: theme.text.muted }}
+                  >
+                    via {platformName}
+                  </span>
+                )}
               </div>
 
               {/* Stop button */}
               <motion.button
                 onClick={handleClose}
-                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-full flex items-center justify-center flex-shrink-0`}
                 style={{
                   background: `${theme.text.muted}15`,
                   color: theme.text.muted,
@@ -359,7 +370,7 @@ function AudioOnlyPlayer({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-100 opacity-50"
+                className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} rounded-full flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-100 opacity-50`}
                 style={{
                   background: `${theme.text.muted}15`,
                   color: theme.text.muted,
@@ -393,7 +404,7 @@ function AudioOnlyPlayer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`flex items-center gap-4 ${compact ? 'p-3' : 'p-4'}`}
+            className={`flex items-center gap-4 w-full ${compact ? 'p-3' : 'p-4'}`}
           >
             {/* Vinyl/Visualizer */}
             <div className="flex-shrink-0">

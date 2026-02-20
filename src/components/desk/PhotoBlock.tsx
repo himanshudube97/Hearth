@@ -10,12 +10,10 @@ interface Photo {
   url: string
   rotation: number
   position: 1 | 2
-  spread: number
 }
 
 interface PhotoBlockProps {
   photos: Photo[]
-  spread: number
   onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
   disabled?: boolean
   className?: string
@@ -23,7 +21,6 @@ interface PhotoBlockProps {
 
 const PhotoBlock = memo(function PhotoBlock({
   photos,
-  spread,
   onPhotoAdd,
   disabled = false,
   className = '',
@@ -31,8 +28,8 @@ const PhotoBlock = memo(function PhotoBlock({
   const [cameraModalOpen, setCameraModalOpen] = useState(false)
   const [activePosition, setActivePosition] = useState<1 | 2>(1)
 
-  const photo1 = photos.find(p => p.position === 1 && p.spread === spread)
-  const photo2 = photos.find(p => p.position === 2 && p.spread === spread)
+  const photo1 = photos.find(p => p.position === 1)
+  const photo2 = photos.find(p => p.position === 2)
 
   const handlePhotoAdd = useCallback((position: 1 | 2) => {
     return async (file: File) => {
@@ -76,7 +73,7 @@ const PhotoBlock = memo(function PhotoBlock({
           <PhotoSlot
             photo={photo1}
             position={1}
-            spread={spread}
+            spread={1}
             onPhotoAdd={handlePhotoAdd(1)}
             onCameraCapture={handleCameraOpen(1)}
             disabled={disabled || !!photo1}
@@ -89,7 +86,7 @@ const PhotoBlock = memo(function PhotoBlock({
           <PhotoSlot
             photo={photo2}
             position={2}
-            spread={spread}
+            spread={1}
             onPhotoAdd={handlePhotoAdd(2)}
             onCameraCapture={handleCameraOpen(2)}
             disabled={disabled || !!photo2}

@@ -61,7 +61,6 @@ interface Photo {
   url: string
   rotation: number
   position: 1 | 2
-  spread: number
 }
 
 interface Entry {
@@ -69,19 +68,20 @@ interface Entry {
   text: string
   mood: number
   song?: string | null
-  spreads?: number
   photos?: Photo[]
-  doodles?: Array<{ strokes: StrokeData[]; spread?: number }>
+  doodles?: Array<{ strokes: StrokeData[] }>
   createdAt: string
 }
 
 interface RightPageProps {
   entry: Entry | null
   isNewEntry: boolean
-  currentSpread?: number
   photos?: Photo[]
   onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
   onSaveComplete?: () => void
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>
+  leftPageText?: string
+  consumeOverflow?: () => string
 }
 
 // Compact Doodle Canvas
@@ -310,10 +310,12 @@ const DoodlePreview = memo(function DoodlePreview({
 const RightPage = memo(function RightPage({
   entry,
   isNewEntry,
-  currentSpread = 1,
   photos = [],
   onPhotoAdd,
   onSaveComplete,
+  textareaRef,
+  leftPageText = '',
+  consumeOverflow,
 }: RightPageProps) {
   const { theme } = useThemeStore()
   const { currentDiaryTheme } = useDiaryStore()
@@ -322,14 +324,17 @@ const RightPage = memo(function RightPage({
   const [prompt, setPrompt] = useState('')
   const [text, setText] = useState('')
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [pendingPhotos, setPendingPhotos] = useState<Photo[]>([])
+  const [isPageFull, setIsPageFull] = useState(false)
+  const internalTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   const accentColor = theme.accent.warm
   const isGlass = currentDiaryTheme === 'glass'
   const textColor = isGlass ? theme.text.primary : diaryTheme.pages.textColor
   const mutedColor = isGlass ? theme.text.muted : diaryTheme.pages.mutedColor
   const linePattern = getLinePattern(diaryTheme)
+
+  // Use external ref if provided, otherwise internal
+  const actualTextareaRef = textareaRef || internalTextareaRef
 
   useEffect(() => {
     setPrompt(getRandomPrompt())
@@ -362,47 +367,75 @@ const RightPage = memo(function RightPage({
   }, [setDoodleStrokes])
 
   const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
-    const rotation = position === 1 ? -8 + Math.floor(Math.random() * 6) : 5 + Math.floor(Math.random() * 6)
-    const newPhoto: Photo = {
-      url: dataUrl,
-      position,
-      spread: currentSpread,
-      rotation,
-    }
-    setPendingPhotos(prev => [...prev.filter(p => !(p.position === position && p.spread === currentSpread)), newPhoto])
     onPhotoAdd?.(position, dataUrl)
-  }, [currentSpread, onPhotoAdd])
+  }, [onPhotoAdd])
 
   const refreshPrompt = useCallback(() => {
     setPrompt(getRandomPrompt())
   }, [])
 
+  // Overflow detection for right page textarea - same pattern as left page
+  const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value
+    const textarea = actualTextareaRef.current
+
+    // When adding text, check overflow BEFORE accepting
+    if (newText.length > text.length && textarea) {
+      if (textarea.scrollHeight > textarea.clientHeight + 2) {
+        setIsPageFull(true)
+        return // Reject - page is full
+      }
+    }
+
+    // When deleting, allow and check if page is no longer full
+    if (newText.length < text.length && isPageFull) {
+      setIsPageFull(false)
+    }
+
+    setText(newText)
+  }, [text, isPageFull, actualTextareaRef])
+
+  // When focused from auto-switch, consume any overflow characters from the left page
+  const handleTextareaFocus = useCallback(() => {
+    const overflow = consumeOverflow?.()
+    if (overflow) {
+      setText(prev => prev + overflow)
+    }
+  }, [consumeOverflow])
+
+  const hasAnyText = text.trim().length > 0 || leftPageText.trim().length > 0
+
   const handleSave = useCallback(async () => {
-    if (!text.trim()) return
+    if (!text.trim() && !leftPageText.trim()) return
 
     setSaving(true)
     try {
       const doodlesToSave = currentDoodleStrokes.length > 0
-        ? [{ strokes: currentDoodleStrokes, spread: currentSpread }]
+        ? [{ strokes: currentDoodleStrokes }]
         : []
+
+      // Combine left and right page text with page-break marker
+      const leftHtml = leftPageText.trim() ? `<p>${leftPageText.replace(/\n/g, '</p><p>')}</p>` : ''
+      const rightHtml = text.trim() ? `<p>${text.replace(/\n/g, '</p><p>')}</p>` : ''
+      const combinedText = leftHtml && rightHtml
+        ? `${leftHtml}<!--page-break-->${rightHtml}`
+        : leftHtml || rightHtml
 
       const res = await fetch('/api/entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: `<p>${text.replace(/\n/g, '</p><p>')}</p>`,
+          text: combinedText,
           mood: currentMood,
           song: currentSong || null,
           doodles: doodlesToSave,
-          photos: pendingPhotos,
-          spreads: currentSpread,
+          photos,
         }),
       })
 
       if (res.ok) {
-        setSaved(true)
         setText('')
-        setPendingPhotos([])
+        setIsPageFull(false)
         resetCurrentEntry()
         setPrompt(getRandomPrompt())
         try {
@@ -411,10 +444,7 @@ const RightPage = memo(function RightPage({
           console.error('Failed to clear doodle draft:', e)
         }
 
-        setTimeout(() => {
-          setSaved(false)
-          onSaveComplete?.()
-        }, 1500)
+        onSaveComplete?.()
       } else {
         const data = await res.json()
         console.error('Save failed:', data)
@@ -426,11 +456,7 @@ const RightPage = memo(function RightPage({
     } finally {
       setSaving(false)
     }
-  }, [text, currentMood, currentSong, currentDoodleStrokes, currentSpread, pendingPhotos, resetCurrentEntry, onSaveComplete])
-
-  // Get current spread photos
-  const spreadPhotos = [...photos, ...pendingPhotos].filter(p => p.spread === currentSpread)
-  const spreadDoodle = entry?.doodles?.find(d => (d.spread || 1) === currentSpread)
+  }, [text, leftPageText, currentMood, currentSong, currentDoodleStrokes, photos, resetCurrentEntry, onSaveComplete])
 
   if (isNewEntry) {
     return (
@@ -438,7 +464,7 @@ const RightPage = memo(function RightPage({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.5 }}
-        className="h-full flex flex-col"
+        className="h-full flex flex-col overflow-hidden"
       >
         {/* Photo Block */}
         <div className="mb-3 flex-shrink-0">
@@ -449,8 +475,7 @@ const RightPage = memo(function RightPage({
             Add Photos
           </div>
           <PhotoBlock
-            photos={spreadPhotos}
-            spread={currentSpread}
+            photos={photos}
             onPhotoAdd={handlePhotoAdd}
           />
         </div>
@@ -474,20 +499,23 @@ const RightPage = memo(function RightPage({
             </button>
           </div>
           <textarea
+            ref={actualTextareaRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleTextChange}
+            onFocus={handleTextareaFocus}
             placeholder="Begin writing..."
-            className="flex-1 w-full resize-none outline-none text-sm"
+            className="flex-1 min-h-0 w-full resize-none outline-none"
             style={{
               color: textColor,
               fontFamily: 'var(--font-caveat), Georgia, serif',
-              fontSize: '18px',
+              fontSize: '20px',
               lineHeight: `${LINE_HEIGHT}px`,
               caretColor: accentColor,
               backgroundColor: 'transparent',
               backgroundImage: linePattern !== 'none' ? linePattern : 'none',
               backgroundSize: diaryTheme.pages.lineStyle === 'dotted' ? '20px 20px' : undefined,
               backgroundAttachment: 'local',
+              overflow: 'hidden',
             }}
           />
         </div>
@@ -516,23 +544,11 @@ const RightPage = memo(function RightPage({
         {/* Save Button */}
         <div className="mt-2 flex justify-between items-center flex-shrink-0">
           <div className="text-xs" style={{ color: mutedColor }}>
-            {text.length > 0 && `${text.length} chars`}
+            {(text.length + leftPageText.length) > 0 && `${text.length + leftPageText.length} chars`}
           </div>
 
           <AnimatePresence mode="wait">
-            {saved ? (
-              <motion.div
-                key="saved"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-2 text-sm font-medium"
-                style={{ color: theme.moods[4] }}
-              >
-                <span>✓</span>
-                <span>Saved!</span>
-              </motion.div>
-            ) : text.length > 0 ? (
+            {hasAnyText ? (
               <motion.button
                 key="save"
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -559,9 +575,16 @@ const RightPage = memo(function RightPage({
     )
   }
 
-  // Viewing existing entry
-  const plainText = entry?.text
-    ? entry.text
+  // Viewing existing entry - show only right page text (after page-break marker)
+  const fullText = entry?.text || ''
+  const pageBreakMarker = '<!--page-break-->'
+  const pageBreakIdx = fullText.indexOf(pageBreakMarker)
+  const rightRawText = pageBreakIdx >= 0
+    ? fullText.substring(pageBreakIdx + pageBreakMarker.length)
+    : '' // No marker = old entry, right page has no separate text
+
+  const plainText = rightRawText
+    ? rightRawText
         .replace(/<\/p><p>/g, '\n')
         .replace(/<br\s*\/?>/gi, '\n')
         .replace(/<[^>]*>/g, '')
@@ -572,31 +595,33 @@ const RightPage = memo(function RightPage({
         .trim()
     : ''
 
+  const entryPhotos = entry?.photos || []
+  const entryDoodle = entry?.doodles?.[0]
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.3, duration: 0.5 }}
-      className="h-full flex flex-col"
+      className="h-full flex flex-col overflow-hidden"
     >
       {/* Photos */}
-      {spreadPhotos.length > 0 && (
+      {entryPhotos.length > 0 && (
         <div className="mb-3 flex-shrink-0">
           <PhotoBlock
-            photos={spreadPhotos}
-            spread={currentSpread}
+            photos={entryPhotos}
             disabled
           />
         </div>
       )}
 
-      {/* Text content */}
+      {/* Text content - no scroll */}
       <div
-        className="flex-1 overflow-auto whitespace-pre-wrap"
+        className="flex-1 overflow-hidden whitespace-pre-wrap"
         style={{
           color: textColor,
           fontFamily: 'var(--font-caveat), Georgia, serif',
-          fontSize: '18px',
+          fontSize: '20px',
           lineHeight: `${LINE_HEIGHT}px`,
           backgroundColor: 'transparent',
           backgroundImage: linePattern !== 'none' ? linePattern : 'none',
@@ -612,7 +637,7 @@ const RightPage = memo(function RightPage({
       </div>
 
       {/* Doodle preview */}
-      {spreadDoodle?.strokes && spreadDoodle.strokes.length > 0 && (
+      {entryDoodle?.strokes && entryDoodle.strokes.length > 0 && (
         <div className="mt-2 flex-shrink-0">
           <div
             className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium"
@@ -621,7 +646,7 @@ const RightPage = memo(function RightPage({
             Doodle
           </div>
           <DoodlePreview
-            strokes={spreadDoodle.strokes}
+            strokes={entryDoodle.strokes}
             canvasBackground={isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground}
             canvasBorder={isGlass ? 'rgba(255,255,255,0.2)' : diaryTheme.doodle.canvasBorder}
           />

@@ -126,6 +126,13 @@ Time-delayed letters to self or friends:
 - `MoodPicker.tsx`: 5-level mood selector (0=Heavy → 4=Radiant)
 - Zustand stores persist to localStorage for theme/cursor preferences
 
+### Journal Entry Editing Rules (Append-Only)
+Entries follow an **append-only** editing model:
+- **New entry**: Full page available for writing. Music/photo/doodle inputs are shown but don't waste space.
+- **Saved entries**: Existing content (text, photos, doodles, music) is **read-only and cannot be overwritten**.
+- **Empty slots are fillable**: If a saved entry has no song, photo, or doodle, the user can add them later. If empty lines remain on the page, the user can write there.
+- **Never overwrite**: Users can only ADD to empty spaces. If a photo exists, it can't be replaced. If lines have text, they can't be edited. Only empty areas are interactive.
+
 ## Environment Variables
 
 ```bash
