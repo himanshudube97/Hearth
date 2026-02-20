@@ -16,6 +16,7 @@ interface CreateEntryData {
   recipientName?: string | null
   senderName?: string | null
   letterLocation?: string | null
+  canvasData?: string
 }
 
 /**

@@ -11,13 +11,15 @@ export interface JournalEntry {
   tags: string[]
   doodles: Doodle[]
   // Letter-specific fields
-  entryType?: 'normal' | 'letter' | 'unsent_letter' | 'ephemeral'
+  entryType?: 'normal' | 'letter' | 'unsent_letter' | 'ephemeral' | 'canvas'
   isSealed?: boolean
   unlockDate?: string
   recipientEmail?: string | null
   recipientName?: string | null
   senderName?: string | null
   letterLocation?: string | null
+  // Freehand canvas
+  canvasData?: string | null
   // E2EE fields
   encryptionType?: 'server' | 'e2ee'
   e2eeIV?: string | null
