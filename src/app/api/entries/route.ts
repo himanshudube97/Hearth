@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
-import { encrypt, decryptEntryFields } from '@/lib/encryption'
+import { encrypt, safeDecrypt, decryptEntryFields } from '@/lib/encryption'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string | null | undefined, maxLength = 150): string {
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
       recipientEmail, recipientName, senderName, letterLocation,
       encryptionType, e2eeIV,
       // New fields
-      photos, spreads,
+      photos, spreads, canvasData,
     } = body
 
     // Check if this is an E2EE entry
@@ -185,6 +185,7 @@ export async function POST(request: NextRequest) {
     const encryptedSenderName = senderName ? (isE2EE ? senderName : encrypt(senderName)) : null
     const encryptedRecipientName = recipientName ? (isE2EE ? recipientName : encrypt(recipientName)) : null
     const encryptedLetterLocation = letterLocation ? (isE2EE ? letterLocation : encrypt(letterLocation)) : null
+    const encryptedCanvasData = canvasData ? (isE2EE ? canvasData : encrypt(canvasData)) : null
 
     console.log('[POST /api/entries] Creating entry for user:', user.id)
 
@@ -204,6 +205,8 @@ export async function POST(request: NextRequest) {
         recipientName: encryptedRecipientName,
         senderName: encryptedSenderName,
         letterLocation: encryptedLetterLocation,
+        // Canvas data
+        canvasData: encryptedCanvasData,
         // E2EE fields
         encryptionType: encryptionType || 'server',
         e2eeIV: e2eeIV || null,
@@ -243,6 +246,7 @@ export async function POST(request: NextRequest) {
     const responseEntry = isE2EE ? entry : decryptEntryFields(entry)
     return NextResponse.json({
       ...responseEntry,
+      canvasData: entry.canvasData ? (isE2EE ? entry.canvasData : safeDecrypt(entry.canvasData)) : null,
       encryptionType: entry.encryptionType,
       e2eeIV: entry.e2eeIV,
       spreads: entry.spreads,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
-import { encrypt, decryptEntryFields } from '@/lib/encryption'
+import { encrypt, safeDecrypt, decryptEntryFields } from '@/lib/encryption'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string, maxLength = 150): string {
@@ -48,6 +48,7 @@ export async function GET(
     const decryptedEntry = isE2EE ? entry : decryptEntryFields(entry)
     return NextResponse.json({
       ...decryptedEntry,
+      canvasData: entry.canvasData ? (isE2EE ? entry.canvasData : safeDecrypt(entry.canvasData)) : null,
       encryptionType: entry.encryptionType,
       e2eeIV: entry.e2eeIV,
       spreads: entry.spreads,
@@ -95,7 +96,7 @@ export async function PUT(
     const {
       text, mood, song, tags, encryptionType, e2eeIV,
       // New fields
-      spreads, appendText, newPhotos, newDoodles,
+      spreads, appendText, newPhotos, newDoodles, canvasData,
     } = body
 
     const isE2EE = encryptionType === 'e2ee' || existing.encryptionType === 'e2ee'
@@ -129,6 +130,9 @@ export async function PUT(
     if (song !== undefined) updateData.song = song
     if (tags !== undefined) updateData.tags = tags
     if (spreads !== undefined) updateData.spreads = spreads
+    if (canvasData !== undefined) {
+      updateData.canvasData = canvasData ? (isE2EE ? canvasData : encrypt(canvasData)) : null
+    }
     if (encryptionType !== undefined) updateData.encryptionType = encryptionType
     if (e2eeIV !== undefined) updateData.e2eeIV = e2eeIV
 
@@ -186,6 +190,7 @@ export async function PUT(
     const decryptedEntry = responseIsE2EE ? updatedEntry : decryptEntryFields(updatedEntry!)
     return NextResponse.json({
       ...decryptedEntry,
+      canvasData: updatedEntry?.canvasData ? (responseIsE2EE ? updatedEntry.canvasData : safeDecrypt(updatedEntry.canvasData)) : null,
       encryptionType: updatedEntry?.encryptionType,
       e2eeIV: updatedEntry?.e2eeIV,
       spreads: updatedEntry?.spreads,
