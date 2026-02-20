@@ -35,7 +35,7 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
     content: currentText,
     editorProps: {
       attributes: {
-        class: 'prose prose-invert max-w-none focus:outline-none min-h-[200px]',
+        class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px]',
       },
     },
     onUpdate: ({ editor }) => {
@@ -67,8 +67,8 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
     }
   }, [editor, currentText])
 
-  // Line height in pixels for the ruled lines
-  const lineHeight = 32
+  // Line height in pixels — must match EditorContent lineHeight (20px font * 2 = 40px)
+  const lineHeight = 40
 
   return (
     <div
@@ -83,6 +83,24 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
         `,
       }}
     >
+      {/* Date header */}
+      <div
+        className="text-right pt-3 pr-6"
+        style={{
+          fontFamily: 'var(--font-caveat), cursive',
+          fontSize: '16px',
+          color: theme.text.muted,
+          letterSpacing: '0.5px',
+        }}
+      >
+        {new Date().toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })}
+      </div>
+
       {/* Notebook spine/binding effect */}
       <div
         className="absolute left-0 top-0 bottom-0 w-3"
@@ -96,16 +114,18 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
         }}
       />
 
-      {/* Main content area with margin line */}
+      {/* Left margin line (classic red/warm line) — full height */}
+      <div
+        className="absolute top-0 bottom-0 w-px"
+        style={{
+          left: '48px',
+          background: `${theme.accent.warm}40`,
+          zIndex: 1,
+        }}
+      />
+
+      {/* Main content area */}
       <div className="relative">
-        {/* Left margin line (classic red/warm line) */}
-        <div
-          className="absolute top-0 bottom-0 w-px"
-          style={{
-            left: '48px',
-            background: `${theme.accent.warm}40`,
-          }}
-        />
 
         {/* Ruled lines background */}
         <div
@@ -119,7 +139,7 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
               ${theme.text.muted}15 ${lineHeight - 1}px,
               ${theme.text.muted}15 ${lineHeight}px
             )`,
-            backgroundPosition: '0 23px',
+            backgroundPosition: '0 24px',
           }}
         />
 
@@ -127,7 +147,7 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
         <div
           className="overflow-y-auto relative"
           style={{
-            maxHeight: '400px',
+            maxHeight: '700px',
             paddingLeft: '56px',
             paddingRight: '24px',
             paddingTop: '24px',
@@ -137,8 +157,8 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
           <EditorContent
             editor={editor}
             style={{
-              fontFamily: 'Georgia, Palatino, serif',
-              fontSize: '16px',
+              fontFamily: 'var(--font-caveat), cursive',
+              fontSize: '20px',
               lineHeight: 2,
               color: theme.text.primary,
             }}
@@ -166,9 +186,17 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
         .ProseMirror:focus {
           outline: none;
         }
+        .ProseMirror .ProseMirror-cursor,
+        .ProseMirror > .ProseMirror-separator + .ProseMirror-trailingBreak {
+          transform: rotate(8deg);
+        }
+        .ProseMirror {
+          caret-color: ${theme.accent.warm};
+        }
         .ProseMirror p {
           margin-bottom: 0;
           padding-bottom: 0;
+          line-height: 40px;
         }
         .ProseMirror h1 {
           font-size: 1.5em;
