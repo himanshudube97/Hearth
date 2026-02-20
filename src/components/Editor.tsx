@@ -11,9 +11,10 @@ interface EditorProps {
   prompt: string
   value?: string
   onChange?: (value: string) => void
+  flexible?: boolean // When true, editor fills its parent container instead of fixed 60vh
 }
 
-export default function Editor({ prompt, value, onChange }: EditorProps) {
+export default function Editor({ prompt, value, onChange, flexible }: EditorProps) {
   // Use controlled mode if value/onChange provided, otherwise use global store
   const { currentText: storeText, setCurrentText: setStoreText } = useJournalStore()
   const currentText = value !== undefined ? value : storeText
@@ -35,7 +36,7 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
     content: currentText,
     editorProps: {
       attributes: {
-        class: 'prose prose-invert max-w-none focus:outline-none min-h-[200px]',
+        class: 'prose prose-invert max-w-none focus:outline-none',
       },
     },
     onUpdate: ({ editor }) => {
@@ -67,22 +68,42 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
     }
   }, [editor, currentText])
 
-  // Line height in pixels for the ruled lines
-  const lineHeight = 32
+  // Line height in pixels — must match EditorContent lineHeight (20px font * 2 = 40px)
+  const lineHeight = 40
 
   return (
     <div
-      className="rounded-2xl overflow-hidden relative"
+      className={`rounded-2xl overflow-hidden relative ${flexible ? 'flex-1 min-h-0 flex flex-col' : ''}`}
       style={{
-        background: theme.glass.bg,
+        background: `linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.03) 100%), linear-gradient(180deg, ${theme.accent.warm}15 0%, ${theme.accent.warm}08 100%), ${theme.glass.bg}`,
         backdropFilter: `blur(${theme.glass.blur})`,
-        border: `1px solid ${theme.glass.border}`,
+        border: `1px solid rgba(255,255,255,0.08)`,
         boxShadow: `
-          0 4px 24px -4px rgba(0, 0, 0, 0.3),
-          inset 2px 0 8px -4px rgba(0, 0, 0, 0.2)
+          0 8px 32px -4px rgba(0, 0, 0, 0.4),
+          0 0 0 1px ${theme.accent.warm}15,
+          inset 0 0 80px -10px ${theme.accent.warm}18,
+          inset 0 1px 0 0 rgba(255, 255, 255, 0.08)
         `,
       }}
     >
+      {/* Date header */}
+      <div
+        className={`text-right pt-3 pr-6 ${flexible ? 'shrink-0' : ''}`}
+        style={{
+          fontFamily: 'var(--font-caveat), cursive',
+          fontSize: '16px',
+          color: theme.text.muted,
+          letterSpacing: '0.5px',
+        }}
+      >
+        {new Date().toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })}
+      </div>
+
       {/* Notebook spine/binding effect */}
       <div
         className="absolute left-0 top-0 bottom-0 w-3"
@@ -96,16 +117,18 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
         }}
       />
 
-      {/* Main content area with margin line */}
-      <div className="relative">
-        {/* Left margin line (classic red/warm line) */}
-        <div
-          className="absolute top-0 bottom-0 w-px"
-          style={{
-            left: '48px',
-            background: `${theme.accent.warm}40`,
-          }}
-        />
+      {/* Left margin line (classic red/warm line) — full height */}
+      <div
+        className="absolute top-0 bottom-0 w-px"
+        style={{
+          left: '48px',
+          background: `${theme.accent.warm}55`,
+          zIndex: 1,
+        }}
+      />
+
+      {/* Main content area */}
+      <div className={`relative ${flexible ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
 
         {/* Ruled lines background */}
         <div
@@ -116,18 +139,18 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
               to bottom,
               transparent 0px,
               transparent ${lineHeight - 1}px,
-              ${theme.text.muted}15 ${lineHeight - 1}px,
-              ${theme.text.muted}15 ${lineHeight}px
+              ${theme.text.muted}30 ${lineHeight - 1}px,
+              ${theme.text.muted}30 ${lineHeight}px
             )`,
-            backgroundPosition: '0 23px',
+            backgroundPosition: '0 24px',
           }}
         />
 
         {/* Editor wrapper with padding for margin */}
         <div
-          className="overflow-y-auto relative"
+          className={`overflow-y-auto relative ${flexible ? 'flex-1 min-h-0' : ''}`}
           style={{
-            maxHeight: '400px',
+            height: flexible ? undefined : '60vh',
             paddingLeft: '56px',
             paddingRight: '24px',
             paddingTop: '24px',
@@ -137,8 +160,8 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
           <EditorContent
             editor={editor}
             style={{
-              fontFamily: 'Georgia, Palatino, serif',
-              fontSize: '16px',
+              fontFamily: 'var(--font-caveat), cursive',
+              fontSize: '20px',
               lineHeight: 2,
               color: theme.text.primary,
             }}
@@ -166,9 +189,17 @@ export default function Editor({ prompt, value, onChange }: EditorProps) {
         .ProseMirror:focus {
           outline: none;
         }
+        .ProseMirror .ProseMirror-cursor,
+        .ProseMirror > .ProseMirror-separator + .ProseMirror-trailingBreak {
+          transform: rotate(8deg);
+        }
+        .ProseMirror {
+          caret-color: ${theme.accent.warm};
+        }
         .ProseMirror p {
           margin-bottom: 0;
           padding-bottom: 0;
+          line-height: 40px;
         }
         .ProseMirror h1 {
           font-size: 1.5em;

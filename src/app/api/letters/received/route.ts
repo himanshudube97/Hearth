@@ -15,7 +15,7 @@ export async function GET() {
       where: {
         userId: user.id,
         entryType: 'letter',
-        isReceivedLetter: false,
+        isReceivedLetter: true,
       },
       select: {
         id: true,
@@ -24,9 +24,11 @@ export async function GET() {
         unlockDate: true,
         isSealed: true,
         letterLocation: true,
-        recipientEmail: true,
-        recipientName: true,
+        senderName: true,
+        originalSenderId: true,
         isViewed: true,
+        isDelivered: true,
+        deliveredAt: true,
         song: true,
         photos: {
           select: { url: true, position: true, spread: true, rotation: true }
@@ -40,26 +42,24 @@ export async function GET() {
       },
     })
 
-    // Determine if letters are "arrived" (unlockDate has passed and it's a self letter)
+    // Determine if letters have arrived and decrypt sensitive fields
     const now = new Date()
     const lettersWithStatus = letters.map(letter => ({
       ...letter,
       // Decrypt sensitive fields
       text: safeDecrypt(letter.text),
       letterLocation: safeDecrypt(letter.letterLocation),
-      recipientName: safeDecrypt(letter.recipientName),
+      senderName: safeDecrypt(letter.senderName),
       // Format dates
       createdAt: letter.createdAt.toISOString(),
       unlockDate: letter.unlockDate?.toISOString() || null,
-      hasArrived: letter.unlockDate && new Date(letter.unlockDate) <= now && !letter.recipientEmail,
-      song: letter.song,
-      photos: letter.photos || [],
-      doodles: letter.doodles || [],
+      deliveredAt: letter.deliveredAt?.toISOString() || null,
+      hasArrived: letter.unlockDate ? new Date(letter.unlockDate) <= now : true,
     }))
 
     return NextResponse.json({ letters: lettersWithStatus })
   } catch (error) {
-    console.error('Failed to fetch letters:', error)
-    return NextResponse.json({ error: 'Failed to fetch letters' }, { status: 500 })
+    console.error('Failed to fetch received letters:', error)
+    return NextResponse.json({ error: 'Failed to fetch received letters' }, { status: 500 })
   }
 }

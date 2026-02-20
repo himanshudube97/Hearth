@@ -56,21 +56,25 @@ const COLOR_PALETTE = [
 interface DoodleCanvasProps {
   onSave: (strokes: StrokeData[]) => void
   onClose: () => void
+  initialStrokes?: StrokeData[]
 }
 
-export default function DoodleCanvas({ onSave, onClose }: DoodleCanvasProps) {
+export default function DoodleCanvas({ onSave, onClose, initialStrokes }: DoodleCanvasProps) {
   const { theme } = useThemeStore()
   const canvasRef = useRef<HTMLDivElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentPoints, setCurrentPoints] = useState<Point[]>([])
-  const [strokes, setStrokes] = useState<StrokeData[]>([])
+  const [strokes, setStrokes] = useState<StrokeData[]>(
+    () => initialStrokes && initialStrokes.length > 0 ? [...initialStrokes] : []
+  )
   const [activeBrush, setActiveBrush] = useState(1)
   const [isErasing, setIsErasing] = useState(false)
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
   const [hasDraft, setHasDraft] = useState(false)
 
-  // Load draft from localStorage on mount
+  // Load draft from localStorage on mount (skip if initialStrokes provided)
   useEffect(() => {
+    if (initialStrokes && initialStrokes.length > 0) return
     try {
       const draft = localStorage.getItem(DOODLE_DRAFT_KEY)
       if (draft) {
@@ -83,7 +87,7 @@ export default function DoodleCanvas({ onSave, onClose }: DoodleCanvasProps) {
     } catch (e) {
       console.error('Failed to load doodle draft:', e)
     }
-  }, [])
+  }, [initialStrokes])
 
   // Auto-save draft to localStorage whenever strokes change
   useEffect(() => {

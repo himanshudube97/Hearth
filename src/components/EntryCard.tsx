@@ -5,16 +5,13 @@ import { format } from 'date-fns'
 import { useThemeStore } from '@/store/theme'
 import { JournalEntry } from '@/store/journal'
 import DoodlePreview from './DoodlePreview'
-import SongEmbed from './SongEmbed'
 
 interface EntryCardProps {
   entry: JournalEntry
-  expanded?: boolean
   onClick?: () => void
-  onEdit?: (entry: JournalEntry) => void
 }
 
-export default function EntryCard({ entry, expanded = false, onClick, onEdit }: EntryCardProps) {
+export default function EntryCard({ entry, onClick }: EntryCardProps) {
   const { theme } = useThemeStore()
   const moodEmoji = theme.moodEmojis[entry.mood]
   const moodColor = theme.moods[entry.mood as keyof typeof theme.moods]
@@ -22,15 +19,9 @@ export default function EntryCard({ entry, expanded = false, onClick, onEdit }: 
   // Check if this is a sealed letter
   const isLetter = entry.entryType === 'letter' && entry.isSealed
   const isLetterToFriend = isLetter && !!entry.recipientEmail
-  const isLetterToSelf = isLetter && !entry.recipientEmail
 
   // Strip HTML tags for preview
   const textPreview = entry.text.replace(/<[^>]*>/g, '').slice(0, 100)
-
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onEdit?.(entry)
-  }
 
   // Render letter card (sealed, compact)
   if (isLetter) {
@@ -68,7 +59,7 @@ export default function EntryCard({ entry, expanded = false, onClick, onEdit }: 
     )
   }
 
-  // Regular entry card
+  // Regular entry card (compact preview)
   return (
     <motion.div
       className="rounded-2xl p-4 cursor-pointer"
@@ -100,55 +91,22 @@ export default function EntryCard({ entry, expanded = false, onClick, onEdit }: 
             ♫
           </span>
         )}
-        {onEdit && (
-          <button
-            onClick={handleEdit}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-sm opacity-50 hover:opacity-100 transition-opacity"
-            style={{
-              background: theme.glass.bg,
-              color: theme.text.muted,
-            }}
-            title="Edit entry"
-          >
-            ✎
-          </button>
-        )}
       </div>
 
-      {/* Content */}
-      {expanded ? (
-        <div
-          className="prose prose-invert max-w-none"
-          style={{
-            fontFamily: 'Georgia, Palatino, serif',
-            fontSize: '16px',
-            lineHeight: 2,
-            color: theme.text.primary,
-          }}
-          dangerouslySetInnerHTML={{ __html: entry.text }}
-        />
-      ) : (
-        <p
-          className="text-sm line-clamp-2"
-          style={{ color: theme.text.secondary }}
-        >
-          {textPreview}{textPreview.length >= 100 ? '...' : ''}
-        </p>
-      )}
+      {/* Text preview */}
+      <p
+        className="text-sm line-clamp-2"
+        style={{ color: theme.text.secondary }}
+      >
+        {textPreview}{textPreview.length >= 100 ? '...' : ''}
+      </p>
 
-      {/* Doodles */}
+      {/* Doodle thumbnails */}
       {entry.doodles && entry.doodles.length > 0 && (
         <div className="mt-3 flex gap-2 flex-wrap">
           {entry.doodles.map((doodle) => (
             <DoodlePreview key={doodle.id} strokes={doodle.strokes} />
           ))}
-        </div>
-      )}
-
-      {/* Song */}
-      {entry.song && expanded && (
-        <div className="mt-4">
-          <SongEmbed url={entry.song} compact />
         </div>
       )}
 

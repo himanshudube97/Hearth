@@ -10,6 +10,11 @@ import { useE2EE } from '@/hooks/useE2EE'
 import { ThemeName } from '@/lib/themes'
 import Editor from '@/components/Editor'
 import DatePicker from '@/components/DatePicker'
+import CollagePhoto from '@/components/CollagePhoto'
+import DoodleCanvas from '@/components/DoodleCanvas'
+import DoodlePreview from '@/components/DoodlePreview'
+import SongEmbed, { isMusicUrl } from '@/components/SongEmbed'
+import { StrokeData } from '@/store/journal'
 
 type RecipientType = 'self' | 'friend'
 
@@ -605,6 +610,17 @@ export default function LettersPage() {
     fetchProfile()
   }, [fetchProfile])
 
+  // Hero card selection
+  const [selectedCard, setSelectedCard] = useState<'self' | 'friend' | null>(null)
+
+  // Doodle + music state
+  const [songLink, setSongLink] = useState('')
+  const [doodleStrokes, setDoodleStrokes] = useState<StrokeData[]>([])
+  const [showDoodle, setShowDoodle] = useState(false)
+
+  // Received letters state
+  const [receivedLetters, setReceivedLetters] = useState<any[]>([])
+
   // Form state
   const [recipientType, setRecipientType] = useState<RecipientType>('self')
   const [letterText, setLetterText] = useState('')
@@ -618,7 +634,12 @@ export default function LettersPage() {
   const [senderName, setSenderName] = useState('')
   const [location, setLocation] = useState('')
 
+  // Photo state
+  const [photoTopRight, setPhotoTopRight] = useState<string | null>(null)
+  const [photoBottomLeft, setPhotoBottomLeft] = useState<string | null>(null)
+
   // UI state
+  const [showDrawer, setShowDrawer] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showAnimation, setShowAnimation] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -696,7 +717,16 @@ export default function LettersPage() {
     }
   }, [selectedLetter])
 
-  // Fetch user's letters
+  // Clear doodle draft from write page on mount so it doesn't bleed in
+  useEffect(() => {
+    try {
+      localStorage.removeItem('hearth_doodle_draft')
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // Fetch user's letters + received letters
   useEffect(() => {
     const fetchLetters = async () => {
       try {
@@ -709,7 +739,21 @@ export default function LettersPage() {
         console.error('Failed to fetch letters:', error)
       }
     }
+
+    const fetchReceived = async () => {
+      try {
+        const res = await fetch('/api/letters/received')
+        if (res.ok) {
+          const data = await res.json()
+          setReceivedLetters(data.letters || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch received letters:', err)
+      }
+    }
+
     fetchLetters()
+    fetchReceived()
   }, [showSuccess]) // Refetch after sending a new letter
 
   const handleSendLetter = async () => {
@@ -718,6 +762,15 @@ export default function LettersPage() {
 
     setSaving(true)
     try {
+      // Prepare photos array
+      const photos = []
+      if (photoTopRight) {
+        photos.push({ url: photoTopRight, position: 1, spread: 1, rotation: 7 })
+      }
+      if (photoBottomLeft) {
+        photos.push({ url: photoBottomLeft, position: 2, spread: 1, rotation: -7 })
+      }
+
       // Prepare entry data
       const entryData = {
         text: letterText,
@@ -729,6 +782,11 @@ export default function LettersPage() {
         recipientName: recipientType === 'friend' ? friendName : null,
         senderName: recipientType === 'friend' ? senderName : null,
         letterLocation: location || null,
+        photos,
+        song: songLink || null,
+        doodles: doodleStrokes.length > 0
+          ? [{ strokes: doodleStrokes, positionInEntry: 0 }]
+          : [],
       }
 
       // Encrypt if E2EE is ready
@@ -748,7 +806,13 @@ export default function LettersPage() {
           unlockDate,
         })
 
-        // Trigger animation
+        // Reset new state
+        setSongLink('')
+        setDoodleStrokes([])
+        setSelectedCard(null)
+
+        // Close drawer and trigger animation
+        setShowDrawer(false)
         setShowAnimation(true)
       }
     } catch (error) {
@@ -775,6 +839,12 @@ export default function LettersPage() {
     setCustomDate('')
     setShowDatePicker(false)
     setRecipientType('self')
+    setPhotoTopRight(null)
+    setPhotoBottomLeft(null)
+    setShowDrawer(false)
+    setSongLink('')
+    setDoodleStrokes([])
+    setSelectedCard(null)
   }
 
   const handleCustomDateChange = (dateStr: string) => {
@@ -799,6 +869,11 @@ export default function LettersPage() {
       ? addDays(new Date(), 1) // Tomorrow for self
       : addDays(new Date(), 7) // 1 week for friends
   }
+
+  // Color theming based on letter type
+  const letterColors = selectedCard === 'friend'
+    ? { accent: 'rgba(100,140,200', warm: 'rgba(120,160,220', border: 'rgba(100,140,200,0.4)', glow: 'rgba(100,140,200,0.15)' }
+    : { accent: 'rgba(232,148,90', warm: 'rgba(232,168,80', border: 'rgba(232,148,90,0.4)', glow: 'rgba(232,148,90,0.15)' }
 
   const hasContent = letterText.trim() && letterText !== '<p></p>'
   const canSend = hasContent && (
@@ -829,112 +904,191 @@ export default function LettersPage() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
+      {/* Main area — fits viewport */}
+      <div className="max-w-2xl mx-auto flex flex-col" style={{ height: 'calc(100dvh - 7rem)' }}>
+        {/* Header - compact */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.2 }}
-          className="text-center mb-8"
+          className="text-center mb-3 shrink-0"
         >
           <h1
-            className="text-2xl font-light tracking-wide mb-2"
+            className="text-2xl font-light tracking-wide mb-1"
             style={{ color: theme.text.primary }}
           >
             Write a Letter
           </h1>
-          <p className="text-sm" style={{ color: theme.text.muted }}>
+          <p className="text-xs" style={{ color: theme.text.muted }}>
             Words that travel through time
           </p>
         </motion.div>
 
-        {/* Recipient Toggle */}
+        {/* Hero Cards — pick letter type */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.3 }}
-          className="flex justify-center gap-2 mb-6"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-4 mb-4 shrink-0"
         >
-          <motion.button
+          {/* Card 1: Letter to Future Self */}
+          <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => setRecipientType('self')}
-            className="px-5 py-2.5 rounded-full text-sm flex items-center gap-2"
+            onClick={() => {
+              setSelectedCard(selectedCard === 'self' ? null : 'self')
+              setRecipientType('self')
+            }}
+            className="rounded-2xl p-5 cursor-pointer"
             style={{
-              background: recipientType === 'self' ? `${theme.accent.primary}30` : theme.glass.bg,
-              border: `1px solid ${recipientType === 'self' ? theme.accent.primary : theme.glass.border}`,
-              color: theme.text.primary,
+              background: 'linear-gradient(135deg, rgba(232,148,90,0.15), rgba(232,168,80,0.08))',
+              border: selectedCard === 'self'
+                ? '1px solid rgba(232,148,90,0.5)'
+                : `1px solid ${theme.glass.border}`,
             }}
           >
-            <span>✨</span>
-            <span>To Future Me</span>
-          </motion.button>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">✉️</span>
+              <div>
+                <p className="text-sm font-medium mb-1" style={{ color: theme.text.primary }}>
+                  Letter to Future Self
+                </p>
+                <p className="text-xs leading-relaxed" style={{ color: theme.text.muted }}>
+                  Write to the person you&apos;re becoming. Seal your words in time — they&apos;ll find you when the moment is right.
+                </p>
+              </div>
+            </div>
+          </motion.div>
 
-          <motion.button
+          {/* Card 2: Letter to a Friend */}
+          <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => setRecipientType('friend')}
-            className="px-5 py-2.5 rounded-full text-sm flex items-center gap-2"
+            onClick={() => {
+              setSelectedCard(selectedCard === 'friend' ? null : 'friend')
+              setRecipientType('friend')
+            }}
+            className="rounded-2xl p-5 cursor-pointer"
             style={{
-              background: recipientType === 'friend' ? `${theme.accent.primary}30` : theme.glass.bg,
-              border: `1px solid ${recipientType === 'friend' ? theme.accent.primary : theme.glass.border}`,
-              color: theme.text.primary,
+              background: 'linear-gradient(135deg, rgba(100,140,200,0.15), rgba(120,160,220,0.08))',
+              border: selectedCard === 'friend'
+                ? '1px solid rgba(100,140,200,0.5)'
+                : `1px solid ${theme.glass.border}`,
             }}
           >
-            <span>💌</span>
-            <span>To a Friend</span>
-          </motion.button>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">✈️</span>
+              <div>
+                <p className="text-sm font-medium mb-1" style={{ color: theme.text.primary }}>
+                  Letter to a Friend
+                </p>
+                <p className="text-xs leading-relaxed" style={{ color: theme.text.muted }}>
+                  Send your heart across the distance. A letter that arrives not when it&apos;s sent, but when it&apos;s meant to.
+                </p>
+              </div>
+            </div>
+          </motion.div>
         </motion.div>
 
-        {/* Friend Details (if sending to friend) */}
-        <AnimatePresence>
-          {recipientType === 'friend' && (
+        {/* Writing area OR Archive — share the same flex-1 space */}
+        <AnimatePresence mode="wait">
+          {selectedCard ? (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-6 overflow-hidden"
+              key="writing-area"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col flex-1 min-h-0"
             >
-              <div
-                className="rounded-2xl p-5 space-y-4"
-                style={{
-                  background: theme.glass.bg,
-                  border: `1px solid ${theme.glass.border}`,
-                }}
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      className="block text-xs mb-2"
-                      style={{ color: theme.text.muted }}
+              {/* Editor area */}
+              <div className="flex-1 min-h-0 flex flex-col mb-3">
+                {/* Envelope Header — colored by letter type */}
+                <motion.div
+                  className="rounded-t-2xl p-3 border-b-0 shrink-0"
+                  animate={{
+                    background: `linear-gradient(135deg, ${letterColors.accent},0.2), ${letterColors.warm},0.1))`,
+                    borderColor: letterColors.border,
+                  }}
+                  transition={{ duration: 0.4 }}
+                  style={{
+                    background: `linear-gradient(135deg, ${letterColors.accent},0.2), ${letterColors.warm},0.1))`,
+                    borderLeft: `1px solid ${letterColors.border}`,
+                    borderRight: `1px solid ${letterColors.border}`,
+                    borderTop: `1px solid ${letterColors.border}`,
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: theme.text.muted }}>
+                      {recipientType === 'self'
+                        ? profile.nickname ? `Dear future ${profile.nickname},` : 'Dear future me,'
+                        : friendName ? `Dear ${friendName},` : 'Dear friend,'
+                      }
+                    </span>
+                    <span className="text-2xl">{recipientType === 'self' ? '✨' : '💌'}</span>
+                  </div>
+                </motion.div>
+
+                {/* Editor with photos — border colored by letter type */}
+                <div
+                  className="rounded-b-2xl flex-1 min-h-0 flex flex-col relative"
+                  style={{
+                    background: theme.glass.bg,
+                    backdropFilter: `blur(${theme.glass.blur})`,
+                    borderLeft: `1px solid ${letterColors.border}`,
+                    borderRight: `1px solid ${letterColors.border}`,
+                    borderBottom: `1px solid ${letterColors.border}`,
+                    overflow: 'visible',
+                  }}
+                >
+                  {/* Collage Photos */}
+                  <CollagePhoto
+                    position="top-right"
+                    photo={photoTopRight}
+                    onPhotoChange={setPhotoTopRight}
+                  />
+                  <CollagePhoto
+                    position="bottom-left"
+                    photo={photoBottomLeft}
+                    onPhotoChange={setPhotoBottomLeft}
+                  />
+
+                  <Editor
+                    prompt={recipientType === 'self'
+                      ? "What would you like to tell your future self?"
+                      : "Write your letter... share your thoughts, feelings, the moment you're in."
+                    }
+                    value={letterText}
+                    onChange={setLetterText}
+                    flexible
+                  />
+                </div>
+
+                {/* Action bar: doodle + song */}
+                <div className="flex items-center gap-3 mt-3 px-4">
+                  {/* Doodle button / preview */}
+                  {doodleStrokes.length > 0 ? (
+                    <button onClick={() => setShowDoodle(true)} className="relative group">
+                      <DoodlePreview strokes={doodleStrokes} size={44} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowDoodle(true)}
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+                      style={{ background: 'rgba(255,255,255,0.1)', color: theme.text.secondary }}
                     >
-                      Friend&apos;s name *
-                    </label>
+                      ✎
+                    </button>
+                  )}
+
+                  {/* Song input */}
+                  <div className="flex-1">
                     <input
                       type="text"
-                      value={friendName}
-                      onChange={(e) => setFriendName(e.target.value)}
-                      placeholder="Their name"
-                      className="w-full px-4 py-2.5 rounded-xl bg-transparent outline-none text-sm"
-                      style={{
-                        border: `1px solid ${theme.glass.border}`,
-                        color: theme.text.primary,
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="block text-xs mb-2"
-                      style={{ color: theme.text.muted }}
-                    >
-                      Friend&apos;s email *
-                    </label>
-                    <input
-                      type="email"
-                      value={friendEmail}
-                      onChange={(e) => setFriendEmail(e.target.value)}
-                      placeholder="friend@email.com"
-                      className="w-full px-4 py-2.5 rounded-xl bg-transparent outline-none text-sm"
+                      value={songLink}
+                      onChange={(e) => setSongLink(e.target.value)}
+                      placeholder="Paste a song link..."
+                      className="w-full bg-transparent text-sm px-3 py-2 rounded-lg outline-none"
                       style={{
                         border: `1px solid ${theme.glass.border}`,
                         color: theme.text.primary,
@@ -943,408 +1097,564 @@ export default function LettersPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      className="block text-xs mb-2"
-                      style={{ color: theme.text.muted }}
-                    >
-                      Sign as (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={senderName}
-                      onChange={(e) => setSenderName(e.target.value)}
-                      placeholder="How you want to be known"
-                      className="w-full px-4 py-2.5 rounded-xl bg-transparent outline-none text-sm"
-                      style={{
-                        border: `1px solid ${theme.glass.border}`,
-                        color: theme.text.primary,
-                      }}
-                    />
+                {/* Song embed preview */}
+                {songLink && isMusicUrl(songLink) && (
+                  <div className="mt-3 px-4">
+                    <SongEmbed url={songLink} compact />
                   </div>
-                  <div>
-                    <label
-                      className="block text-xs mb-2"
-                      style={{ color: theme.text.muted }}
+                )}
+              </div>
+
+              {/* Bottom bar: Ready to send trigger OR empty hint */}
+              <div className="shrink-0 pb-1">
+                {hasContent ? (
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setShowDrawer(true)}
+                    className="w-full py-3 rounded-full text-sm font-medium flex items-center justify-center gap-2"
+                    style={{
+                      background: `linear-gradient(135deg, ${letterColors.accent},0.25), ${letterColors.warm},0.2))`,
+                      border: `1px solid ${letterColors.border}`,
+                      color: theme.text.primary,
+                    }}
+                  >
+                    <motion.span
+                      animate={{ y: [0, -2, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
                     >
+                      ▲
+                    </motion.span>
+                    <span>Ready to send</span>
+                    <span>✨</span>
+                  </motion.button>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1 }}
+                    className="text-center py-3"
+                  >
+                    <p className="text-sm" style={{ color: theme.text.muted }}>
+                      {recipientType === 'self'
+                        ? "Write words your future self needs to hear..."
+                        : "Share a moment, a feeling, a memory with someone special..."
+                      }
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          ) : (
+            /* Archive — shown when no card is selected */
+            <motion.div
+              key="archive"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex-1 min-h-0 overflow-y-auto mt-2 space-y-6 pb-4"
+            >
+
+        {/* Letters to Myself */}
+        {(() => {
+          const selfLetters = myLetters.filter(l => !l.recipientEmail)
+          if (selfLetters.length === 0) return null
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              <h2 className="text-base font-light mb-4 px-1" style={{ color: theme.text.secondary }}>
+                Letters to Myself
+              </h2>
+              <div className="space-y-3">
+                {selfLetters.map((letter, index) => {
+                  const arrived = letter.hasArrived
+                  const unlockStr = letter.unlockDate
+                    ? format(new Date(letter.unlockDate), 'MMM d, yyyy')
+                    : null
+                  const createdStr = format(new Date(letter.createdAt), 'MMM d, yyyy')
+                  return (
+                    <motion.div
+                      key={letter.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ scale: 1.01 }}
+                      onClick={arrived ? () => { setSelectedLetter(letter); setShowLetterModal(true) } : undefined}
+                      className={`p-4 rounded-xl ${arrived ? 'cursor-pointer' : 'cursor-default'}`}
+                      style={{
+                        background: arrived
+                          ? `linear-gradient(135deg, ${theme.accent.warm}15, ${theme.accent.primary}08)`
+                          : `linear-gradient(135deg, ${theme.accent.primary}08, ${theme.accent.warm}05)`,
+                        border: arrived
+                          ? `1px solid ${theme.accent.warm}40`
+                          : `1px solid ${theme.glass.border}`,
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">{arrived ? '💌' : '🔒'}</span>
+                          <div>
+                            <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
+                              Sealed on {createdStr}
+                              {letter.letterLocation && ` · ${letter.letterLocation}`}
+                            </p>
+                            <p className="text-xs" style={{ color: theme.text.muted }}>
+                              {arrived
+                                ? 'Arrived'
+                                : unlockStr ? `Arriving ${unlockStr}` : 'Traveling through time'}
+                            </p>
+                          </div>
+                        </div>
+                        {arrived && (
+                          <span className="text-xs px-2 py-1 rounded-full" style={{
+                            background: `${theme.accent.warm}20`,
+                            color: theme.accent.warm,
+                          }}>
+                            Open
+                          </span>
+                        )}
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )
+        })()}
+
+        {/* Letters to Friends */}
+        {(() => {
+          const friendLetters = myLetters.filter(l => l.recipientEmail)
+          if (friendLetters.length === 0) return null
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <h2 className="text-base font-light mb-4 px-1" style={{ color: theme.text.secondary }}>
+                Letters to Friends
+              </h2>
+              <div className="space-y-3">
+                {friendLetters.map((letter, index) => {
+                  const unlockStr = letter.unlockDate
+                    ? format(new Date(letter.unlockDate), 'MMM d, yyyy')
+                    : null
+                  const sentStr = format(new Date(letter.createdAt), 'MMM d, yyyy')
+                  return (
+                    <motion.div
+                      key={letter.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ scale: 1.01 }}
+                      className="p-4 rounded-xl cursor-default"
+                      style={{
+                        background: `linear-gradient(135deg, rgba(100,140,200,0.1), rgba(120,160,220,0.05))`,
+                        border: `1px solid ${theme.glass.border}`,
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">🔒</span>
+                          <div>
+                            <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
+                              To {letter.recipientName || letter.recipientEmail}
+                            </p>
+                            <p className="text-xs" style={{ color: theme.text.muted }}>
+                              Sent {sentStr}{unlockStr ? ` · Arriving ${unlockStr}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )
+        })()}
+
+        {/* Letters from the past (self-letters that arrived) */}
+        {(() => {
+          const arrivedSelf = myLetters.filter(l => !l.recipientEmail && l.hasArrived)
+          if (arrivedSelf.length === 0) return null
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="pt-4 border-t"
+              style={{ borderColor: theme.glass.border }}
+            >
+              <h2 className="text-base font-light mb-4 px-1" style={{ color: theme.text.secondary }}>
+                Letters from the past
+              </h2>
+              <div className="space-y-3">
+                {arrivedSelf.map((letter, index) => (
+                  <motion.div
+                    key={letter.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={{ scale: 1.01 }}
+                    onClick={() => { setSelectedLetter(letter); setShowLetterModal(true) }}
+                    className="p-4 rounded-xl cursor-pointer"
+                    style={{
+                      background: `linear-gradient(135deg, ${theme.accent.warm}15, ${theme.accent.primary}08)`,
+                      border: `1px solid ${theme.accent.warm}40`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">✨</span>
+                        <div>
+                          <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
+                            Letter to self
+                          </p>
+                          <p className="text-xs" style={{ color: theme.text.muted }}>
+                            Written {format(new Date(letter.createdAt), 'MMM d, yyyy')}
+                            {letter.letterLocation && ` from ${letter.letterLocation}`}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded-full" style={{
+                        background: `${theme.accent.warm}20`,
+                        color: theme.accent.warm,
+                      }}>
+                        Read
+                      </span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )
+        })()}
+
+        {/* Letters from friends (received) */}
+        {(() => {
+          const arrivedFromFriends = receivedLetters.filter((l: any) => l.hasArrived)
+          if (arrivedFromFriends.length === 0) return null
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              className="pt-4 border-t"
+              style={{ borderColor: theme.glass.border }}
+            >
+              <h2 className="text-base font-light mb-4 px-1" style={{ color: theme.text.secondary }}>
+                Letters from friends
+              </h2>
+              <div className="space-y-3">
+                {arrivedFromFriends.map((letter: any, index: number) => (
+                  <motion.div
+                    key={letter.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={{ scale: 1.01 }}
+                    onClick={() => { setSelectedLetter(letter); setShowLetterModal(true) }}
+                    className="p-4 rounded-xl cursor-pointer"
+                    style={{
+                      background: `linear-gradient(135deg, rgba(100,140,200,0.12), rgba(120,160,220,0.06))`,
+                      border: `1px solid rgba(100,140,200,0.3)`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">💌</span>
+                        <div>
+                          <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
+                            From {letter.senderName || 'a friend'}
+                          </p>
+                          <p className="text-xs" style={{ color: theme.text.muted }}>
+                            Arrived {letter.unlockDate ? format(new Date(letter.unlockDate), 'MMM d, yyyy') : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded-full" style={{
+                        background: 'rgba(100,140,200,0.2)',
+                        color: 'rgba(100,140,200,0.9)',
+                      }}>
+                        Open
+                      </span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )
+        })()}
+
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Send Modal */}
+      <AnimatePresence>
+        {showDrawer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            style={{ background: 'rgba(0,0,0,0.6)' }}
+            onClick={() => setShowDrawer(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="w-full max-w-lg rounded-2xl overflow-hidden"
+              style={{
+                background: theme.bg.primary,
+                border: `1px solid ${theme.glass.border}`,
+                boxShadow: `0 24px 50px rgba(0,0,0,0.4), 0 0 80px ${theme.accent.primary}10`,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-6 pt-5 pb-6">
+                {/* Modal header */}
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-lg font-light" style={{ color: theme.text.primary }}>
+                    {recipientType === 'self' ? 'Send to the Universe' : 'Send to a Friend'}
+                  </h3>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowDrawer(false)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+                    style={{
+                      background: theme.glass.bg,
+                      color: theme.text.muted,
+                    }}
+                  >
+                    x
+                  </motion.button>
+                </div>
+
+                {/* Friend fields */}
+                {recipientType === 'friend' && (
+                  <div className="mb-4">
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs mb-1.5" style={{ color: theme.text.muted }}>
+                          Friend&apos;s name *
+                        </label>
+                        <input
+                          type="text"
+                          value={friendName}
+                          onChange={(e) => setFriendName(e.target.value)}
+                          placeholder="Their name"
+                          className="w-full px-3 py-2 rounded-xl bg-transparent outline-none text-sm"
+                          style={{
+                            border: `1px solid ${theme.glass.border}`,
+                            color: theme.text.primary,
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs mb-1.5" style={{ color: theme.text.muted }}>
+                          Friend&apos;s email *
+                        </label>
+                        <input
+                          type="email"
+                          value={friendEmail}
+                          onChange={(e) => setFriendEmail(e.target.value)}
+                          placeholder="friend@email.com"
+                          className="w-full px-3 py-2 rounded-xl bg-transparent outline-none text-sm"
+                          style={{
+                            border: `1px solid ${theme.glass.border}`,
+                            color: theme.text.primary,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs mb-1.5" style={{ color: theme.text.muted }}>
+                          Sign as (optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={senderName}
+                          onChange={(e) => setSenderName(e.target.value)}
+                          placeholder="How you want to be known"
+                          className="w-full px-3 py-2 rounded-xl bg-transparent outline-none text-sm"
+                          style={{
+                            border: `1px solid ${theme.glass.border}`,
+                            color: theme.text.primary,
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs mb-1.5" style={{ color: theme.text.muted }}>
+                          Writing from (optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          placeholder="e.g., Himachal Pradesh"
+                          className="w-full px-3 py-2 rounded-xl bg-transparent outline-none text-sm"
+                          style={{
+                            border: `1px solid ${theme.glass.border}`,
+                            color: theme.text.primary,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Location for self letters */}
+                {recipientType === 'self' && (
+                  <div className="mb-4">
+                    <label className="block text-xs mb-1.5" style={{ color: theme.text.muted }}>
                       Writing from (optional)
                     </label>
                     <input
                       type="text"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
-                      placeholder="e.g., Himachal Pradesh"
-                      className="w-full px-4 py-2.5 rounded-xl bg-transparent outline-none text-sm"
+                      placeholder="e.g., Home, Himachal Pradesh, a quiet cafe..."
+                      className="w-full px-3 py-2 rounded-xl bg-transparent outline-none text-sm"
                       style={{
                         border: `1px solid ${theme.glass.border}`,
                         color: theme.text.primary,
                       }}
                     />
                   </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Letter Writing Area */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.4 }}
-          className="mb-6"
-        >
-          {/* Envelope Header */}
-          <div
-            className="rounded-t-2xl p-4 border-b-0"
-            style={{
-              background: `linear-gradient(135deg, ${theme.accent.warm}20, ${theme.accent.primary}10)`,
-              borderLeft: `1px solid ${theme.glass.border}`,
-              borderRight: `1px solid ${theme.glass.border}`,
-              borderTop: `1px solid ${theme.glass.border}`,
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm" style={{ color: theme.text.muted }}>
-                {recipientType === 'self'
-                  ? profile.nickname ? `Dear future ${profile.nickname},` : 'Dear future me,'
-                  : friendName ? `Dear ${friendName},` : 'Dear friend,'
-                }
-              </span>
-              <span className="text-2xl">{recipientType === 'self' ? '✨' : '💌'}</span>
-            </div>
-          </div>
-
-          {/* Editor */}
-          <div
-            className="rounded-b-2xl p-4"
-            style={{
-              background: theme.glass.bg,
-              backdropFilter: `blur(${theme.glass.blur})`,
-              borderLeft: `1px solid ${theme.glass.border}`,
-              borderRight: `1px solid ${theme.glass.border}`,
-              borderBottom: `1px solid ${theme.glass.border}`,
-            }}
-          >
-            <Editor
-              prompt={recipientType === 'self'
-                ? "What would you like to tell your future self?"
-                : "Write your letter... share your thoughts, feelings, the moment you're in."
-              }
-              value={letterText}
-              onChange={setLetterText}
-            />
-          </div>
-        </motion.div>
-
-        {/* Location for self letters */}
-        <AnimatePresence>
-          {recipientType === 'self' && hasContent && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-6"
-            >
-              <div
-                className="rounded-xl p-4"
-                style={{
-                  background: theme.glass.bg,
-                  border: `1px solid ${theme.glass.border}`,
-                }}
-              >
-                <label
-                  className="block text-xs mb-2"
-                  style={{ color: theme.text.muted }}
-                >
-                  Writing from (optional)
-                </label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g., Home, Himachal Pradesh, a quiet cafe..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-transparent outline-none text-sm"
-                  style={{
-                    border: `1px solid ${theme.glass.border}`,
-                    color: theme.text.primary,
-                  }}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Time Selection */}
-        <AnimatePresence>
-          {hasContent && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-6"
-            >
-              <p className="text-sm mb-3" style={{ color: theme.text.muted }}>
-                {recipientType === 'self'
-                  ? 'When should this letter find you?'
-                  : 'When should this letter arrive?'
-                }
-              </p>
-
-              {/* Quick Options */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {unlockOptions.map((option) => {
-                  const optionDate = option.getValue()
-                  const isSelected = format(unlockDate, 'yyyy-MM-dd') === format(optionDate, 'yyyy-MM-dd')
-
-                  return (
-                    <motion.button
-                      key={option.label}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setUnlockDate(optionDate)
-                        setShowDatePicker(false)
-                        setCustomDate('')
-                      }}
-                      className="px-3 py-1.5 rounded-full text-sm"
-                      style={{
-                        background: isSelected ? `${theme.accent.primary}30` : theme.glass.bg,
-                        border: `1px solid ${isSelected ? theme.accent.primary : theme.glass.border}`,
-                        color: theme.text.primary,
-                      }}
-                    >
-                      {option.label}
-                    </motion.button>
-                  )
-                })}
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowDatePicker(true)}
-                  className="px-3 py-1.5 rounded-full text-sm"
-                  style={{
-                    background: theme.glass.bg,
-                    border: `1px solid ${theme.glass.border}`,
-                    color: theme.text.primary,
-                  }}
-                >
-                  Pick date
-                </motion.button>
-              </div>
-
-              {/* Date Picker Modal */}
-              <DatePicker
-                value={customDate}
-                onChange={handleCustomDateChange}
-                minDate={getMinDate()}
-                mode="modal"
-                isOpen={showDatePicker}
-                onClose={() => setShowDatePicker(false)}
-              />
-
-              {/* Selected Date Display */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mb-4 p-3 rounded-xl"
-                style={{ background: `${theme.accent.warm}15` }}
-              >
-                <span className="text-sm" style={{ color: theme.text.primary }}>
-                  {recipientType === 'self'
-                    ? 'This letter will find you on '
-                    : `${friendName || 'Your friend'} will receive this on `
-                  }
-                  <strong>{format(unlockDate, 'MMMM d, yyyy')}</strong>
-                </span>
-              </motion.div>
-
-              {/* Send Button */}
-              <motion.button
-                whileHover={{ scale: canSend ? 1.02 : 1 }}
-                whileTap={{ scale: canSend ? 0.98 : 1 }}
-                onClick={handleSendLetter}
-                disabled={saving || !canSend}
-                className="w-full py-3 rounded-full text-sm font-medium flex items-center justify-center gap-2"
-                style={{
-                  background: canSend ? theme.accent.primary : theme.glass.bg,
-                  color: canSend ? theme.bg.primary : theme.text.muted,
-                  opacity: saving ? 0.5 : 1,
-                  cursor: canSend ? 'pointer' : 'not-allowed',
-                }}
-              >
-                {saving ? (
-                  'Preparing...'
-                ) : (
-                  <>
-                    <span>Send to the Universe</span>
-                    <span>✨</span>
-                  </>
                 )}
-              </motion.button>
 
-              <p className="text-xs text-center mt-3" style={{ color: theme.text.muted }}>
-                Once sent, this letter will disappear until {recipientType === 'self' ? 'it finds you again' : 'it arrives'}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                {/* Date selection */}
+                <p className="text-sm mb-2" style={{ color: theme.text.muted }}>
+                  {recipientType === 'self'
+                    ? 'When should this letter find you?'
+                    : 'When should this letter arrive?'
+                  }
+                </p>
 
-        {/* Empty state hint */}
-        {!hasContent && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="text-center py-8"
-          >
-            <p className="text-sm" style={{ color: theme.text.muted }}>
-              {recipientType === 'self'
-                ? "Write words your future self needs to hear..."
-                : "Share a moment, a feeling, a memory with someone special..."
-              }
-            </p>
-          </motion.div>
-        )}
+                {/* Quick Options */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {unlockOptions.map((option) => {
+                    const optionDate = option.getValue()
+                    const isSelected = format(unlockDate, 'yyyy-MM-dd') === format(optionDate, 'yyyy-MM-dd')
 
-        {/* Self Letters Section - Only show when "To Future Me" is selected */}
-        {recipientType === 'self' && (
-          <>
-            {/* Wandering Letters Count - Self letters that haven't arrived yet */}
-            {(() => {
-              const wanderingLetters = myLetters.filter(l => !l.recipientEmail && !l.hasArrived)
-              if (wanderingLetters.length === 0) return null
-
-              return (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="mt-12 text-center"
-                >
-                  <motion.div
-                    className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl"
-                    style={{
-                      background: `linear-gradient(135deg, ${theme.accent.primary}08, ${theme.accent.warm}05)`,
-                      border: `1px solid ${theme.glass.border}`,
-                    }}
-                    animate={{
-                      boxShadow: [
-                        `0 0 20px ${theme.accent.primary}10`,
-                        `0 0 30px ${theme.accent.warm}15`,
-                        `0 0 20px ${theme.accent.primary}10`,
-                      ],
-                    }}
-                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                  >
-                    <motion.span
-                      className="text-2xl"
-                      animate={{ rotate: [0, 10, -10, 0], y: [0, -3, 0] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                    >
-                      ✉️
-                    </motion.span>
-                    <div className="text-left">
-                      <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
-                        {wanderingLetters.length} {wanderingLetters.length === 1 ? 'letter' : 'letters'} to yourself
-                      </p>
-                      <p className="text-xs" style={{ color: theme.text.muted }}>
-                        wandering through the universe, will find you in time
-                      </p>
-                    </div>
-                    <motion.div
-                      className="flex gap-1"
-                      animate={{ opacity: [0.3, 0.7, 0.3] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                    >
-                      {[0, 1, 2].map(i => (
-                        <motion.span
-                          key={i}
-                          className="text-xs"
-                          style={{ color: theme.accent.warm }}
-                          animate={{ opacity: [0.2, 1, 0.2] }}
-                          transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.3 }}
-                        >
-                          ✦
-                        </motion.span>
-                      ))}
-                    </motion.div>
-                  </motion.div>
-                </motion.div>
-              )
-            })()}
-
-            {/* Letters from the past - Only show viewed self-letters */}
-            {(() => {
-              const viewedSelfLetters = myLetters.filter(l =>
-                !l.recipientEmail && l.hasArrived && l.isViewed
-              )
-
-              if (viewedSelfLetters.length === 0) return null
-
-              return (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="mt-12 pt-8 border-t"
-                  style={{ borderColor: theme.glass.border }}
-                >
-                  <h2
-                    className="text-lg font-light mb-6 text-center"
-                    style={{ color: theme.text.secondary }}
-                  >
-                    Letters from the past
-                  </h2>
-
-                  <div className="space-y-3">
-                    {viewedSelfLetters.map((letter, index) => (
-                      <motion.div
-                        key={letter.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
+                    return (
+                      <motion.button
+                        key={option.label}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => {
-                          setSelectedLetter(letter)
-                          setShowLetterModal(true)
+                          setUnlockDate(optionDate)
+                          setShowDatePicker(false)
+                          setCustomDate('')
                         }}
-                        className="p-4 rounded-xl cursor-pointer"
+                        className="px-3 py-1.5 rounded-full text-sm"
                         style={{
-                          background: `linear-gradient(135deg, ${theme.accent.warm}15, ${theme.accent.primary}08)`,
-                          border: `1px solid ${theme.accent.warm}40`,
+                          background: isSelected ? `${theme.accent.primary}30` : theme.glass.bg,
+                          border: `1px solid ${isSelected ? theme.accent.primary : theme.glass.border}`,
+                          color: theme.text.primary,
                         }}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <span className="text-xl">✨</span>
-                            <div>
-                              <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
-                                Letter to self
-                              </p>
-                              <p className="text-xs" style={{ color: theme.text.muted }}>
-                                Written {format(new Date(letter.createdAt), 'MMM d, yyyy')}
-                                {letter.letterLocation && ` from ${letter.letterLocation}`}
-                              </p>
-                            </div>
-                          </div>
-                          <span className="text-xs px-2 py-1 rounded-full" style={{
-                            background: `${theme.accent.warm}20`,
-                            color: theme.accent.warm,
-                          }}>
-                            Read
-                          </span>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              )
-            })()}
-          </>
+                        {option.label}
+                      </motion.button>
+                    )
+                  })}
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowDatePicker(true)}
+                    className="px-3 py-1.5 rounded-full text-sm"
+                    style={{
+                      background: theme.glass.bg,
+                      border: `1px solid ${theme.glass.border}`,
+                      color: theme.text.primary,
+                    }}
+                  >
+                    Pick date
+                  </motion.button>
+                </div>
+
+                {/* Date Picker Modal */}
+                <DatePicker
+                  value={customDate}
+                  onChange={handleCustomDateChange}
+                  minDate={getMinDate()}
+                  mode="modal"
+                  isOpen={showDatePicker}
+                  onClose={() => setShowDatePicker(false)}
+                />
+
+                {/* Selected Date Display */}
+                <div
+                  className="mb-4 p-2.5 rounded-xl"
+                  style={{ background: `${theme.accent.warm}15` }}
+                >
+                  <span className="text-sm" style={{ color: theme.text.primary }}>
+                    {recipientType === 'self'
+                      ? 'This letter will find you on '
+                      : `${friendName || 'Your friend'} will receive this on `
+                    }
+                    <strong>{format(unlockDate, 'MMMM d, yyyy')}</strong>
+                  </span>
+                </div>
+
+                {/* Send Button */}
+                <motion.button
+                  whileHover={{ scale: canSend ? 1.02 : 1 }}
+                  whileTap={{ scale: canSend ? 0.98 : 1 }}
+                  onClick={handleSendLetter}
+                  disabled={saving || !canSend}
+                  className="w-full py-3 rounded-full text-sm font-medium flex items-center justify-center gap-2"
+                  style={{
+                    background: canSend ? theme.accent.primary : theme.glass.bg,
+                    color: canSend ? theme.bg.primary : theme.text.muted,
+                    opacity: saving ? 0.5 : 1,
+                    cursor: canSend ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {saving ? (
+                    'Preparing...'
+                  ) : (
+                    <>
+                      <span>Send to the Universe</span>
+                      <span>✨</span>
+                    </>
+                  )}
+                </motion.button>
+
+                <p className="text-xs text-center mt-2" style={{ color: theme.text.muted }}>
+                  Once sent, this letter will disappear until {recipientType === 'self' ? 'it finds you again' : 'it arrives'}
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
+
+      {/* Doodle Canvas Modal */}
+      <AnimatePresence>
+        {showDoodle && (
+          <DoodleCanvas
+            onSave={(strokes) => { setDoodleStrokes(strokes); setShowDoodle(false) }}
+            onClose={() => setShowDoodle(false)}
+            initialStrokes={doodleStrokes}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Letter Reading Modal - Postcard Design */}
       <AnimatePresence>
@@ -1353,7 +1663,7 @@ export default function LettersPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
+            className="fixed inset-0 z-100 flex items-center justify-center overflow-hidden"
             style={{ background: 'rgba(5,5,15,0.95)', paddingTop: '80px', paddingBottom: '24px', paddingLeft: '16px', paddingRight: '16px' }}
             onClick={() => setShowLetterModal(false)}
           >
@@ -1520,6 +1830,58 @@ export default function LettersPage() {
                       {selectedLetter.letterLocation && ` • ${selectedLetter.letterLocation}`}
                     </p>
                   </motion.div>
+
+                  {/* Photos */}
+                  {(selectedLetter as any).photos?.length > 0 && (
+                    <motion.div
+                      className="mt-6 flex flex-wrap gap-4 justify-center"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 2.4, duration: 0.5 }}
+                    >
+                      {(selectedLetter as any).photos.map((photo: any, i: number) => (
+                        <div
+                          key={i}
+                          style={{
+                            background: '#fff',
+                            padding: '8px 8px 32px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            transform: `rotate(${photo.rotation || (i % 2 === 0 ? 3 : -3)}deg)`,
+                          }}
+                        >
+                          <img
+                            src={photo.url}
+                            alt=""
+                            style={{ width: 140, height: 140, objectFit: 'cover', display: 'block' }}
+                          />
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+
+                  {/* Doodle */}
+                  {(selectedLetter as any).doodles?.length > 0 && (
+                    <motion.div
+                      className="mt-6 flex justify-center"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 2.6, duration: 0.5 }}
+                    >
+                      <DoodlePreview strokes={(selectedLetter as any).doodles[0].strokes} size={200} />
+                    </motion.div>
+                  )}
+
+                  {/* Song */}
+                  {(selectedLetter as any).song && isMusicUrl((selectedLetter as any).song) && (
+                    <motion.div
+                      className="mt-6"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 2.8, duration: 0.5 }}
+                    >
+                      <SongEmbed url={(selectedLetter as any).song} compact />
+                    </motion.div>
+                  )}
                 </div>
 
                 {/* Decorative bottom edge */}
@@ -1721,6 +2083,36 @@ export default function LettersPage() {
                       {selectedLetter.letterLocation && ` • ${selectedLetter.letterLocation}`}
                     </p>
                   </div>
+
+                  {/* Photos for download */}
+                  {(selectedLetter as any).photos?.length > 0 && (
+                    <div style={{ marginTop: '24px', display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'center' }}>
+                      {(selectedLetter as any).photos.map((photo: any, i: number) => (
+                        <div
+                          key={i}
+                          style={{
+                            background: '#fff',
+                            padding: '8px 8px 32px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            transform: `rotate(${photo.rotation || (i % 2 === 0 ? 3 : -3)}deg)`,
+                          }}
+                        >
+                          <img
+                            src={photo.url}
+                            alt=""
+                            style={{ width: 140, height: 140, objectFit: 'cover', display: 'block' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Doodle for download */}
+                  {(selectedLetter as any).doodles?.length > 0 && (
+                    <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
+                      <DoodlePreview strokes={(selectedLetter as any).doodles[0].strokes} size={200} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Footer */}

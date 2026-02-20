@@ -10,9 +10,6 @@ export default function MoodPicker() {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm" style={{ color: theme.text.muted }}>
-        feeling
-      </span>
       <div className="flex gap-1">
         {theme.moodEmojis.map((emoji, index) => (
           <motion.button

@@ -9,6 +9,9 @@ interface SendLetterEmailParams {
   letterContent: string
   letterLocation?: string | null
   writtenAt: Date
+  photos?: { url: string; position: number }[]
+  doodleDataUrl?: string | null
+  songLink?: string | null
 }
 
 // Generate beautiful HTML email for letter delivery
@@ -18,7 +21,19 @@ function generateLetterEmail({
   letterContent,
   letterLocation,
   writtenAt,
-}: Omit<SendLetterEmailParams, 'to'>): string {
+  photos,
+  doodleDataUrl,
+  songLink,
+}: {
+  recipientName: string
+  senderName: string
+  letterContent: string
+  letterLocation?: string | null
+  writtenAt: Date
+  photos?: { url: string; position: number }[]
+  doodleDataUrl?: string | null
+  songLink?: string | null
+}): string {
   const formattedDate = writtenAt.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -31,6 +46,64 @@ function generateLetterEmail({
     .replace(/<p><\/p>/g, '<br/>')
     .replace(/<p>/g, '')
     .replace(/<\/p>/g, '<br/>')
+
+  // Build photos HTML
+  const photosHtml = photos && photos.length > 0
+    ? `
+              <!-- Photos Section -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding: 0 32px 24px 32px; text-align: center;">
+                    <div style="text-align: center; margin-top: 24px;">
+                      ${photos.map((photo) => {
+                        const rotation = photo.position === 1 ? 7 : -7
+                        return `<div style="display: inline-block; padding: 6px 6px 20px 6px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin: 0 8px; transform: rotate(${rotation}deg);">
+                        <img src="${photo.url}" style="width: 120px; height: 150px; object-fit: cover;" alt="" />
+                      </div>`
+                      }).join('\n                      ')}
+                    </div>
+                  </td>
+                </tr>
+              </table>`
+    : ''
+
+  // Build doodle HTML
+  const doodleHtml = doodleDataUrl
+    ? `
+              <!-- Doodle Section -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding: 0 32px 24px 32px; text-align: center;">
+                    <div style="text-align: center; margin-top: 24px;">
+                      <img src="${doodleDataUrl}" style="max-width: 300px; width: 100%; border-radius: 12px;" alt="A hand-drawn doodle" />
+                    </div>
+                  </td>
+                </tr>
+              </table>`
+    : ''
+
+  // Build music HTML
+  const musicHtml = songLink
+    ? `
+              <!-- Music Section -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding: 0 32px 24px 32px;">
+                    <div style="margin-top: 24px; padding: 12px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(232,148,90,0.3); border-radius: 12px;">
+                      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                        <tr>
+                          <td style="width: 36px; font-size: 24px; vertical-align: middle;">&#127925;</td>
+                          <td style="padding-left: 12px;">
+                            <div style="font-family: 'Inter', sans-serif; font-size: 13px; color: rgba(232,148,90,0.8);">A song was shared with this letter</div>
+                            <a href="${songLink}" style="font-family: 'Inter', sans-serif; font-size: 14px; color: #e8945a; text-decoration: none; word-break: break-all;">${songLink}</a>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </table>`
+    : ''
 
   return `
 <!DOCTYPE html>
@@ -89,7 +162,7 @@ function generateLetterEmail({
                   </td>
                 </tr>
               </table>
-
+${photosHtml}${doodleHtml}${musicHtml}
               <!-- Letter Footer -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
@@ -149,6 +222,9 @@ export async function sendLetterEmail({
   letterContent,
   letterLocation,
   writtenAt,
+  photos,
+  doodleDataUrl,
+  songLink,
 }: SendLetterEmailParams): Promise<{ success: boolean; error?: string }> {
   try {
     const html = generateLetterEmail({
@@ -157,6 +233,9 @@ export async function sendLetterEmail({
       letterContent,
       letterLocation,
       writtenAt,
+      photos,
+      doodleDataUrl,
+      songLink,
     })
 
     const { error } = await resend.emails.send({
@@ -251,6 +330,57 @@ export async function sendSelfLetterNotification({
     return { success: true }
   } catch (err) {
     console.error('Error sending self letter notification:', err)
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+// Send full letter content email to self (used when self-letter is delivered)
+export async function sendSelfLetterEmail({
+  to,
+  userName,
+  letterContent,
+  letterLocation,
+  writtenAt,
+  photos,
+  doodleDataUrl,
+  songLink,
+}: {
+  to: string
+  userName: string
+  letterContent: string
+  letterLocation?: string | null
+  writtenAt: Date
+  photos?: { url: string; position: number }[]
+  doodleDataUrl?: string | null
+  songLink?: string | null
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const html = generateLetterEmail({
+      recipientName: userName || 'future me',
+      senderName: 'Your past self',
+      letterContent,
+      letterLocation,
+      writtenAt,
+      photos,
+      doodleDataUrl,
+      songLink,
+    })
+
+    const { error } = await resend.emails.send({
+      from: 'Hearth Letters <letters@hearth.app>',
+      to,
+      subject: 'A letter from your past self has arrived',
+      html,
+    })
+
+    if (error) {
+      console.error('Failed to send self letter email:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err) {
+    console.error('Error sending self letter email:', err)
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
 }

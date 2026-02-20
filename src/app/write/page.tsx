@@ -6,12 +6,11 @@ import { getGreeting, getRandomWhisper, getRandomPrompt } from '@/lib/themes'
 import { useThemeStore } from '@/store/theme'
 import { useJournalStore, JournalEntry, StrokeData } from '@/store/journal'
 import { useProfileStore } from '@/store/profile'
-import { useEntries } from '@/hooks/useEntries'
 import { useE2EE } from '@/hooks/useE2EE'
 import Editor from '@/components/Editor'
-import MoodPicker from '@/components/MoodPicker'
 import DoodleCanvas from '@/components/DoodleCanvas'
-import EntryCard from '@/components/EntryCard'
+import DoodlePreview from '@/components/DoodlePreview'
+import CollagePhoto from '@/components/CollagePhoto'
 import SongEmbed, { isMusicUrl } from '@/components/SongEmbed'
 import BirthdayBanner from '@/components/BirthdayBanner'
 import LetterArrivedBanner from '@/components/LetterArrivedBanner'
@@ -21,10 +20,14 @@ const DOODLE_DRAFT_KEY = 'hearth_doodle_draft'
 export default function WritePage() {
   const [whisper, setWhisper] = useState('')
   const [prompt, setPrompt] = useState('')
+  const [saveMessage, setSaveMessage] = useState('')
   const [showDoodle, setShowDoodle] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
   const [hasDoodleDraft, setHasDoodleDraft] = useState(false)
+  const [photoTopRight, setPhotoTopRight] = useState<string | null>(null)
+  const [photoBottomLeft, setPhotoBottomLeft] = useState<string | null>(null)
 
   const { theme } = useThemeStore()
   const { profile, fetchProfile } = useProfileStore()
@@ -32,23 +35,14 @@ export default function WritePage() {
     currentMood,
     currentText,
     currentSong,
-    setCurrentMood,
-    setCurrentText,
     setCurrentSong,
     currentDoodleStrokes,
-    addDoodleStroke,
-    clearDoodleStrokes,
+    setDoodleStrokes,
     resetCurrentEntry,
   } = useJournalStore()
 
-  // Fetch only today's entries using the optimized hook
-  const { entries: todayEntries, refresh: refreshTodayEntries } = useEntries({
-    today: true,
-    limit: 20,
-  })
-
   // E2EE hook for encrypting entries
-  const { encryptEntryData, isE2EEEnabled, isE2EEReady } = useE2EE()
+  const { encryptEntryData, isE2EEReady } = useE2EE()
 
   // Check for doodle draft
   const checkDoodleDraft = useCallback(() => {
@@ -98,6 +92,15 @@ export default function WritePage() {
       const url = isEditing ? `/api/entries/${editingEntry.id}` : '/api/entries'
       const method = isEditing ? 'PUT' : 'POST'
 
+      // Prepare photos array
+      const photos = []
+      if (photoTopRight) {
+        photos.push({ url: photoTopRight, position: 1, spread: 1, rotation: 7 })
+      }
+      if (photoBottomLeft) {
+        photos.push({ url: photoBottomLeft, position: 2, spread: 1, rotation: -7 })
+      }
+
       // Prepare entry data
       const entryData = {
         text: currentText,
@@ -106,10 +109,10 @@ export default function WritePage() {
         doodles: currentDoodleStrokes.length > 0
           ? [{ strokes: currentDoodleStrokes, positionInEntry: 0 }]
           : [],
+        photos: photos.length > 0 ? photos : undefined,
       }
 
       // Encrypt if E2EE is ready and this is a new entry
-      // We don't encrypt when editing existing entries to avoid breaking them
       const finalData = !isEditing
         ? await encryptEntryData(entryData)
         : entryData
@@ -124,10 +127,23 @@ export default function WritePage() {
       console.log('Save response:', res.status, data)
 
       if (res.ok) {
+        // Show save confirmation before clearing
+        const messages = [
+          'Your thoughts are safe now',
+          'Tucked away gently',
+          'Written in your heart',
+          'Saved, like a warm memory',
+          'Your words found their home',
+          'Held close, just for you',
+          'A moment, preserved',
+        ]
+        setSaveMessage(messages[Math.floor(Math.random() * messages.length)])
+        setSaved(true)
+
         resetCurrentEntry()
         setEditingEntry(null)
-        refreshTodayEntries()
-        setWhisper(getRandomWhisper())
+        setPhotoTopRight(null)
+        setPhotoBottomLeft(null)
         // Clear doodle draft
         try {
           localStorage.removeItem(DOODLE_DRAFT_KEY)
@@ -135,6 +151,9 @@ export default function WritePage() {
         } catch (e) {
           console.error('Failed to clear doodle draft:', e)
         }
+
+        // Hide confirmation after delay
+        setTimeout(() => setSaved(false), 3000)
       } else {
         console.error('Save failed:', data)
         alert(`Failed to save: ${data.details || data.error}`)
@@ -147,51 +166,34 @@ export default function WritePage() {
     }
   }
 
-  const handleEditEntry = (entry: JournalEntry) => {
-    setEditingEntry(entry)
-    setCurrentText(entry.text)
-    setCurrentMood(entry.mood)
-    setCurrentSong(entry.song || '')
-    // Load doodles if present
-    clearDoodleStrokes()
-    if (entry.doodles && entry.doodles.length > 0) {
-      entry.doodles[0]?.strokes.forEach(stroke => addDoodleStroke(stroke))
-    }
-    // Scroll to top to show the editor
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   const handleCancelEdit = () => {
     setEditingEntry(null)
     resetCurrentEntry()
   }
 
   const handleDoodleSave = (strokes: StrokeData[]) => {
-    strokes.forEach(stroke => addDoodleStroke(stroke))
+    setDoodleStrokes(strokes)
     setShowDoodle(false)
     setHasDoodleDraft(false)
   }
 
   const handleDoodleClose = () => {
     setShowDoodle(false)
-    // Check if there's a draft after closing (user might have drawn something)
     checkDoodleDraft()
   }
 
-  // Use state for greeting to avoid hydration mismatch (time differs server vs client)
+  // Use state for greeting to avoid hydration mismatch
   const [greeting, setGreeting] = useState('')
 
   useEffect(() => {
     setGreeting(getGreeting())
   }, [])
 
-  // Build personalized greeting with nickname
   const nickname = profile.nickname
   const personalizedGreeting = nickname
     ? `${greeting}, ${nickname}`
     : greeting
 
-  // Check if today is the user's birthday
   const isBirthday = (() => {
     if (!profile.dateOfBirth) return false
     const today = new Date()
@@ -214,7 +216,7 @@ export default function WritePage() {
           className="text-2xl font-light tracking-wide"
           style={{ color: theme.text.primary }}
         >
-          {personalizedGreeting}
+          🌿 {personalizedGreeting} 🌸
         </h1>
       </motion.div>
 
@@ -232,7 +234,7 @@ export default function WritePage() {
         className="text-center text-sm italic mb-8"
         style={{ color: theme.text.muted }}
       >
-        "{whisper}"
+        🍃 &ldquo;{whisper}&rdquo; 🌺
       </motion.p>
 
       {/* Edit Mode Banner */}
@@ -259,11 +261,6 @@ export default function WritePage() {
         </motion.div>
       )}
 
-      {/* Mood Picker */}
-      <div className="flex justify-center mb-6">
-        <MoodPicker />
-      </div>
-
       {/* Prompt */}
       <div className="flex items-center justify-center gap-2 mb-4">
         <p className="text-sm italic" style={{ color: theme.text.secondary }}>
@@ -278,39 +275,68 @@ export default function WritePage() {
         </button>
       </div>
 
-      {/* Editor */}
+      {/* Editor with Photo Collage */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="relative mt-5"
+        style={{ overflow: 'visible' }}
       >
         <Editor prompt={prompt} />
+
+        {/* Collage Photos */}
+        <CollagePhoto
+          position="top-right"
+          photo={photoTopRight}
+          onPhotoChange={setPhotoTopRight}
+        />
+        <CollagePhoto
+          position="bottom-left"
+          photo={photoBottomLeft}
+          onPhotoChange={setPhotoBottomLeft}
+        />
       </motion.div>
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between mt-4">
         <div className="flex gap-2">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            onClick={() => setShowDoodle(true)}
-            className="w-10 h-10 rounded-full flex items-center justify-center relative"
-            style={{
-              background: theme.glass.bg,
-              border: `1px solid ${theme.glass.border}`,
-              color: currentDoodleStrokes.length > 0 || hasDoodleDraft ? theme.accent.warm : theme.text.muted,
-            }}
-            title={hasDoodleDraft ? "Continue doodle draft" : "Add doodle"}
-          >
-            ✎
-            {hasDoodleDraft && currentDoodleStrokes.length === 0 && (
-              <span
-                className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
-                style={{ background: theme.accent.warm }}
-              />
-            )}
-          </motion.button>
+          {currentDoodleStrokes.length > 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-10 h-10 rounded-full overflow-hidden cursor-pointer"
+              style={{ border: `2px solid ${theme.accent.warm}` }}
+              onClick={() => setShowDoodle(true)}
+              title="Edit doodle"
+            >
+              <DoodlePreview strokes={currentDoodleStrokes} size={40} />
+            </motion.div>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              onClick={() => setShowDoodle(true)}
+              className="w-10 h-10 rounded-full flex items-center justify-center relative"
+              style={{
+                background: theme.glass.bg,
+                border: `1px solid ${theme.glass.border}`,
+                color: hasDoodleDraft ? theme.accent.warm : theme.text.muted,
+              }}
+              title={hasDoodleDraft ? "Continue doodle draft" : "Add doodle"}
+            >
+              ✎
+              {hasDoodleDraft && (
+                <span
+                  className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
+                  style={{ background: theme.accent.warm }}
+                />
+              )}
+            </motion.button>
+          )}
 
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -370,30 +396,6 @@ export default function WritePage() {
         </AnimatePresence>
       </div>
 
-      {/* Doodle Preview */}
-      {currentDoodleStrokes.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-          className="mt-4 p-4 rounded-xl"
-          style={{ background: theme.glass.bg }}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm" style={{ color: theme.text.muted }}>
-              Doodle attached
-            </span>
-            <button
-              onClick={clearDoodleStrokes}
-              className="text-sm"
-              style={{ color: theme.accent.primary }}
-            >
-              Remove
-            </button>
-          </div>
-        </motion.div>
-      )}
-
       {/* Song Preview - shows embed for URLs */}
       {currentSong && isMusicUrl(currentSong) && (
         <motion.div
@@ -406,49 +408,125 @@ export default function WritePage() {
         </motion.div>
       )}
 
-      {/* Today's Entries */}
-      {todayEntries.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-12"
-        >
-          <motion.h2
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="text-lg mb-4"
-            style={{ color: theme.text.secondary }}
-          >
-            earlier today
-          </motion.h2>
-          <div className="space-y-4">
-            {todayEntries.map((entry, index) => (
-              <motion.div
-                key={entry.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.8,
-                  delay: 0.8 + index * 0.1,
-                  ease: [0.22, 1, 0.36, 1]
-                }}
-              >
-                <EntryCard entry={entry} onEdit={handleEditEntry} />
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      )}
-
       {/* Doodle Modal */}
       <AnimatePresence>
         {showDoodle && (
           <DoodleCanvas
             onSave={handleDoodleSave}
             onClose={handleDoodleClose}
+            initialStrokes={currentDoodleStrokes.length > 0 ? currentDoodleStrokes : undefined}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Save Confirmation Overlay */}
+      <AnimatePresence>
+        {saved && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+            style={{ background: `${theme.bg.primary}90` }}
+          >
+            {/* Gentle glow behind */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 0.15 }}
+              exit={{ scale: 1.5, opacity: 0 }}
+              transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute rounded-full"
+              style={{
+                width: 300,
+                height: 300,
+                background: `radial-gradient(circle, ${theme.accent.warm}, transparent)`,
+              }}
+            />
+
+            {/* Content */}
+            <div className="relative flex flex-col items-center gap-5">
+              {/* Animated checkmark circle */}
+              <motion.div
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 200,
+                  damping: 15,
+                  delay: 0.15,
+                }}
+                className="w-16 h-16 rounded-full flex items-center justify-center"
+                style={{
+                  background: `${theme.accent.primary}25`,
+                  border: `2px solid ${theme.accent.primary}60`,
+                }}
+              >
+                <motion.svg
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.4, ease: 'easeOut' }}
+                  className="w-8 h-8"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={theme.accent.primary}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <motion.path
+                    d="M5 13l4 4L19 7"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.5, delay: 0.4, ease: 'easeOut' }}
+                  />
+                </motion.svg>
+              </motion.div>
+
+              {/* Message text */}
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.6, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="text-lg font-light tracking-wide text-center"
+                style={{ color: theme.text.primary }}
+              >
+                {saveMessage}
+              </motion.p>
+
+              {/* Subtle decorative dots floating up */}
+              {[...Array(5)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{
+                    opacity: 0,
+                    y: 20,
+                    x: (i - 2) * 30,
+                    scale: 0,
+                  }}
+                  animate={{
+                    opacity: [0, 0.6, 0],
+                    y: -40 - i * 15,
+                    scale: [0, 1, 0.5],
+                  }}
+                  transition={{
+                    duration: 2,
+                    delay: 0.6 + i * 0.15,
+                    ease: 'easeOut',
+                  }}
+                  className="absolute rounded-full"
+                  style={{
+                    width: 4 + i * 1.5,
+                    height: 4 + i * 1.5,
+                    background: i % 2 === 0 ? theme.accent.warm : theme.accent.primary,
+                    top: '50%',
+                  }}
+                />
+              ))}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
