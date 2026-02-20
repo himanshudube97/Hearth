@@ -5,7 +5,12 @@ import dynamic from 'next/dynamic'
 import { useThemeStore } from '@/store/theme'
 
 const Excalidraw = dynamic(
-  async () => (await import('@excalidraw/excalidraw')).Excalidraw,
+  async () => {
+    const mod = await import('@excalidraw/excalidraw')
+    // Load Excalidraw styles alongside the component
+    try { await import('@excalidraw/excalidraw/index.css') } catch { /* handled by bundler */ }
+    return mod.Excalidraw
+  },
   { ssr: false }
 )
 
