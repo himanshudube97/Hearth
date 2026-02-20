@@ -90,6 +90,15 @@ export default function WritePage() {
       const url = isEditing ? `/api/entries/${editingEntry.id}` : '/api/entries'
       const method = isEditing ? 'PUT' : 'POST'
 
+      // Prepare photos array
+      const photos = []
+      if (photoTopRight) {
+        photos.push({ url: photoTopRight, position: 1, spread: 1, rotation: 7 })
+      }
+      if (photoBottomLeft) {
+        photos.push({ url: photoBottomLeft, position: 2, spread: 1, rotation: -7 })
+      }
+
       // Prepare entry data
       const entryData = {
         text: currentText,
@@ -98,6 +107,7 @@ export default function WritePage() {
         doodles: currentDoodleStrokes.length > 0
           ? [{ strokes: currentDoodleStrokes, positionInEntry: 0 }]
           : [],
+        photos: photos.length > 0 ? photos : undefined,
       }
 
       // Encrypt if E2EE is ready and this is a new entry

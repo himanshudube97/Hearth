@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format, isToday, isYesterday } from 'date-fns'
 import { useThemeStore } from '@/store/theme'
-import { useJournalStore, JournalEntry } from '@/store/journal'
+import { JournalEntry } from '@/store/journal'
 import { useProfileStore } from '@/store/profile'
 import { useEntries, useEntryStats } from '@/hooks/useEntries'
 import EntryCard from '@/components/EntryCard'
+import EntryDetailModal from '@/components/EntryDetailModal'
 
 interface GroupedEntries {
   date: Date
@@ -17,7 +17,6 @@ interface GroupedEntries {
 }
 
 export default function TimelinePage() {
-  const router = useRouter()
   const { theme } = useThemeStore()
   const { profile, fetchProfile } = useProfileStore()
   const { stats, loading: statsLoading } = useEntryStats()
@@ -37,8 +36,8 @@ export default function TimelinePage() {
   const [moodFilter, setMoodFilter] = useState<number[]>([])
   const [showFilters, setShowFilters] = useState(false)
 
-  // Expanded entry state
-  const [expandedEntry, setExpandedEntry] = useState<string | null>(null)
+  // Modal state
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
 
   // Fetch entries for selected month
   const {
@@ -55,14 +54,6 @@ export default function TimelinePage() {
     limit: 30,
   })
 
-  // Journal store for editing
-  const {
-    setCurrentText,
-    setCurrentMood,
-    setCurrentSong,
-    clearDoodleStrokes,
-    addDoodleStroke,
-  } = useJournalStore()
 
   // Intersection observer for infinite scroll
   const loadMoreRef = useRef<HTMLDivElement>(null)
@@ -108,19 +99,6 @@ export default function TimelinePage() {
     })
   }, [entries])
 
-  // Handle edit entry
-  const handleEditEntry = (entry: JournalEntry) => {
-    setCurrentText(entry.text)
-    setCurrentMood(entry.mood)
-    setCurrentSong(entry.song || '')
-    clearDoodleStrokes()
-    if (entry.doodles && entry.doodles.length > 0) {
-      entry.doodles[0]?.strokes.forEach(stroke => addDoodleStroke(stroke))
-    }
-    sessionStorage.setItem('editingEntryId', entry.id)
-    sessionStorage.setItem('editingEntryCreatedAt', entry.createdAt)
-    router.push('/write')
-  }
 
   // Format date label
   const formatDateLabel = (date: Date): string => {
@@ -481,11 +459,7 @@ export default function TimelinePage() {
                     <EntryCard
                       key={entry.id}
                       entry={entry}
-                      expanded={isLetter ? false : expandedEntry === entry.id}
-                      onClick={isLetter ? undefined : () => setExpandedEntry(
-                        expandedEntry === entry.id ? null : entry.id
-                      )}
-                      onEdit={isLetter ? undefined : handleEditEntry}
+                      onClick={isLetter ? undefined : () => setSelectedEntryId(entry.id)}
                     />
                   )
                 })}
@@ -513,6 +487,13 @@ export default function TimelinePage() {
           </div>
         </div>
       )}
+
+      {/* Entry Detail Modal */}
+      <EntryDetailModal
+        entryId={selectedEntryId}
+        onClose={() => setSelectedEntryId(null)}
+        onUpdated={refresh}
+      />
     </div>
   )
 }
