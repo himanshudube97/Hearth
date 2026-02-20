@@ -13,6 +13,17 @@ interface CameraModalProps {
 const MAX_WIDTH = 1200
 const POLAROID_ASPECT_RATIO = 4 / 5
 
+const FILTERS = [
+  { name: 'None', css: 'none' },
+  { name: 'B&W', css: 'grayscale(100%)' },
+  { name: 'Sepia', css: 'sepia(80%)' },
+  { name: 'Warm', css: 'saturate(1.4) hue-rotate(-10deg)' },
+  { name: 'Cool', css: 'saturate(0.9) hue-rotate(20deg) brightness(1.05)' },
+  { name: 'Vintage', css: 'sepia(40%) contrast(1.1) brightness(0.95)' },
+  { name: 'Vivid', css: 'saturate(1.8) contrast(1.1)' },
+  { name: 'Soft', css: 'brightness(1.1) contrast(0.9) saturate(0.9)' },
+] as const
+
 const CameraModal = memo(function CameraModal({
   isOpen,
   onClose,
@@ -25,6 +36,8 @@ const CameraModal = memo(function CameraModal({
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
+  const [activeFilter, setActiveFilter] = useState(0)
+  const [thumbnailSrc, setThumbnailSrc] = useState<string | null>(null)
 
   const startCamera = useCallback(async () => {
     try {
@@ -114,6 +127,12 @@ const CameraModal = memo(function CameraModal({
       ctx.scale(-1, 1)
     }
 
+    // Apply selected filter
+    const filterCss = FILTERS[activeFilter].css
+    if (filterCss !== 'none') {
+      ctx.filter = filterCss
+    }
+
     // Draw cropped video frame
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outputWidth, outputHeight)
 
@@ -121,7 +140,7 @@ const CameraModal = memo(function CameraModal({
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
     setCapturedImage(dataUrl)
     stopCamera()
-  }, [isStreaming, stopCamera, facingMode])
+  }, [isStreaming, stopCamera, facingMode, activeFilter])
 
   const retakePhoto = useCallback(() => {
     setCapturedImage(null)
@@ -159,10 +178,38 @@ const CameraModal = memo(function CameraModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode])
 
+  // Grab a small snapshot for filter thumbnails
+  useEffect(() => {
+    if (!isStreaming || !videoRef.current) {
+      setThumbnailSrc(null)
+      return
+    }
+    const grabFrame = () => {
+      const video = videoRef.current
+      if (!video || video.videoWidth === 0) return
+      const c = document.createElement('canvas')
+      c.width = 48
+      c.height = 60
+      const cx = c.getContext('2d')
+      if (!cx) return
+      if (facingMode === 'user') {
+        cx.translate(48, 0)
+        cx.scale(-1, 1)
+      }
+      cx.drawImage(video, 0, 0, 48, 60)
+      setThumbnailSrc(c.toDataURL('image/jpeg', 0.5))
+    }
+    grabFrame()
+    const id = setInterval(grabFrame, 2000)
+    return () => clearInterval(id)
+  }, [isStreaming, facingMode])
+
   const handleClose = useCallback(() => {
     stopCamera()
     setCapturedImage(null)
     setError(null)
+    setActiveFilter(0)
+    setThumbnailSrc(null)
     onClose()
   }, [stopCamera, onClose])
 
@@ -233,7 +280,10 @@ const CameraModal = memo(function CameraModal({
                   playsInline
                   muted
                   className="w-full h-full object-cover"
-                  style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
+                  style={{
+                    transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
+                    filter: FILTERS[activeFilter].css,
+                  }}
                 />
                 {!isStreaming && (
                   <div
@@ -250,6 +300,53 @@ const CameraModal = memo(function CameraModal({
               </>
             )}
           </div>
+
+          {/* Filters */}
+          {!capturedImage && !error && (
+            <div
+              className="flex gap-2 px-4 py-2 overflow-x-auto"
+              style={{ borderTop: `1px solid ${theme.glass.border}` }}
+            >
+              {FILTERS.map((f, i) => (
+                <button
+                  key={f.name}
+                  onClick={() => setActiveFilter(i)}
+                  className="shrink-0 flex flex-col items-center gap-1"
+                >
+                  <div
+                    className="w-12 h-12 rounded-lg overflow-hidden border-2 transition-all"
+                    style={{
+                      borderColor: activeFilter === i ? theme.accent.warm : 'transparent',
+                      opacity: activeFilter === i ? 1 : 0.7,
+                    }}
+                  >
+                    {thumbnailSrc ? (
+                      <img
+                        src={thumbnailSrc}
+                        alt={f.name}
+                        className="w-full h-full object-cover"
+                        style={{ filter: f.css }}
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full"
+                        style={{ background: 'rgba(255,255,255,0.1)' }}
+                      />
+                    )}
+                  </div>
+                  <span
+                    className="text-[9px]"
+                    style={{
+                      color: activeFilter === i ? theme.accent.warm : theme.text.muted,
+                      fontWeight: activeFilter === i ? 600 : 400,
+                    }}
+                  >
+                    {f.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Controls */}
           <div className="p-4 flex items-center justify-center gap-4">

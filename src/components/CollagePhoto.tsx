@@ -101,15 +101,17 @@ export default function CollagePhoto({ position, photo, onPhotoChange }: Collage
   if (photo) {
     return (
       <motion.div
-        style={{ ...positionStyle, transform: `rotate(${rotation}deg)` }}
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
+        style={positionStyle}
+        initial={{ opacity: 0, scale: 0.8, rotate: 0 }}
+        animate={{ opacity: 1, scale: 1, rotate: rotation }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       >
         <div
           className="rounded-sm overflow-hidden shadow-lg cursor-pointer group relative"
           style={{
-            background: 'white',
+            background: theme.glass.bg,
+            backdropFilter: `blur(12px)`,
+            border: `1px solid ${theme.glass.border}`,
             padding: '6px 6px 20px 6px',
             width: 120,
             boxShadow: '0 6px 20px rgba(0,0,0,0.25), 0 2px 6px rgba(0,0,0,0.15)',
