@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
+    "@excalidraw/excalidraw": "^0.18.0",
     "@lemonsqueezy/lemonsqueezy.js": "^4.0.0",
     "@prisma/client": "^5.22.0",
     "@stripe/stripe-js": "^8.7.0",
