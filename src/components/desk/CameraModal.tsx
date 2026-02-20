@@ -108,6 +108,12 @@ const CameraModal = memo(function CameraModal({
     canvas.width = outputWidth
     canvas.height = outputHeight
 
+    // Mirror horizontally for front camera to match preview
+    if (facingMode === 'user') {
+      ctx.translate(outputWidth, 0)
+      ctx.scale(-1, 1)
+    }
+
     // Draw cropped video frame
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outputWidth, outputHeight)
 
@@ -115,7 +121,7 @@ const CameraModal = memo(function CameraModal({
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
     setCapturedImage(dataUrl)
     stopCamera()
-  }, [isStreaming, stopCamera])
+  }, [isStreaming, stopCamera, facingMode])
 
   const retakePhoto = useCallback(() => {
     setCapturedImage(null)
