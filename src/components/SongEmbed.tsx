@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
+import type { Theme } from '@/lib/themes'
 
 interface SongEmbedProps {
   url: string
@@ -228,7 +229,7 @@ function AudioOnlyPlayer({
   embedUrl: string
   originalUrl: string
   type: EmbedType
-  theme: ReturnType<typeof useThemeStore>['theme']
+  theme: Theme
   compact: boolean
 }) {
   const [isPlaying, setIsPlaying] = useState(false)
@@ -273,7 +274,7 @@ function AudioOnlyPlayer({
       style={{
         height: compact ? '64px' : '96px',
         background: isPlaying
-          ? `linear-gradient(135deg, ${theme.glass.bg} 0%, ${theme.accent.warm}12 50%, ${theme.accent.cool}08 100%)`
+          ? `linear-gradient(135deg, ${theme.glass.bg} 0%, ${theme.accent.warm}12 50%, ${theme.accent.secondary}08 100%)`
           : `linear-gradient(135deg, ${theme.glass.bg} 0%, ${theme.accent.warm}10 100%)`,
         border: `1px solid ${isPlaying ? theme.accent.warm + '40' : theme.glass.border}`,
         backdropFilter: 'blur(20px)',
@@ -325,7 +326,7 @@ function AudioOnlyPlayer({
               <div className="flex-1 flex flex-col items-center justify-center">
                 {/* Visualizer */}
                 <div className={`flex items-center ${compact ? 'gap-3' : 'gap-6'} ${compact ? 'mb-0' : 'mb-2'}`}>
-                  <AudioVisualizer isPlaying={true} color={theme.accent.cool} size={compact ? 'sm' : 'md'} />
+                  <AudioVisualizer isPlaying={true} color={theme.accent.secondary} size={compact ? 'sm' : 'md'} />
                   <motion.span
                     className={`${compact ? 'text-xs' : 'text-sm'} font-medium`}
                     style={{ color: theme.text.primary }}
@@ -437,7 +438,7 @@ function AudioOnlyPlayer({
             <motion.div
               className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
               style={{
-                background: `linear-gradient(135deg, ${theme.accent.warm} 0%, ${theme.accent.cool} 100%)`,
+                background: `linear-gradient(135deg, ${theme.accent.warm} 0%, ${theme.accent.secondary} 100%)`,
                 boxShadow: `0 4px 15px ${theme.accent.warm}40`,
               }}
               whileHover={{ scale: 1.1 }}
@@ -490,17 +491,25 @@ export default function SongEmbed({ url, compact = false, audioOnly = true }: So
 
   // For URLs without embed support, show as clickable link
   if (!embedInfo.embedUrl) {
-    const linkIcon = {
+    const linkIcon: Record<EmbedType, string> = {
+      youtube: '▶',
+      spotify: '♫',
+      apple: '♫',
       soundcloud: '☁',
       instagram: '📷',
       unknown: '♫',
-    }[embedInfo.type] || '♫'
+    }
+    const icon = linkIcon[embedInfo.type] || '♫'
 
-    const linkLabel = {
+    const linkLabel: Record<EmbedType, string> = {
+      youtube: 'YouTube',
+      spotify: 'Spotify',
+      apple: 'Apple Music',
       soundcloud: 'SoundCloud',
       instagram: 'Instagram Reel',
       unknown: 'Link',
-    }[embedInfo.type] || 'Link'
+    }
+    const label = linkLabel[embedInfo.type] || 'Link'
 
     return (
       <motion.a
@@ -511,9 +520,9 @@ export default function SongEmbed({ url, compact = false, audioOnly = true }: So
         style={{ background: `${theme.accent.warm}15` }}
         whileHover={{ scale: 1.01 }}
       >
-        <span style={{ color: theme.accent.warm }}>{linkIcon}</span>
+        <span style={{ color: theme.accent.warm }}>{icon}</span>
         <div className="flex-1 min-w-0">
-          <p className="text-xs" style={{ color: theme.text.muted }}>{linkLabel}</p>
+          <p className="text-xs" style={{ color: theme.text.muted }}>{label}</p>
           <p className="text-sm truncate" style={{ color: theme.text.primary }}>
             {url.replace(/https?:\/\/(www\.)?/, '').slice(0, 40)}...
           </p>

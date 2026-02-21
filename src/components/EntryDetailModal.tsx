@@ -133,8 +133,7 @@ export default function EntryDetailModal({ entryId, onClose, onUpdated }: EntryD
     }
   }
 
-  // Type-safe access to photos from API response
-  const entryPhotos: EntryPhoto[] = (entry as Record<string, unknown>)?.photos as EntryPhoto[] || []
+  const entryPhotos: EntryPhoto[] = entry?.photos as EntryPhoto[] || []
   const hasDoodles = entry?.doodles && entry.doodles.length > 0
   const hasSong = !!entry?.song
 

@@ -1,6 +1,10 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+let _resend: Resend | null = null
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
+  return _resend
+}
 
 interface SendLetterEmailParams {
   to: string
@@ -238,7 +242,7 @@ export async function sendLetterEmail({
       songLink,
     })
 
-    const { error } = await resend.emails.send({
+    const { error } = await getResend().emails.send({
       from: 'Hearth <letters@hearth.app>',
       to: [to],
       subject: `A letter from ${senderName} has arrived`,
@@ -315,7 +319,7 @@ export async function sendSelfLetterNotification({
 </html>
 `
 
-    const { error } = await resend.emails.send({
+    const { error } = await getResend().emails.send({
       from: 'Hearth <letters@hearth.app>',
       to: [to],
       subject: 'A letter from your past self has arrived',
@@ -366,7 +370,7 @@ export async function sendSelfLetterEmail({
       songLink,
     })
 
-    const { error } = await resend.emails.send({
+    const { error } = await getResend().emails.send({
       from: 'Hearth Letters <letters@hearth.app>',
       to,
       subject: 'A letter from your past self has arrived',

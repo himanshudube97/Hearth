@@ -10,6 +10,9 @@ export interface JournalEntry {
   song?: string
   tags: string[]
   doodles: Doodle[]
+  photos?: { id?: string; url: string; rotation: number; position: number; spread: number }[]
+  spreads?: number
+  isArchived?: boolean
   // Letter-specific fields
   entryType?: 'normal' | 'letter' | 'unsent_letter' | 'ephemeral'
   isSealed?: boolean
