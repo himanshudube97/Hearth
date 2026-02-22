@@ -271,18 +271,40 @@ const LeftPage = memo(function LeftPage({
       transition={{ delay: 0.2, duration: 0.5 }}
       className="h-full flex flex-col overflow-hidden"
     >
-      {/* Song display */}
-      {entry?.song && (
-        <div className="mb-3 flex-shrink-0">
-          <div
-            className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
-            style={{ color: mutedColor }}
-          >
-            Listening to
-          </div>
-          <SongEmbed url={entry.song} compact audioOnly />
-        </div>
-      )}
+      {/* Song display — same UI as new entry template */}
+      <div className="mb-2 flex-shrink-0" style={{ minHeight: '68px' }}>
+        {entry?.song ? (
+          <>
+            <div
+              className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
+              style={{ color: mutedColor }}
+            >
+              Listening to
+            </div>
+            <SongEmbed url={entry.song} compact audioOnly />
+          </>
+        ) : (
+          <>
+            <div
+              className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
+              style={{ color: mutedColor }}
+            >
+              Add a Song
+            </div>
+            <input
+              type="text"
+              disabled
+              placeholder="Paste Spotify, YouTube, or SoundCloud link..."
+              className="w-full px-3 py-2 rounded-lg text-sm bg-transparent outline-none opacity-50"
+              style={{
+                border: isGlass ? '1px solid rgba(255,255,255,0.2)' : `1px solid ${diaryTheme.doodle.canvasBorder}`,
+                color: textColor,
+                background: isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground,
+              }}
+            />
+          </>
+        )}
+      </div>
 
       {/* Text content - no scroll */}
       <div

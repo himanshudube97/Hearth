@@ -450,15 +450,19 @@ const RightPage = memo(function RightPage({
       transition={{ delay: 0.3, duration: 0.5 }}
       className="h-full flex flex-col overflow-hidden"
     >
-      {/* Photos */}
-      {entryPhotos.length > 0 && (
-        <div className="mb-3 flex-shrink-0">
-          <PhotoBlock
-            photos={entryPhotos}
-            disabled
-          />
+      {/* Photos — same UI as new entry template */}
+      <div className="mb-3 flex-shrink-0">
+        <div
+          className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
+          style={{ color: mutedColor }}
+        >
+          {entryPhotos.length > 0 ? 'Photos' : 'Add Photos'}
         </div>
-      )}
+        <PhotoBlock
+          photos={entryPhotos}
+          disabled
+        />
+      </div>
 
       {/* Text content - no scroll */}
       <div
@@ -481,22 +485,34 @@ const RightPage = memo(function RightPage({
         )}
       </div>
 
-      {/* Doodle preview */}
-      {entryDoodle?.strokes && entryDoodle.strokes.length > 0 && (
-        <div className="mt-2 flex-shrink-0">
-          <div
-            className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium"
-            style={{ color: mutedColor }}
-          >
-            Doodle
-          </div>
-          <DoodlePreview
-            strokes={entryDoodle.strokes}
-            canvasBackground={isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground}
-            canvasBorder={isGlass ? 'rgba(255,255,255,0.2)' : diaryTheme.doodle.canvasBorder}
-          />
+      {/* Doodle — same UI as new entry template */}
+      <div className="mt-2 flex-shrink-0" style={{ height: '140px' }}>
+        <div
+          className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium"
+          style={{ color: mutedColor }}
+        >
+          {entryDoodle?.strokes && entryDoodle.strokes.length > 0 ? 'Doodle' : 'Draw'}
         </div>
-      )}
+        <div style={{ height: '120px' }}>
+          {entryDoodle?.strokes && entryDoodle.strokes.length > 0 ? (
+            <DoodlePreview
+              strokes={entryDoodle.strokes}
+              canvasBackground={isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground}
+              canvasBorder={isGlass ? 'rgba(255,255,255,0.2)' : diaryTheme.doodle.canvasBorder}
+            />
+          ) : (
+            <div
+              className="h-full relative rounded-lg overflow-hidden flex items-center justify-center"
+              style={{
+                background: isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground,
+                border: `1px solid ${isGlass ? 'rgba(255,255,255,0.2)' : diaryTheme.doodle.canvasBorder}`,
+              }}
+            >
+              <span className="text-[10px]" style={{ color: mutedColor, opacity: 0.5 }}>Draw here</span>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Footer */}
       <div className="mt-2 pt-2 border-t flex-shrink-0" style={{ borderColor: `${mutedColor}20` }}>
