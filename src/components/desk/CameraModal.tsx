@@ -1,6 +1,7 @@
 'use client'
 
 import React, { memo, useRef, useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 
@@ -30,6 +31,7 @@ const CameraModal = memo(function CameraModal({
   onCapture,
 }: CameraModalProps) {
   const { theme } = useThemeStore()
+  const [mounted, setMounted] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
@@ -213,9 +215,11 @@ const CameraModal = memo(function CameraModal({
     onClose()
   }, [stopCamera, onClose])
 
+  useEffect(() => { setMounted(true) }, [])
+
   if (!isOpen) return null
 
-  return (
+  const modal = (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -424,6 +428,8 @@ const CameraModal = memo(function CameraModal({
       </motion.div>
     </AnimatePresence>
   )
+
+  return mounted ? createPortal(modal, document.body) : null
 })
 
 export default CameraModal

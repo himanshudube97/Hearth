@@ -12,9 +12,12 @@ interface EditorProps {
   value?: string
   onChange?: (value: string) => void
   flexible?: boolean // When true, editor fills its parent container instead of fixed 60vh
+  customStyles?: React.CSSProperties // Custom styles for the EditorContent element
+  bare?: boolean // When true, strips notebook chrome for use in postcard UI
+  noScroll?: boolean // When true, disables scrolling (clips overflow)
 }
 
-export default function Editor({ prompt, value, onChange, flexible }: EditorProps) {
+export default function Editor({ prompt, value, onChange, flexible, customStyles, bare, noScroll }: EditorProps) {
   // Use controlled mode if value/onChange provided, otherwise use global store
   const { currentText: storeText, setCurrentText: setStoreText } = useJournalStore()
   const currentText = value !== undefined ? value : storeText
@@ -71,10 +74,19 @@ export default function Editor({ prompt, value, onChange, flexible }: EditorProp
   // Line height in pixels — must match EditorContent lineHeight (20px font * 2 = 40px)
   const lineHeight = 40
 
+  // Merge default and custom styles for EditorContent
+  const editorContentStyle: React.CSSProperties = {
+    fontFamily: 'var(--font-caveat), cursive',
+    fontSize: '20px',
+    lineHeight: 2,
+    color: theme.text.primary,
+    ...(customStyles || {}),
+  }
+
   return (
     <div
-      className={`rounded-2xl overflow-hidden relative ${flexible ? 'flex-1 min-h-0 flex flex-col' : ''}`}
-      style={{
+      className={`${bare ? 'relative' : 'rounded-2xl overflow-hidden relative'} ${flexible ? 'flex-1 min-h-0 flex flex-col' : ''}`}
+      style={bare ? undefined : {
         background: `linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.03) 100%), linear-gradient(180deg, ${theme.accent.warm}15 0%, ${theme.accent.warm}08 100%), ${theme.glass.bg}`,
         backdropFilter: `blur(${theme.glass.blur})`,
         border: `1px solid rgba(255,255,255,0.08)`,
@@ -87,6 +99,7 @@ export default function Editor({ prompt, value, onChange, flexible }: EditorProp
       }}
     >
       {/* Date header */}
+      {!bare && (
       <div
         className={`text-right pt-3 pr-6 ${flexible ? 'shrink-0' : ''}`}
         style={{
@@ -103,8 +116,10 @@ export default function Editor({ prompt, value, onChange, flexible }: EditorProp
           day: 'numeric',
         })}
       </div>
+      )}
 
       {/* Notebook spine/binding effect */}
+      {!bare && (
       <div
         className="absolute left-0 top-0 bottom-0 w-3"
         style={{
@@ -116,8 +131,10 @@ export default function Editor({ prompt, value, onChange, flexible }: EditorProp
           borderRight: `1px solid ${theme.accent.warm}20`,
         }}
       />
+      )}
 
       {/* Left margin line (classic red/warm line) — full height */}
+      {!bare && (
       <div
         className="absolute top-0 bottom-0 w-px"
         style={{
@@ -126,11 +143,13 @@ export default function Editor({ prompt, value, onChange, flexible }: EditorProp
           zIndex: 1,
         }}
       />
+      )}
 
       {/* Main content area */}
       <div className={`relative ${flexible ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
 
         {/* Ruled lines background */}
+        {!bare && (
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -145,11 +164,15 @@ export default function Editor({ prompt, value, onChange, flexible }: EditorProp
             backgroundPosition: '0 24px',
           }}
         />
+        )}
 
         {/* Editor wrapper with padding for margin */}
         <div
-          className={`overflow-y-auto relative ${flexible ? 'flex-1 min-h-0' : ''}`}
-          style={{
+          className={`${noScroll ? 'overflow-hidden' : 'overflow-y-auto'} relative ${flexible ? 'flex-1 min-h-0' : ''}`}
+          style={bare ? {
+            height: flexible ? undefined : '60vh',
+            padding: '12px',
+          } : {
             height: flexible ? undefined : '60vh',
             paddingLeft: '56px',
             paddingRight: '24px',
@@ -159,23 +182,20 @@ export default function Editor({ prompt, value, onChange, flexible }: EditorProp
         >
           <EditorContent
             editor={editor}
-            style={{
-              fontFamily: 'var(--font-caveat), cursive',
-              fontSize: '20px',
-              lineHeight: 2,
-              color: theme.text.primary,
-            }}
+            style={editorContentStyle}
           />
         </div>
       </div>
 
       {/* Subtle paper texture overlay */}
+      {!bare && (
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.02]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}
       />
+      )}
 
       <style jsx global>{`
         .ProseMirror p.is-editor-empty:first-child::before {
