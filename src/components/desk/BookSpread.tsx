@@ -10,6 +10,8 @@ import RightPage from './RightPage'
 import PageTurn from './PageTurn'
 import EntrySelector from './EntrySelector'
 import { RibbonBookmark } from './interactive/RibbonBookmark'
+import ThemeOrnament from './decorations/ThemeOrnament'
+import WhisperFooter from './WhisperFooter'
 import { StrokeData, useJournalStore } from '@/store/journal'
 
 interface Photo {
@@ -87,7 +89,7 @@ const PageWrapper = memo(function PageWrapper({
 })
 
 export default function BookSpread() {
-  const { theme } = useThemeStore()
+  const { theme, themeName } = useThemeStore()
   const { setCurrentSong } = useJournalStore()
   const colors = getGlassDiaryColors(theme)
   const {
@@ -302,6 +304,20 @@ export default function BookSpread() {
       >
         {/* Ribbon bookmark */}
         <RibbonBookmark color={colors.ribbon} />
+
+        {/* Theme ornaments — outer corners of the spread */}
+        <div className="absolute top-4 left-6 z-10 pointer-events-none" style={{ opacity: 0.55 }}>
+          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={32} />
+        </div>
+        <div className="absolute bottom-4 left-6 z-10 pointer-events-none" style={{ opacity: 0.4 }}>
+          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={26} flip />
+        </div>
+        <div className="absolute bottom-4 right-6 z-10 pointer-events-none" style={{ opacity: 0.4 }}>
+          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={26} />
+        </div>
+
+        {/* Whisper at the bottom of the spread */}
+        <WhisperFooter color={colors.prompt} />
 
         {/* Date header */}
         <div
