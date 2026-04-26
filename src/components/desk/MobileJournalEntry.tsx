@@ -1,7 +1,7 @@
 // src/components/desk/MobileJournalEntry.tsx
 'use client'
 
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence, PanInfo } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useJournalStore, StrokeData } from '@/store/journal'
