@@ -20,7 +20,7 @@ export default function LayoutContent({
   const { theme } = useThemeStore()
   const isLandingPage = pathname === '/'
   const isPricingPage = pathname === '/pricing'
-  const isWritingPage = pathname === '/desk' || pathname === '/write'
+  const isWritingPage = pathname === '/write'
 
   useEffect(() => {
     setMounted(true)
