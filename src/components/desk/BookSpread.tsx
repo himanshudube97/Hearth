@@ -58,24 +58,6 @@ const PageWrapper = memo(function PageWrapper({
         willChange: 'transform',
       }}
     >
-      {/* Faint warm ruled lines */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          top: '70px',
-          left: isLeft ? '50px' : '20px',
-          right: isLeft ? '20px' : '50px',
-          bottom: '40px',
-          backgroundImage: `repeating-linear-gradient(
-            180deg,
-            transparent 0px,
-            transparent 31px,
-            ${colors.ruledLine} 31px,
-            ${colors.ruledLine} 32px
-          )`,
-        }}
-      />
-
       <div
         className="relative h-full overflow-hidden z-10"
         style={{
@@ -305,16 +287,12 @@ export default function BookSpread() {
         {/* Ribbon bookmark */}
         <RibbonBookmark color={colors.ribbon} />
 
-        {/* Theme ornaments — bottom corners of the spread, framing the whisper */}
-        <div className="absolute bottom-6 left-10 z-10 pointer-events-none" style={{ opacity: 0.8 }}>
-          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={52} flip />
+        {/* Whisper + ornaments below the spread, in the dark space outside the book */}
+        <div className="absolute -bottom-12 left-0 right-0 flex items-center justify-center gap-4 pointer-events-none z-10">
+          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={28} flip />
+          <WhisperFooter color={colors.prompt} />
+          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={28} />
         </div>
-        <div className="absolute bottom-6 right-10 z-10 pointer-events-none" style={{ opacity: 0.8 }}>
-          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={52} />
-        </div>
-
-        {/* Whisper at the bottom of the spread */}
-        <WhisperFooter color={colors.prompt} />
 
         {/* Date header */}
         <div
