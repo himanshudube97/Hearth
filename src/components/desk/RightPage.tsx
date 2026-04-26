@@ -4,8 +4,7 @@ import React, { memo, useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getStroke } from 'perfect-freehand'
 import { useThemeStore } from '@/store/theme'
-import { useDiaryStore } from '@/store/diary'
-import { diaryThemes, DiaryTheme } from '@/lib/diaryThemes'
+import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 import { useJournalStore, StrokeData } from '@/store/journal'
 import { getRandomPrompt } from '@/lib/themes'
 import { JOURNAL } from '@/lib/journal-constants'
@@ -15,28 +14,6 @@ import CompactDoodleCanvas from './CompactDoodleCanvas'
 
 const LINE_HEIGHT = 32
 const DOODLE_DRAFT_KEY = 'hearth_desk_doodle_draft'
-
-// Helper to get line pattern
-function getLinePattern(diaryTheme: DiaryTheme): string {
-  switch (diaryTheme.pages.lineStyle) {
-    case 'ruled':
-      return `repeating-linear-gradient(
-        180deg,
-        transparent 0px,
-        transparent ${LINE_HEIGHT - 1}px,
-        ${diaryTheme.pages.lineColor} ${LINE_HEIGHT - 1}px,
-        ${diaryTheme.pages.lineColor} ${LINE_HEIGHT}px
-      )`
-    case 'dotted':
-      return `radial-gradient(circle, ${diaryTheme.pages.lineColor} 1px, transparent 1px)`
-    case 'wavy':
-      return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='${LINE_HEIGHT}'%3E%3Cpath d='M0 ${LINE_HEIGHT - 4} Q25 ${LINE_HEIGHT - 8} 50 ${LINE_HEIGHT - 4} T100 ${LINE_HEIGHT - 4}' fill='none' stroke='${encodeURIComponent(diaryTheme.pages.lineColor)}' stroke-width='1'/%3E%3C/svg%3E")`
-    case 'constellation':
-    case 'none':
-    default:
-      return 'none'
-  }
-}
 
 // SVG path from stroke points
 function getSvgPathFromStroke(stroke: number[][]): string {
@@ -150,8 +127,7 @@ const RightPage = memo(function RightPage({
   onNavigateLeft,
 }: RightPageProps) {
   const { theme } = useThemeStore()
-  const { currentDiaryTheme } = useDiaryStore()
-  const diaryTheme = diaryThemes[currentDiaryTheme]
+  const colors = getGlassDiaryColors(theme)
   const { currentMood, currentSong, currentDoodleStrokes, setDoodleStrokes, resetCurrentEntry } = useJournalStore()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [prompt, setPrompt] = useState('')
@@ -162,10 +138,15 @@ const RightPage = memo(function RightPage({
   const setText = onTextChange ?? noopSetText
 
   const accentColor = theme.accent.warm
-  const isGlass = currentDiaryTheme === 'glass'
-  const textColor = isGlass ? theme.text.primary : diaryTheme.pages.textColor
-  const mutedColor = isGlass ? theme.text.muted : diaryTheme.pages.mutedColor
-  const linePattern = getLinePattern(diaryTheme)
+  const textColor = colors.bodyText
+  const mutedColor = theme.text.muted
+  const linePattern = `repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent ${LINE_HEIGHT - 1}px,
+    ${colors.ruledLine} ${LINE_HEIGHT - 1}px,
+    ${colors.ruledLine} ${LINE_HEIGHT}px
+  )`
 
   useEffect(() => {
     setPrompt(getRandomPrompt())
@@ -371,8 +352,7 @@ const RightPage = memo(function RightPage({
               lineHeight: `${LINE_HEIGHT}px`,
               caretColor: accentColor,
               backgroundColor: 'transparent',
-              backgroundImage: linePattern !== 'none' ? linePattern : 'none',
-              backgroundSize: diaryTheme.pages.lineStyle === 'dotted' ? '20px 20px' : undefined,
+              backgroundImage: linePattern,
               backgroundAttachment: 'local',
               overflow: 'hidden',
             }}
@@ -391,9 +371,9 @@ const RightPage = memo(function RightPage({
             <CompactDoodleCanvas
               strokes={currentDoodleStrokes}
               onStrokesChange={handleStrokesChange}
-              doodleColors={isGlass ? [theme.text.primary, theme.accent.primary, theme.accent.warm, theme.text.muted] : diaryTheme.doodle.defaultColors}
-              canvasBackground={isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground}
-              canvasBorder={isGlass ? 'rgba(255,255,255,0.2)' : diaryTheme.doodle.canvasBorder}
+              doodleColors={[theme.text.primary, theme.accent.primary, theme.accent.warm, theme.text.muted]}
+              canvasBackground={colors.doodleBg}
+              canvasBorder={colors.doodleBorder}
               textColor={textColor}
               mutedColor={mutedColor}
             />
@@ -473,8 +453,7 @@ const RightPage = memo(function RightPage({
           fontSize: '20px',
           lineHeight: `${LINE_HEIGHT}px`,
           backgroundColor: 'transparent',
-          backgroundImage: linePattern !== 'none' ? linePattern : 'none',
-          backgroundSize: diaryTheme.pages.lineStyle === 'dotted' ? '20px 20px' : undefined,
+          backgroundImage: linePattern,
           backgroundAttachment: 'local',
         }}
       >
@@ -497,15 +476,15 @@ const RightPage = memo(function RightPage({
           {entryDoodle?.strokes && entryDoodle.strokes.length > 0 ? (
             <DoodlePreview
               strokes={entryDoodle.strokes}
-              canvasBackground={isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground}
-              canvasBorder={isGlass ? 'rgba(255,255,255,0.2)' : diaryTheme.doodle.canvasBorder}
+              canvasBackground={colors.doodleBg}
+              canvasBorder={colors.doodleBorder}
             />
           ) : (
             <div
               className="h-full relative rounded-lg overflow-hidden flex items-center justify-center"
               style={{
-                background: isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground,
-                border: `1px solid ${isGlass ? 'rgba(255,255,255,0.2)' : diaryTheme.doodle.canvasBorder}`,
+                background: colors.doodleBg,
+                border: `1px solid ${colors.doodleBorder}`,
               }}
             >
               <span className="text-[10px]" style={{ color: mutedColor, opacity: 0.5 }}>Draw here</span>
