@@ -4,8 +4,7 @@ import React, { useCallback, useEffect, useState, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useDeskStore } from '@/store/desk'
-import { useDiaryStore } from '@/store/diary'
-import { diaryThemes, DiaryTheme } from '@/lib/diaryThemes'
+import { getGlassDiaryColors, GlassDiaryColors } from '@/lib/glassDiaryColors'
 import LeftPage from './LeftPage'
 import RightPage from './RightPage'
 import PageTurn from './PageTurn'
@@ -33,135 +32,50 @@ interface Entry {
   createdAt: string
 }
 
-
-// Helper to create darker shade of a color
-function getDarkerShade(color: string): string {
-  if (color.startsWith('hsl')) {
-    return color.replace(/(\d+)%\)$/, (_, l) => `${Math.max(0, parseInt(l) - 6)}%)`)
-  }
-  if (color.startsWith('rgba')) {
-    return color.replace(/rgba\(([^)]+)\)/, (_, inner) => {
-      const parts = inner.split(',').map((p: string) => p.trim())
-      return `rgba(${Math.max(0, parseInt(parts[0]) - 20)}, ${Math.max(0, parseInt(parts[1]) - 20)}, ${Math.max(0, parseInt(parts[2]) - 20)}, ${parts[3]})`
-    })
-  }
-  return color
-}
-
-// Helper to get line pattern based on diary theme
-function getLinePattern(diaryTheme: DiaryTheme): string {
-  switch (diaryTheme.pages.lineStyle) {
-    case 'ruled':
-      return `repeating-linear-gradient(
-        180deg,
-        transparent 0px,
-        transparent 31px,
-        ${diaryTheme.pages.lineColor} 31px,
-        ${diaryTheme.pages.lineColor} 32px
-      )`
-    case 'dotted':
-      return `radial-gradient(circle, ${diaryTheme.pages.lineColor} 1px, transparent 1px)`
-    case 'wavy':
-      return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='32'%3E%3Cpath d='M0 28 Q25 24 50 28 T100 28' fill='none' stroke='${encodeURIComponent(diaryTheme.pages.lineColor)}' stroke-width='1'/%3E%3C/svg%3E")`
-    case 'constellation':
-      return 'none'
-    case 'none':
-    default:
-      return 'none'
-  }
-}
-
 // Memoized page wrapper for performance
 const PageWrapper = memo(function PageWrapper({
   children,
   side,
-  diaryTheme,
-  isGlass,
-  glassSettings,
-  skipLinePattern = false,
+  colors,
 }: {
   children: React.ReactNode
   side: 'left' | 'right'
-  diaryTheme: DiaryTheme
-  isGlass: boolean
-  glassSettings: { bg: string; blur: string; border: string }
-  skipLinePattern?: boolean
+  colors: GlassDiaryColors
 }) {
   const isLeft = side === 'left'
-  const paperColor = diaryTheme.pages.background
-  const paperColorDark = getDarkerShade(paperColor)
-  const linePattern = getLinePattern(diaryTheme)
 
   return (
     <div
       className="relative flex-1 overflow-hidden"
       style={{
-        background: isGlass
-          ? glassSettings.bg
-          : isLeft
-          ? `linear-gradient(90deg, ${paperColorDark} 0%, ${paperColor} 100%)`
-          : `linear-gradient(90deg, ${paperColor} 0%, ${paperColorDark} 100%)`,
-        backdropFilter: isGlass ? `blur(${glassSettings.blur})` : undefined,
-        WebkitBackdropFilter: isGlass ? `blur(${glassSettings.blur})` : undefined,
-        borderRadius: isLeft ? '4px 0 0 4px' : '0 4px 4px 0',
-        boxShadow: isGlass
-          ? isLeft
-            ? 'inset -4px 0 12px rgba(255,255,255,0.05), -6px 6px 20px rgba(0,0,0,0.2)'
-            : 'inset 4px 0 12px rgba(255,255,255,0.05), 6px 6px 20px rgba(0,0,0,0.2)'
-          : isLeft
-          ? 'inset -8px 0 20px rgba(0,0,0,0.08), -6px 6px 20px rgba(0,0,0,0.25)'
-          : 'inset 8px 0 20px rgba(0,0,0,0.05), 6px 6px 20px rgba(0,0,0,0.25)',
+        background: colors.pageBg,
+        backdropFilter: `blur(${colors.pageBlur})`,
+        WebkitBackdropFilter: `blur(${colors.pageBlur})`,
+        border: `1px solid ${colors.pageBorder}`,
+        borderRadius: isLeft ? '6px 0 0 6px' : '0 6px 6px 0',
+        boxShadow: isLeft
+          ? 'inset -4px 0 12px rgba(255,255,255,0.05), -6px 6px 20px rgba(0,0,0,0.25)'
+          : 'inset 4px 0 12px rgba(255,255,255,0.05), 6px 6px 20px rgba(0,0,0,0.25)',
         willChange: 'transform',
       }}
     >
-      {diaryTheme.pages.noiseTexture && (
-        <div
-          className="absolute inset-0 opacity-[0.04] pointer-events-none"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-          }}
-        />
-      )}
-
-      {linePattern !== 'none' && !skipLinePattern && (
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            top: '70px',
-            left: isLeft ? '50px' : '20px',
-            right: isLeft ? '20px' : '50px',
-            bottom: '40px',
-            backgroundImage: linePattern,
-            backgroundSize: diaryTheme.pages.lineStyle === 'dotted' ? '20px 20px' : undefined,
-          }}
-        />
-      )}
-
-      {isLeft && diaryTheme.pages.hasMarginLine && (
-        <div
-          className="absolute top-10 bottom-10 w-px pointer-events-none"
-          style={{
-            left: '45px',
-            background: diaryTheme.pages.marginLineColor || 'rgba(200, 120, 100, 0.2)',
-          }}
-        />
-      )}
-
-      <PageCorners
-        style={diaryTheme.pages.cornerStyle || 'none'}
-        color={diaryTheme.pages.mutedColor}
+      {/* Faint warm ruled lines */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: '70px',
+          left: isLeft ? '50px' : '20px',
+          right: isLeft ? '20px' : '50px',
+          bottom: '40px',
+          backgroundImage: `repeating-linear-gradient(
+            180deg,
+            transparent 0px,
+            transparent 31px,
+            ${colors.ruledLine} 31px,
+            ${colors.ruledLine} 32px
+          )`,
+        }}
       />
-      <Watermarks
-        style={diaryTheme.pages.watermark || 'none'}
-        color={diaryTheme.pages.textColor}
-      />
-
-      {diaryTheme.interactive.floatingParticles !== 'none' && (
-        <FloatingParticles
-          type={diaryTheme.interactive.floatingParticles}
-          color={diaryTheme.pages.mutedColor}
-        />
-      )}
 
       <div
         className="relative h-full overflow-hidden z-10"
@@ -178,8 +92,7 @@ const PageWrapper = memo(function PageWrapper({
 export default function BookSpread() {
   const { theme } = useThemeStore()
   const { setCurrentSong } = useJournalStore()
-  const { currentDiaryTheme } = useDiaryStore()
-  const diaryTheme = diaryThemes[currentDiaryTheme]
+  const colors = getGlassDiaryColors(theme)
   const {
     currentSpread: globalCurrentSpread,
     totalSpreads,
@@ -201,9 +114,6 @@ export default function BookSpread() {
   const [showSavedOverlay, setShowSavedOverlay] = useState(false)
   const [rightTextareaFocusTrigger, setRightTextareaFocusTrigger] = useState(0)
   const [leftTextareaFocusTrigger, setLeftTextareaFocusTrigger] = useState(0)
-
-  const paperColor = diaryTheme.pages.background
-  const paperColorDark = getDarkerShade(paperColor)
 
   // Fetch entries
   const fetchEntries = useCallback(async () => {
@@ -394,23 +304,21 @@ export default function BookSpread() {
         transition={{ duration: 0.6 }}
       >
         {/* Ribbon bookmark */}
-        {diaryTheme.interactive.ribbon.enabled && (
-          <RibbonBookmark color={diaryTheme.interactive.ribbon.color} />
-        )}
+        <RibbonBookmark color={colors.ribbon} />
 
         {/* Date header */}
         <div
           className="absolute -top-1 left-1/2 -translate-x-1/2 z-20 px-6 py-1.5 rounded-b-lg"
           style={{
-            background: currentDiaryTheme === 'glass' ? theme.glass.bg : paperColor,
-            backdropFilter: currentDiaryTheme === 'glass' ? `blur(${theme.glass.blur})` : undefined,
+            background: colors.pageBg,
+            backdropFilter: `blur(${colors.pageBlur})`,
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            border: currentDiaryTheme === 'glass' ? `1px solid ${theme.glass.border}` : undefined,
+            border: `1px solid ${colors.pageBorder}`,
           }}
         >
           <span
             className="text-sm font-serif"
-            style={{ color: currentDiaryTheme === 'glass' ? theme.text.primary : diaryTheme.pages.textColor }}
+            style={{ color: colors.date }}
           >
             {spreadDate.toLocaleDateString('en-US', {
               weekday: 'long',
@@ -422,7 +330,7 @@ export default function BookSpread() {
         </div>
 
         {/* Left page */}
-        <PageWrapper side="left" diaryTheme={diaryTheme} isGlass={currentDiaryTheme === 'glass'} glassSettings={theme.glass} skipLinePattern>
+        <PageWrapper side="left" colors={colors}>
           <LeftPage
             entry={currentEntry || null}
             isNewEntry={isNewEntrySpread}
@@ -438,28 +346,13 @@ export default function BookSpread() {
         <div
           className="w-6 relative z-10 flex-shrink-0"
           style={{
-            background: currentDiaryTheme === 'glass'
-              ? 'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.1) 100%)'
-              : `linear-gradient(90deg, ${paperColorDark} 0%, ${getDarkerShade(paperColorDark)} 20%, ${getDarkerShade(getDarkerShade(paperColorDark))} 50%, ${getDarkerShade(paperColorDark)} 80%, ${paperColorDark} 100%)`,
-            boxShadow: currentDiaryTheme === 'glass'
-              ? 'inset 2px 0 4px rgba(255,255,255,0.1), inset -2px 0 4px rgba(255,255,255,0.1)'
-              : 'inset 3px 0 6px rgba(0,0,0,0.15), inset -3px 0 6px rgba(0,0,0,0.15)',
+            background: colors.spineGradient,
+            boxShadow: 'inset 2px 0 4px rgba(255,255,255,0.1), inset -2px 0 4px rgba(255,255,255,0.1)',
           }}
-        >
-          {currentDiaryTheme !== 'glass' && [...Array(10)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute left-1/2 -translate-x-1/2 w-1.5 h-3 rounded-full"
-              style={{
-                top: `${8 + i * 9}%`,
-                background: 'rgba(139, 90, 43, 0.3)',
-              }}
-            />
-          ))}
-        </div>
+        />
 
         {/* Right page */}
-        <PageWrapper side="right" diaryTheme={diaryTheme} isGlass={currentDiaryTheme === 'glass'} glassSettings={theme.glass} skipLinePattern>
+        <PageWrapper side="right" colors={colors}>
           <RightPage
             entry={currentEntry || null}
             isNewEntry={isNewEntrySpread}
@@ -488,7 +381,7 @@ export default function BookSpread() {
           >
             <motion.div
               className="text-3xl"
-              style={{ color: currentDiaryTheme === 'glass' ? theme.text.muted : diaryTheme.pages.mutedColor }}
+              style={{ color: theme.text.muted }}
               animate={{ x: [-4, 4, -4], opacity: [0.3, 0.7, 0.3] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
@@ -511,7 +404,7 @@ export default function BookSpread() {
           >
             <motion.div
               className="text-3xl"
-              style={{ color: currentDiaryTheme === 'glass' ? theme.text.muted : diaryTheme.pages.mutedColor }}
+              style={{ color: theme.text.muted }}
               animate={{ x: [4, -4, 4], opacity: [0.3, 0.7, 0.3] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
@@ -525,9 +418,7 @@ export default function BookSpread() {
           <div
             className="absolute top-3 bottom-3 left-0 w-2 pointer-events-none z-20"
             style={{
-              background: currentDiaryTheme === 'glass'
-                ? 'repeating-linear-gradient(180deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.15) 2px, rgba(255,255,255,0.15) 4px)'
-                : `repeating-linear-gradient(180deg, ${paperColor} 0px, ${paperColor} 2px, ${paperColorDark} 2px, ${paperColorDark} 4px)`,
+              background: 'repeating-linear-gradient(180deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.15) 2px, rgba(255,255,255,0.15) 4px)',
               borderRadius: '2px 0 0 2px',
             }}
           />
@@ -536,9 +427,7 @@ export default function BookSpread() {
           <div
             className="absolute top-3 bottom-3 right-0 w-2 pointer-events-none z-20"
             style={{
-              background: currentDiaryTheme === 'glass'
-                ? 'repeating-linear-gradient(180deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.15) 2px, rgba(255,255,255,0.15) 4px)'
-                : `repeating-linear-gradient(180deg, ${paperColor} 0px, ${paperColor} 2px, ${paperColorDark} 2px, ${paperColorDark} 4px)`,
+              background: 'repeating-linear-gradient(180deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.15) 2px, rgba(255,255,255,0.15) 4px)',
               borderRadius: '0 2px 2px 0',
             }}
           />
