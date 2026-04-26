@@ -51,3 +51,29 @@ export function getRightPageMaxLines(bookHeight: number = JOURNAL.BOOK_HEIGHT): 
     - JOURNAL.RIGHT_SAVE_SECTION_HEIGHT
   return Math.floor(availableHeight / JOURNAL.LINE_HEIGHT)
 }
+
+/**
+ * Mobile pagination — number of writing lines that fit in a single phone page,
+ * computed from viewport height.
+ *
+ * Layout reserved per page:
+ *   - 56px header row (date / close)
+ *   - 88px song section (only on page 0; ignored here so all writing pages
+ *     have the same capacity — page 0 just starts further down)
+ *   - 32px label "WRITE YOUR THOUGHTS"
+ *   - 56px pagination dots row
+ *   - 32px bottom safe area
+ */
+export function getMobileWritingLinesPerPage(viewportHeight: number): number {
+  const reserved = 56 + 88 + 32 + 56 + 32
+  const writingHeight = Math.max(0, viewportHeight - reserved)
+  return Math.max(4, Math.floor(writingHeight / JOURNAL.LINE_HEIGHT))
+}
+
+/**
+ * Estimate how many text characters fit on a mobile writing page given a
+ * line capacity. Used as the boundary for splitting overflow.
+ */
+export function getMobileCharsPerPage(linesPerPage: number): number {
+  return linesPerPage * JOURNAL.CHARS_PER_LINE
+}
