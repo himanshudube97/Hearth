@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useLayoutMode } from '@/hooks/useMediaQuery'
-import DeskBook from './DeskBook'
+import BookSpread from './BookSpread'
 
 // Pre-generate random particle data at module level to keep render pure
 const DUST_PARTICLES = Array.from({ length: 12 }, () => ({
@@ -119,7 +119,7 @@ export default function DeskScene() {
               transformOrigin: 'center center',
             }}
           >
-            <DeskBook />
+            <BookSpread />
           </motion.div>
 
           {/* Floating dust particles */}

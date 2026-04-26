@@ -1,5 +1,4 @@
 export { default as DeskScene } from './DeskScene'
-export { default as DeskBook } from './DeskBook'
 export { default as DeskWindow } from './DeskWindow'
 export { default as DeskDrawer } from './DeskDrawer'
 export { default as DeskCandle } from './DeskCandle'
