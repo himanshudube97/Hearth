@@ -19,7 +19,6 @@ const DUST_PARTICLES = Array.from({ length: 12 }, () => ({
   delay: Math.random() * 8,
 }))
 import MobileJournalEntry from './MobileJournalEntry'
-import { DiaryThemeSelector } from './DiaryThemeSelector'
 import Background from '@/components/Background'
 
 export default function DeskScene() {
@@ -152,8 +151,6 @@ export default function DeskScene() {
             ))}
           </div>
 
-          {/* Diary Theme Selector — only on desktop/tablet */}
-          <DiaryThemeSelector />
         </>
       )}
     </div>
