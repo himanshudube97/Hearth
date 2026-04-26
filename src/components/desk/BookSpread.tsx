@@ -33,9 +33,6 @@ interface Entry {
   createdAt: string
 }
 
-interface BookSpreadProps {
-  onClose: () => void
-}
 
 // Helper to create darker shade of a color
 function getDarkerShade(color: string): string {
@@ -178,7 +175,7 @@ const PageWrapper = memo(function PageWrapper({
   )
 })
 
-export default function BookSpread({ onClose }: BookSpreadProps) {
+export default function BookSpread() {
   const { theme } = useThemeStore()
   const { setCurrentSong } = useJournalStore()
   const { currentDiaryTheme } = useDiaryStore()
@@ -351,24 +348,6 @@ export default function BookSpread({ onClose }: BookSpreadProps) {
         perspectiveOrigin: 'center center',
       }}
     >
-      {/* Close button */}
-      <motion.button
-        onClick={onClose}
-        className="absolute -top-14 right-0 z-20 px-5 py-2.5 rounded-full text-sm font-medium"
-        style={{
-          background: theme.glass.bg,
-          color: theme.text.secondary,
-          border: `1px solid ${theme.glass.border}`,
-          backdropFilter: `blur(${theme.glass.blur})`,
-        }}
-        whileHover={{ scale: 1.05, y: -2 }}
-        whileTap={{ scale: 0.95 }}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        Close Book
-      </motion.button>
 
       {/* Entry selector for multiple entries per day */}
       {(todayEntries.length > 0 || isNewEntrySpread) && (
