@@ -1,16 +1,15 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { motion, useAnimation } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 
 interface PageTurnProps {
   direction: 'forward' | 'backward'
   onComplete: () => void
-  children: React.ReactNode
 }
 
-export default function PageTurn({ direction, onComplete, children }: PageTurnProps) {
+export default function PageTurn({ direction, onComplete }: PageTurnProps) {
   const { theme } = useThemeStore()
   const controls = useAnimation()
 

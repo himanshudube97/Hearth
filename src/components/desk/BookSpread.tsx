@@ -436,9 +436,7 @@ export default function BookSpread() {
             <PageTurn
               direction={turnDirection}
               onComplete={handlePageTurnComplete}
-            >
-              <div />
-            </PageTurn>
+            />
           )}
         </AnimatePresence>
 
