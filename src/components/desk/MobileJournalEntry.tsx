@@ -453,7 +453,7 @@ function WritingPage({
           caretColor: colors.saveButton,
           background: 'rgba(255,255,255,0.03)',
           border: `1px solid ${colors.pageBorder}`,
-          backgroundImage: `repeating-linear-gradient(transparent, transparent ${JOURNAL.LINE_HEIGHT * 2 - 1}px, ${colors.ruledLine} ${JOURNAL.LINE_HEIGHT * 2 - 1}px, ${colors.ruledLine} ${JOURNAL.LINE_HEIGHT * 2}px)`,
+          backgroundImage: `repeating-linear-gradient(transparent, transparent ${JOURNAL.LINE_HEIGHT - 1}px, ${colors.ruledLine} ${JOURNAL.LINE_HEIGHT - 1}px, ${colors.ruledLine} ${JOURNAL.LINE_HEIGHT}px)`,
           backgroundPosition: '0 12px',
         }}
       />

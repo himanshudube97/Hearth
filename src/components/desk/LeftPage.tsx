@@ -53,9 +53,9 @@ const LeftPage = memo(function LeftPage({
   const linePattern = `repeating-linear-gradient(
     180deg,
     transparent 0px,
-    transparent ${LINE_HEIGHT * 2 - 1}px,
-    ${colors.ruledLine} ${LINE_HEIGHT * 2 - 1}px,
-    ${colors.ruledLine} ${LINE_HEIGHT * 2}px
+    transparent ${LINE_HEIGHT - 1}px,
+    ${colors.ruledLine} ${LINE_HEIGHT - 1}px,
+    ${colors.ruledLine} ${LINE_HEIGHT}px
   )`
 
   const handleSongChange = useCallback((value: string) => {

@@ -69,9 +69,9 @@ const PageWrapper = memo(function PageWrapper({
           backgroundImage: `repeating-linear-gradient(
             180deg,
             transparent 0px,
-            transparent 63px,
-            ${colors.ruledLine} 63px,
-            ${colors.ruledLine} 64px
+            transparent 31px,
+            ${colors.ruledLine} 31px,
+            ${colors.ruledLine} 32px
           )`,
         }}
       />
@@ -305,15 +305,12 @@ export default function BookSpread() {
         {/* Ribbon bookmark */}
         <RibbonBookmark color={colors.ribbon} />
 
-        {/* Theme ornaments — outer corners of the spread */}
-        <div className="absolute top-4 left-6 z-10 pointer-events-none" style={{ opacity: 0.55 }}>
-          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={32} />
+        {/* Theme ornaments — bottom corners of the spread, framing the whisper */}
+        <div className="absolute bottom-6 left-10 z-10 pointer-events-none" style={{ opacity: 0.8 }}>
+          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={52} flip />
         </div>
-        <div className="absolute bottom-4 left-6 z-10 pointer-events-none" style={{ opacity: 0.4 }}>
-          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={26} flip />
-        </div>
-        <div className="absolute bottom-4 right-6 z-10 pointer-events-none" style={{ opacity: 0.4 }}>
-          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={26} />
+        <div className="absolute bottom-6 right-10 z-10 pointer-events-none" style={{ opacity: 0.8 }}>
+          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={52} />
         </div>
 
         {/* Whisper at the bottom of the spread */}

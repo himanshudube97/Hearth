@@ -42,7 +42,7 @@ export function getGlassDiaryColors(theme: Theme): GlassDiaryColors {
     pageBg: theme.glass.bg,
     pageBlur: theme.glass.blur,
     pageBorder: warm(theme, 0.18),
-    ruledLine: warm(theme, 0.08),
+    ruledLine: warm(theme, 0.1),
     sectionLabel: warm(theme, 0.7),
     prompt: warm(theme, 0.6),
     date: warm(theme, 0.85),
