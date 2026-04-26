@@ -3,8 +3,7 @@
 import React, { memo, useState, useCallback, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
-import { useDiaryStore } from '@/store/diary'
-import { diaryThemes } from '@/lib/diaryThemes'
+import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 import { useJournalStore } from '@/store/journal'
 import SongEmbed from '@/components/SongEmbed'
 import { JOURNAL } from '@/lib/journal-constants'
@@ -31,27 +30,6 @@ interface LeftPageProps {
   focusTrigger?: number
 }
 
-// Helper to get line pattern based on diary theme
-function getLinePattern(diaryTheme: typeof diaryThemes[keyof typeof diaryThemes]): string {
-  switch (diaryTheme.pages.lineStyle) {
-    case 'ruled':
-      return `repeating-linear-gradient(
-        180deg,
-        transparent 0px,
-        transparent ${LINE_HEIGHT - 1}px,
-        ${diaryTheme.pages.lineColor} ${LINE_HEIGHT - 1}px,
-        ${diaryTheme.pages.lineColor} ${LINE_HEIGHT}px
-      )`
-    case 'dotted':
-      return `radial-gradient(circle, ${diaryTheme.pages.lineColor} 1px, transparent 1px)`
-    case 'wavy':
-      return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='${LINE_HEIGHT}'%3E%3Cpath d='M0 ${LINE_HEIGHT - 4} Q25 ${LINE_HEIGHT - 8} 50 ${LINE_HEIGHT - 4} T100 ${LINE_HEIGHT - 4}' fill='none' stroke='${encodeURIComponent(diaryTheme.pages.lineColor)}' stroke-width='1'/%3E%3C/svg%3E")`
-    case 'constellation':
-    case 'none':
-    default:
-      return 'none'
-  }
-}
 
 const LeftPage = memo(function LeftPage({
   entry,
@@ -63,18 +41,22 @@ const LeftPage = memo(function LeftPage({
   focusTrigger = 0,
 }: LeftPageProps) {
   const { theme } = useThemeStore()
-  const { currentDiaryTheme } = useDiaryStore()
-  const diaryTheme = diaryThemes[currentDiaryTheme]
+  const colors = getGlassDiaryColors(theme)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- mood picker commented out, keeping for future use
   const { currentSong, setCurrentSong, currentMood, setCurrentMood } = useJournalStore()
   const [songInput, setSongInput] = useState(entry?.song || currentSong || '')
   const [isEditingSong, setIsEditingSong] = useState(!songInput)
 
-  const isGlass = currentDiaryTheme === 'glass'
   const accentColor = theme.accent.warm
-  const textColor = isGlass ? theme.text.primary : diaryTheme.pages.textColor
-  const mutedColor = isGlass ? theme.text.muted : diaryTheme.pages.mutedColor
-  const linePattern = getLinePattern(diaryTheme)
+  const textColor = colors.bodyText
+  const mutedColor = theme.text.muted
+  const linePattern = `repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent ${LINE_HEIGHT - 1}px,
+    ${colors.ruledLine} ${LINE_HEIGHT - 1}px,
+    ${colors.ruledLine} ${LINE_HEIGHT}px
+  )`
 
   const handleSongChange = useCallback((value: string) => {
     setSongInput(value)
@@ -201,9 +183,9 @@ const LeftPage = memo(function LeftPage({
                 placeholder="Paste Spotify, YouTube, or SoundCloud link..."
                 className="w-full px-3 py-2 rounded-lg text-sm bg-transparent outline-none"
                 style={{
-                  border: isGlass ? '1px solid rgba(255,255,255,0.2)' : `1px solid ${diaryTheme.doodle.canvasBorder}`,
+                  border: `1px solid ${colors.doodleBorder}`,
                   color: textColor,
-                  background: isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground,
+                  background: colors.doodleBg,
                 }}
               />
             </>
@@ -247,8 +229,7 @@ const LeftPage = memo(function LeftPage({
               lineHeight: `${LINE_HEIGHT}px`,
               caretColor: accentColor,
               backgroundColor: 'transparent',
-              backgroundImage: linePattern !== 'none' ? linePattern : 'none',
-              backgroundSize: diaryTheme.pages.lineStyle === 'dotted' ? '20px 20px' : undefined,
+              backgroundImage: linePattern,
               backgroundAttachment: 'local',
               overflow: 'hidden',
             }}
@@ -297,9 +278,9 @@ const LeftPage = memo(function LeftPage({
               placeholder="Paste Spotify, YouTube, or SoundCloud link..."
               className="w-full px-3 py-2 rounded-lg text-sm bg-transparent outline-none opacity-50"
               style={{
-                border: isGlass ? '1px solid rgba(255,255,255,0.2)' : `1px solid ${diaryTheme.doodle.canvasBorder}`,
+                border: `1px solid ${colors.doodleBorder}`,
                 color: textColor,
-                background: isGlass ? 'rgba(255,255,255,0.1)' : diaryTheme.doodle.canvasBackground,
+                background: colors.doodleBg,
               }}
             />
           </>
@@ -315,8 +296,7 @@ const LeftPage = memo(function LeftPage({
           fontSize: '20px',
           lineHeight: `${LINE_HEIGHT}px`,
           backgroundColor: 'transparent',
-          backgroundImage: linePattern !== 'none' ? linePattern : 'none',
-          backgroundSize: diaryTheme.pages.lineStyle === 'dotted' ? '20px 20px' : undefined,
+          backgroundImage: linePattern,
           backgroundAttachment: 'local',
         }}
       >
