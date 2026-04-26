@@ -14,8 +14,8 @@ export default function PageTurn({ direction, onComplete, children }: PageTurnPr
   const { theme } = useThemeStore()
   const controls = useAnimation()
 
-  const paperColor = theme.glass.bg
-  const paperColorDark = 'rgba(255,255,255,0.08)'
+  const pageColor = theme.glass.bg
+  const pageColorDark = 'rgba(255,255,255,0.08)'
 
   useEffect(() => {
     const animate = async () => {
@@ -58,8 +58,8 @@ export default function PageTurn({ direction, onComplete, children }: PageTurnPr
           style={{
             backfaceVisibility: 'hidden',
             background: `linear-gradient(${direction === 'forward' ? '90deg' : '270deg'},
-              ${paperColor} 0%,
-              ${paperColorDark} 100%
+              ${pageColor} 0%,
+              ${pageColorDark} 100%
             )`,
             boxShadow: direction === 'forward'
               ? 'inset 8px 0 20px rgba(0,0,0,0.05), 6px 0 20px rgba(0,0,0,0.15)'
@@ -89,8 +89,8 @@ export default function PageTurn({ direction, onComplete, children }: PageTurnPr
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
             background: `linear-gradient(${direction === 'forward' ? '270deg' : '90deg'},
-              ${paperColor} 0%,
-              ${paperColorDark} 100%
+              ${pageColor} 0%,
+              ${pageColorDark} 100%
             )`,
             boxShadow: direction === 'forward'
               ? 'inset -8px 0 20px rgba(0,0,0,0.08)'
