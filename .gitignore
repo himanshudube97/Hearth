@@ -52,3 +52,6 @@ public/swe-worker-*.js.map
 
 # worktrees
 .worktrees/
+
+# brainstorming session mockups
+.superpowers/
