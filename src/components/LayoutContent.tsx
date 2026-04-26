@@ -20,7 +20,7 @@ export default function LayoutContent({
   const { theme } = useThemeStore()
   const isLandingPage = pathname === '/'
   const isPricingPage = pathname === '/pricing'
-  const isDeskPage = pathname === '/desk'
+  const isWritingPage = pathname === '/desk' || pathname === '/write'
 
   useEffect(() => {
     setMounted(true)
@@ -38,8 +38,8 @@ export default function LayoutContent({
     return null
   }
 
-  if (isLandingPage || isPricingPage || isDeskPage) {
-    // Landing, Pricing, & Desk pages - no background, navigation, or padding (they handle their own)
+  if (isLandingPage || isPricingPage || isWritingPage) {
+    // Landing, Pricing, & Writing pages - no background, navigation, or padding (they handle their own)
     return (
       <>
         {children}
