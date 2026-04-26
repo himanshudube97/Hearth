@@ -4,7 +4,6 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
-import { useDiaryStore } from '@/store/diary'
 import { diaryThemes } from '@/lib/diaryThemes'
 import { useJournalStore, StrokeData } from '@/store/journal'
 import { JOURNAL } from '@/lib/journal-constants'
@@ -38,7 +37,6 @@ interface MobileJournalEntryProps {
 
 export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps) {
   const { theme } = useThemeStore()
-  const { currentDiaryTheme } = useDiaryStore()
   const diaryTheme = diaryThemes[currentDiaryTheme]
   const { currentSong, setCurrentSong, currentMood, currentDoodleStrokes, setDoodleStrokes, resetCurrentEntry } = useJournalStore()
 
