@@ -3,8 +3,6 @@
 import React, { useEffect } from 'react'
 import { motion, useAnimation } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
-import { useDiaryStore } from '@/store/diary'
-import { diaryThemes } from '@/lib/diaryThemes'
 
 interface PageTurnProps {
   direction: 'forward' | 'backward'
@@ -14,16 +12,10 @@ interface PageTurnProps {
 
 export default function PageTurn({ direction, onComplete, children }: PageTurnProps) {
   const { theme } = useThemeStore()
-  const { currentDiaryTheme } = useDiaryStore()
-  const diaryTheme = diaryThemes[currentDiaryTheme]
   const controls = useAnimation()
 
-  const paperColor = currentDiaryTheme === 'glass'
-    ? theme.glass.bg
-    : diaryTheme.pages.background
-  const paperColorDark = currentDiaryTheme === 'glass'
-    ? 'rgba(255,255,255,0.08)'
-    : paperColor.replace(/(\d+)%\)$/, (_: string, l: string) => `${Math.max(0, parseInt(l) - 6)}%)`)
+  const paperColor = theme.glass.bg
+  const paperColorDark = 'rgba(255,255,255,0.08)'
 
   useEffect(() => {
     const animate = async () => {

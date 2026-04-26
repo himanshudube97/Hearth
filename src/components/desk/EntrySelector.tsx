@@ -3,8 +3,6 @@
 import React, { memo } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
-import { useDiaryStore } from '@/store/diary'
-import { diaryThemes } from '@/lib/diaryThemes'
 
 interface Entry {
   id: string
@@ -28,14 +26,11 @@ const EntrySelector = memo(function EntrySelector({
   className = '',
 }: EntrySelectorProps) {
   const { theme } = useThemeStore()
-  const { currentDiaryTheme } = useDiaryStore()
-  const diaryTheme = diaryThemes[currentDiaryTheme]
 
-  const isGlass = currentDiaryTheme === 'glass'
   const accentColor = theme.accent.warm
-  const textColor = isGlass ? theme.text.primary : diaryTheme.pages.textColor
-  const mutedColor = isGlass ? theme.text.muted : diaryTheme.pages.mutedColor
-  const bgColor = isGlass ? theme.glass.bg : diaryTheme.pages.background
+  const textColor = theme.text.primary
+  const mutedColor = theme.text.muted
+  const bgColor = theme.glass.bg
 
   // Sort entries by creation time (newest first)
   const sortedEntries = [...entries].sort(

@@ -3,8 +3,6 @@
 import React, { memo } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
-import { useDiaryStore } from '@/store/diary'
-import { diaryThemes } from '@/lib/diaryThemes'
 
 interface SpreadNavigationProps {
   currentSpread: number
@@ -24,12 +22,9 @@ const SpreadNavigation = memo(function SpreadNavigation({
   className = '',
 }: SpreadNavigationProps) {
   const { theme } = useThemeStore()
-  const { currentDiaryTheme } = useDiaryStore()
-  const diaryTheme = diaryThemes[currentDiaryTheme]
 
-  const isGlass = currentDiaryTheme === 'glass'
   const accentColor = theme.accent.warm
-  const mutedColor = isGlass ? theme.text.muted : diaryTheme.pages.mutedColor
+  const mutedColor = theme.text.muted
 
   const canAddMore = totalSpreads < maxSpreads && onAddSpread
 

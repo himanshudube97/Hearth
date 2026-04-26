@@ -3,8 +3,6 @@
 import React, { memo, useRef, useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
-import { useDiaryStore } from '@/store/diary'
-import { diaryThemes } from '@/lib/diaryThemes'
 
 interface PhotoSlotProps {
   photo?: {
@@ -104,15 +102,12 @@ const PhotoSlot = memo(function PhotoSlot({
 }: PhotoSlotProps) {
   void _spread // Acknowledge unused parameter
   const { theme } = useThemeStore()
-  const { currentDiaryTheme } = useDiaryStore()
-  const diaryTheme = diaryThemes[currentDiaryTheme]
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isHovering, setIsHovering] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const isGlass = currentDiaryTheme === 'glass'
-  const mutedColor = isGlass ? theme.text.muted : diaryTheme.pages.mutedColor
-  const borderColor = isGlass ? 'rgba(255,255,255,0.2)' : diaryTheme.pages.mutedColor
+  const mutedColor = theme.text.muted
+  const borderColor = 'rgba(255,255,255,0.2)'
 
   // Random rotation for polaroid effect (-15 to 15 degrees)
   const defaultRotation = position === 1 ? -8 : 8
@@ -238,7 +233,7 @@ const PhotoSlot = memo(function PhotoSlot({
           aspectRatio: '4/5',
           border: `2px dashed ${isHovering ? theme.accent.warm : borderColor}`,
           borderRadius: '4px',
-          background: isGlass ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+          background: 'rgba(255,255,255,0.05)',
           padding: '6px',
         }}
       >
@@ -258,9 +253,9 @@ const PhotoSlot = memo(function PhotoSlot({
               className="w-full py-1.5 rounded text-[10px] flex items-center justify-center gap-1 cursor-pointer"
               style={{
                 color: mutedColor,
-                background: isGlass ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                background: 'rgba(255,255,255,0.08)',
               }}
-              whileHover={{ scale: 1.03, backgroundColor: isGlass ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }}
+              whileHover={{ scale: 1.03, backgroundColor: 'rgba(255,255,255,0.15)' }}
               whileTap={{ scale: 0.97 }}
             >
               Upload
@@ -271,9 +266,9 @@ const PhotoSlot = memo(function PhotoSlot({
                 className="w-full py-1.5 rounded text-[10px] flex items-center justify-center gap-1 cursor-pointer"
                 style={{
                   color: mutedColor,
-                  background: isGlass ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  background: 'rgba(255,255,255,0.08)',
                 }}
-                whileHover={{ scale: 1.03, backgroundColor: isGlass ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }}
+                whileHover={{ scale: 1.03, backgroundColor: 'rgba(255,255,255,0.15)' }}
                 whileTap={{ scale: 0.97 }}
               >
                 Click
