@@ -85,7 +85,12 @@ export default function NewLettersPage() {
         recipientName: recipientType === 'friend' ? friendName : null,
         senderName: recipientType === 'friend' ? senderName : null,
         letterLocation: location || null,
-        photos: photos.map(p => p.url),
+        photos: photos.map(p => ({
+          url: p.url,
+          position: p.position,
+          rotation: p.rotation,
+          spread: 1,
+        })),
         song: songLink || null,
         doodles: doodleStrokes.length > 0
           ? [{ strokes: doodleStrokes, positionInEntry: 0 }]

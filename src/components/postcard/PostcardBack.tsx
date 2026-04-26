@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { format, addWeeks, addMonths, addYears, addDays } from 'date-fns'
 import PhotoBlock from '@/components/desk/PhotoBlock'
 import CompactDoodleCanvas from '@/components/desk/CompactDoodleCanvas'
+import SongEmbed from '@/components/SongEmbed'
 import DatePicker from '@/components/DatePicker'
 import { StrokeData } from '@/store/journal'
 
@@ -57,26 +58,74 @@ export default function PostcardBack(props: PostcardBackProps) {
       className="w-full h-full relative flex flex-col sm:flex-row"
       style={{ background: '#f5f0e6' }}
     >
-      {/* Left: Photos + Song (wider) */}
-      <div className="sm:flex-1 p-4 flex flex-col gap-3 shrink-0" style={{ flexBasis: '55%' }}>
-        {/* Photos — same component as desk */}
-        <div className="flex-1 flex items-center justify-center">
+      {/* Left: Song (top) → Photos (middle) → Doodle (bottom) */}
+      <div className="sm:flex-1 p-4 flex flex-col gap-2 shrink-0" style={{ flexBasis: '55%' }}>
+        {/* Song — top, same pattern as journal LeftPage */}
+        <div className="shrink-0" style={{ minHeight: '56px' }}>
+          {props.songLink && /https?:\/\//.test(props.songLink) ? (
+            <div className="relative">
+              <SongEmbed url={props.songLink} compact audioOnly />
+              <button
+                onClick={() => props.onSongChange('')}
+                className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] opacity-50 hover:opacity-100 transition-opacity"
+                style={{
+                  background: '#c4a26520',
+                  color: '#c4a265',
+                }}
+                title="Change song"
+              >
+                ✎
+              </button>
+            </div>
+          ) : (
+            <>
+              <div
+                className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium"
+                style={{ color: '#8B6914', fontFamily: "'Georgia', serif" }}
+              >
+                Add a Song
+              </div>
+              <input
+                type="text"
+                value={props.songLink}
+                onChange={(e) => props.onSongChange(e.target.value)}
+                placeholder="Paste Spotify, YouTube, or SoundCloud link..."
+                className="w-full px-2 py-1.5 rounded-lg text-sm outline-none"
+                style={{
+                  ...inputStyle,
+                  borderBottom: 'none',
+                  border: '1px solid rgba(196,162,101,0.3)',
+                  background: 'rgba(139,105,20,0.05)',
+                }}
+              />
+            </>
+          )}
+        </div>
+
+        {/* Photos — middle */}
+        <div className="flex items-center justify-center" style={{ flex: '1 1 0%' }}>
           <PhotoBlock
             photos={props.photos}
             onPhotoAdd={props.onPhotoAdd}
           />
         </div>
 
-        {/* Song input */}
-        <div className="shrink-0">
-          <input
-            type="text"
-            value={props.songLink}
-            onChange={(e) => props.onSongChange(e.target.value)}
-            placeholder="Paste a song link..."
-            className="w-full px-2 py-1 rounded text-sm outline-none"
-            style={inputStyle}
-          />
+        {/* Doodle — bottom-left, 40% of remaining space */}
+        <div className="flex flex-col shrink-0" style={{ flex: '0 0 35%' }}>
+          <div className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium" style={{ color: '#8B6914', fontFamily: "'Georgia', serif" }}>
+            Draw
+          </div>
+          <div className="flex-1 min-h-0">
+            <CompactDoodleCanvas
+              strokes={props.doodleStrokes}
+              onStrokesChange={props.onDoodleChange}
+              doodleColors={['#3d2c1a', '#8B6914', '#c4a265', '#5E8B5A']}
+              canvasBackground="rgba(139,105,20,0.05)"
+              canvasBorder="rgba(196,162,101,0.3)"
+              textColor="#3d2c1a"
+              mutedColor="#c4a265"
+            />
+          </div>
         </div>
       </div>
 
@@ -84,7 +133,7 @@ export default function PostcardBack(props: PostcardBackProps) {
       <div className="hidden sm:block w-px self-stretch" style={{ background: '#c4a265' }} />
       <div className="block sm:hidden h-px w-full" style={{ background: '#c4a265' }} />
 
-      {/* Right: Address form + doodle at bottom */}
+      {/* Right: Address form only */}
       <div className="sm:flex-1 p-4 flex flex-col gap-2" style={{ flexBasis: '45%' }}>
         {/* To field */}
         <div>
@@ -187,24 +236,6 @@ export default function PostcardBack(props: PostcardBackProps) {
           <p className="mt-1 text-xs" style={{ color: '#8B6914' }}>
             {format(props.unlockDate, 'MMMM d, yyyy')}
           </p>
-        </div>
-
-        {/* Doodle area — fixed height, inline, same as desk CompactDoodleCanvas */}
-        <div className="mt-auto shrink-0" style={{ height: '140px' }}>
-          <div className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium" style={{ color: '#8B6914', fontFamily: "'Georgia', serif" }}>
-            Draw
-          </div>
-          <div style={{ height: '120px' }}>
-            <CompactDoodleCanvas
-              strokes={props.doodleStrokes}
-              onStrokesChange={props.onDoodleChange}
-              doodleColors={['#3d2c1a', '#8B6914', '#c4a265', '#5E8B5A']}
-              canvasBackground="rgba(139,105,20,0.05)"
-              canvasBorder="rgba(196,162,101,0.3)"
-              textColor="#3d2c1a"
-              mutedColor="#c4a265"
-            />
-          </div>
         </div>
       </div>
 
