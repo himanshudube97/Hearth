@@ -67,9 +67,9 @@ const PageWrapper = memo(function PageWrapper({
           backgroundImage: `repeating-linear-gradient(
             180deg,
             transparent 0px,
-            transparent 31px,
-            ${colors.ruledLine} 31px,
-            ${colors.ruledLine} 32px
+            transparent 63px,
+            ${colors.ruledLine} 63px,
+            ${colors.ruledLine} 64px
           )`,
         }}
       />

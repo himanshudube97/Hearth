@@ -143,9 +143,9 @@ const RightPage = memo(function RightPage({
   const linePattern = `repeating-linear-gradient(
     180deg,
     transparent 0px,
-    transparent ${LINE_HEIGHT - 1}px,
-    ${colors.ruledLine} ${LINE_HEIGHT - 1}px,
-    ${colors.ruledLine} ${LINE_HEIGHT}px
+    transparent ${LINE_HEIGHT * 2 - 1}px,
+    ${colors.ruledLine} ${LINE_HEIGHT * 2 - 1}px,
+    ${colors.ruledLine} ${LINE_HEIGHT * 2}px
   )`
 
   useEffect(() => {
