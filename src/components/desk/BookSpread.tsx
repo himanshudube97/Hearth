@@ -9,10 +9,7 @@ import LeftPage from './LeftPage'
 import RightPage from './RightPage'
 import PageTurn from './PageTurn'
 import EntrySelector from './EntrySelector'
-import { PageCorners } from './decorations/PageCorners'
-import { Watermarks } from './decorations/Watermarks'
 import { RibbonBookmark } from './interactive/RibbonBookmark'
-import { FloatingParticles } from './interactive/FloatingParticles'
 import { StrokeData, useJournalStore } from '@/store/journal'
 
 interface Photo {
