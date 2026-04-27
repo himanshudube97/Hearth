@@ -8,8 +8,6 @@ import { useThemeStore } from '@/store/theme'
 import { useProfileStore } from '@/store/profile'
 import { useAutosaveEntry } from '@/hooks/useAutosaveEntry'
 import { ThemeName } from '@/lib/themes'
-import Background from '@/components/Background'
-import DeskSettingsPanel from '@/components/desk/DeskSettingsPanel'
 import Postcard from '@/components/postcard/Postcard'
 import PostcardFront, { Recipient } from '@/components/postcard/PostcardFront'
 import PostcardBack from '@/components/postcard/PostcardBack'
@@ -272,8 +270,6 @@ export default function LettersPage() {
   if (showSuccess && successData) {
     return (
       <>
-        <div className="fixed inset-0 -z-10"><Background /></div>
-        <DeskSettingsPanel />
         <div className="max-w-2xl mx-auto py-12 text-center">
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
             <motion.div
@@ -318,12 +314,6 @@ export default function LettersPage() {
 
   return (
     <>
-      {/* Theme background with particles */}
-      <div className="fixed inset-0 -z-10"><Background /></div>
-
-      {/* Gear / settings drawer (theme + cursor + opacity) */}
-      <DeskSettingsPanel />
-
       {/* Envelope animation on send */}
       <AnimatePresence>
         {showAnimation && <FloatingEnvelope onComplete={handleAnimationComplete} />}
@@ -369,7 +359,7 @@ export default function LettersPage() {
           })}
         </div>
 
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           {viewMode === 'write' ? (
             <motion.div
               key="write"
@@ -379,12 +369,7 @@ export default function LettersPage() {
               transition={{ duration: 0.25 }}
             >
               {/* Postcard */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="mb-10"
-              >
+              <div className="mb-10">
                 <Postcard
                   isFlipped={isFlipped}
                   onFlip={() => setIsFlipped(!isFlipped)}
@@ -419,7 +404,7 @@ export default function LettersPage() {
                     />
                   }
                 />
-              </motion.div>
+              </div>
 
               {/* Send button — label resolves to whoever the postcard is
                   addressed to right now. Empty TO field → "Future Me." */}

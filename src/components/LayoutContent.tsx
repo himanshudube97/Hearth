@@ -7,6 +7,7 @@ import Navigation from '@/components/Navigation'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
 import CursorPicker from '@/components/CursorPicker'
 import PageTransition from '@/components/PageTransition'
+import DeskSettingsPanel from '@/components/desk/DeskSettingsPanel'
 import { InstallPrompt } from '@/components/InstallPrompt'
 import { useThemeStore } from '@/store/theme'
 import { useApplyCursorStyles } from '@/hooks/useApplyCursorStyles'
@@ -22,6 +23,10 @@ export default function LayoutContent({
   const isLandingPage = pathname === '/'
   const isPricingPage = pathname === '/pricing'
   const isWritingPage = pathname === '/write'
+  // /letters renders DeskSettingsPanel (gear icon) for theme + cursor, so the
+  // floating bottom pickers would be duplicates. It still wants the shared
+  // Background + Navigation + main wrapper, unlike /write.
+  const isLettersPage = pathname === '/letters'
 
   // Apply the active cursor styles globally. Used to live inside
   // CursorPicker, but the writing page no longer renders that picker (it
@@ -56,14 +61,14 @@ export default function LayoutContent({
     )
   }
 
+  // Background renders for every authed page (write, letters, timeline, etc.)
+  // so it persists across navigations — no unmount/remount flash when moving
+  // between /letters and /write. /write's DeskScene paints its desk surface
+  // on top of this Background, /letters lays its postcard over it.
   if (isWritingPage) {
-    // Writing page renders its own background and full-bleed canvas,
-    // but still needs the top navigation floating above it. Theme/cursor
-    // pickers are folded into the desk's gear-driven settings drawer
-    // (see DeskSettingsPanel), so the floating ones are intentionally
-    // omitted here to avoid duplicate controls.
     return (
       <>
+        <Background />
         {children}
         <Navigation />
         <InstallPrompt />
@@ -71,7 +76,12 @@ export default function LayoutContent({
     )
   }
 
-  // All other pages - full layout with background, nav, padding
+  // /letters uses DeskSettingsPanel (gear) instead of the floating bottom
+  // pickers. The gear is rendered here at the layout root so it's NOT inside
+  // <main> / <PageTransition> — those wrappers have transforms during the
+  // page-transition animation, which would otherwise become the containing
+  // block for the gear's `position: fixed` and shift it down by main's
+  // pt-20.
   return (
     <>
       <Background />
@@ -81,8 +91,14 @@ export default function LayoutContent({
           {children}
         </PageTransition>
       </main>
-      <CursorPicker />
-      <ThemeSwitcher />
+      {isLettersPage ? (
+        <DeskSettingsPanel />
+      ) : (
+        <>
+          <CursorPicker />
+          <ThemeSwitcher />
+        </>
+      )}
       <InstallPrompt />
     </>
   )

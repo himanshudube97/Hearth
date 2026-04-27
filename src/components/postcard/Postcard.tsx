@@ -21,6 +21,7 @@ export default function Postcard({ front, back, isFlipped, onFlip }: PostcardPro
           transformStyle: 'preserve-3d',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2)',
         }}
+        initial={{ rotateY: 0 }}
         animate={{ rotateY: isFlipped ? 180 : 0 }}
         transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
         whileHover={{ translateY: -2 }}

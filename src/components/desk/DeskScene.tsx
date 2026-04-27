@@ -19,7 +19,6 @@ const DUST_PARTICLES = Array.from({ length: 12 }, () => ({
   delay: Math.random() * 8,
 }))
 import MobileJournalEntry from './MobileJournalEntry'
-import Background from '@/components/Background'
 import DeskSettingsPanel from './DeskSettingsPanel'
 
 export default function DeskScene() {
@@ -54,11 +53,6 @@ export default function DeskScene() {
         perspective: '2000px',
       }}
     >
-      {/* Theme background with particles - renders at z-5 */}
-      <div className="absolute inset-0 z-[5]">
-        <Background />
-      </div>
-
       {/* Vignette overlay - very subtle to let background animations show */}
       <div
         className="absolute inset-0 pointer-events-none z-10"

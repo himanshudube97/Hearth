@@ -66,7 +66,9 @@ export default function PostcardBack(props: PostcardBackProps) {
     <div
       className="w-full h-full relative flex flex-col sm:flex-row"
       style={{
-        background: colors.pageBg,
+        // Mirror .diary-page: opacity slider on the gear panel makes the
+        // postcard back see-through too, matching the front.
+        background: `color-mix(in srgb, ${colors.pageBgSolid} var(--diary-page-opacity, 95%), transparent)`,
         backdropFilter: `blur(${colors.pageBlur})`,
       }}
     >

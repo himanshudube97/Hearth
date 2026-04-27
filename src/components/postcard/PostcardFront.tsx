@@ -65,7 +65,10 @@ export default function PostcardFront({
     <div
       className="postcard-front w-full h-full relative flex flex-col"
       style={{
-        background: colors.pageBg,
+        // Mirror .diary-page: blend the solid theme tint against transparent
+        // by the user-controlled opacity %, so the gear's opacity slider
+        // makes the postcard see-through just like the journal pages.
+        background: `color-mix(in srgb, ${colors.pageBgSolid} var(--diary-page-opacity, 95%), transparent)`,
         backdropFilter: `blur(${colors.pageBlur})`,
         fontFamily: "var(--font-caveat), 'Caveat', cursive",
       }}
