@@ -3,7 +3,6 @@
 import React, { memo } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
-import { playSfx } from '@/lib/playSfx'
 
 interface Entry {
   id: string
@@ -102,7 +101,6 @@ const EntrySelector = memo(function EntrySelector({
       {onNewEntry && (
         <motion.button
           onClick={() => {
-            playSfx('newEntry')
             onEntrySelect(null)
             onNewEntry()
           }}

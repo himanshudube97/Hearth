@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
 import { useThemeStore } from '@/store/theme'
 import { themes, ThemeName } from '@/lib/themes'
-import { playSfx } from '@/lib/playSfx'
 
 const themeIcons: Record<ThemeName, string> = {
   winterSunset: '🌅',
@@ -72,7 +71,6 @@ export default function ThemeSwitcher() {
                 whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
                 onClick={() => {
-                  if (name !== themeName) playSfx('themeSwitch')
                   setTheme(name)
                   setIsOpen(false)
                 }}
