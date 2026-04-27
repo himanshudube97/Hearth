@@ -445,6 +445,7 @@ export default function BookSpread() {
           height: `${PAGE_HEIGHT}px`,
           transformStyle: 'preserve-3d',
           ['--page-bg' as string]: colors.pageBg,
+          ['--page-bg-solid' as string]: colors.pageBgSolid,
         } as React.CSSProperties}
         initial={{ rotateX: 5, opacity: 0 }}
         animate={{ rotateX: 0, opacity: 1 }}

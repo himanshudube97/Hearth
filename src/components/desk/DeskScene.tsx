@@ -20,6 +20,7 @@ const DUST_PARTICLES = Array.from({ length: 12 }, () => ({
 }))
 import MobileJournalEntry from './MobileJournalEntry'
 import Background from '@/components/Background'
+import DeskSettingsPanel from './DeskSettingsPanel'
 
 export default function DeskScene() {
   const [mounted, setMounted] = useState(false)
@@ -126,6 +127,9 @@ export default function DeskScene() {
           >
             <BookSpread />
           </motion.div>
+
+          {/* Gear-driven settings drawer (theme + cursor + opacity) */}
+          <DeskSettingsPanel />
 
           {/* Floating dust particles */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">

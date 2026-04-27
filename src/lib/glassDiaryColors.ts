@@ -6,6 +6,9 @@ import { Theme } from './themes'
  */
 export interface GlassDiaryColors {
   pageBg: string
+  /** Same hue as pageBg but with alpha forced to 1. Used as the base for
+   *  the "page opacity" mix in CSS so 100% really means fully opaque. */
+  pageBgSolid: string
   pageBlur: string
   pageBorder: string
   ruledLine: string
@@ -21,6 +24,14 @@ export interface GlassDiaryColors {
   saveButton: string
   buttonBg: string
   buttonBorder: string
+}
+
+const stripAlpha = (rgba: string): string => {
+  // rgba(r, g, b, a) → rgb(r, g, b). Pass-through for hex / named colors.
+  const m = rgba.match(/rgba?\(([^)]+)\)/i)
+  if (!m) return rgba
+  const [r, g, b] = m[1].split(',').map((s) => s.trim())
+  return `rgb(${r}, ${g}, ${b})`
 }
 
 const warm = (theme: Theme, alpha: number): string => {
@@ -40,6 +51,7 @@ const warm = (theme: Theme, alpha: number): string => {
 export function getGlassDiaryColors(theme: Theme): GlassDiaryColors {
   return {
     pageBg: theme.glass.bg,
+    pageBgSolid: stripAlpha(theme.glass.bg),
     pageBlur: theme.glass.blur,
     pageBorder: warm(theme, 0.18),
     ruledLine: warm(theme, 0.1),

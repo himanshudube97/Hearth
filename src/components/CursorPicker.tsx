@@ -1,46 +1,19 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useCursorStore } from '@/store/cursor'
 import { useThemeStore } from '@/store/theme'
 import { cursors, cursorIcons, CursorName } from '@/lib/cursors'
 
+// Cursor style injection now lives in useApplyCursorStyles (called from
+// LayoutContent), so this component is purely a picker UI.
 export default function CursorPicker() {
   const [isOpen, setIsOpen] = useState(false)
   const { cursor, cursorName, setCursor } = useCursorStore()
   const { theme } = useThemeStore()
 
   const cursorList = Object.entries(cursors) as [CursorName, typeof cursor][]
-
-  // Apply cursor styles globally
-  useEffect(() => {
-    const style = document.createElement('style')
-    style.id = 'custom-cursor-styles'
-
-    const existingStyle = document.getElementById('custom-cursor-styles')
-    if (existingStyle) {
-      existingStyle.remove()
-    }
-
-    style.textContent = `
-      body {
-        cursor: ${cursor.default} ${cursor.hotspot.x} ${cursor.hotspot.y}, auto !important;
-      }
-      a, button, [role="button"], input[type="submit"], input[type="button"], .cursor-pointer {
-        cursor: ${cursor.pointer} ${cursor.pointerHotspot.x} ${cursor.pointerHotspot.y}, pointer !important;
-      }
-      input[type="text"], input[type="email"], input[type="password"], textarea, [contenteditable="true"] {
-        cursor: ${cursor.text} ${cursor.textHotspot.x} ${cursor.textHotspot.y}, text !important;
-      }
-    `
-
-    document.head.appendChild(style)
-
-    return () => {
-      style.remove()
-    }
-  }, [cursor])
 
   return (
     <div className="fixed bottom-6 left-6 z-50">

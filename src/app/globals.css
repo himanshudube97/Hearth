@@ -98,7 +98,15 @@ textarea,
    tint comes from a CSS variable inherited from the book container, so
    per-theme color still applies without using inline style. */
 .diary-page {
-  background-color: var(--page-bg, rgba(20, 25, 22, 0.5));
+  /* The percentage on color-mix() is the page's true opacity:
+       100%  → fully opaque
+       0%    → fully transparent
+     A backdrop-filter blur gives the glass look behind the see-through
+     fraction. The mid-flip rule below still stacks an opaque base so the
+     curl reads as solid paper while turning. */
+  background-color: color-mix(in srgb, var(--page-bg-solid, rgb(20, 25, 22)) var(--diary-page-opacity, 95%), transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1.5px solid rgba(255, 255, 255, 0.18);
 }
 

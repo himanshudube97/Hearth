@@ -9,6 +9,7 @@ import CursorPicker from '@/components/CursorPicker'
 import PageTransition from '@/components/PageTransition'
 import { InstallPrompt } from '@/components/InstallPrompt'
 import { useThemeStore } from '@/store/theme'
+import { useApplyCursorStyles } from '@/hooks/useApplyCursorStyles'
 
 export default function LayoutContent({
   children,
@@ -21,6 +22,11 @@ export default function LayoutContent({
   const isLandingPage = pathname === '/'
   const isPricingPage = pathname === '/pricing'
   const isWritingPage = pathname === '/write'
+
+  // Apply the active cursor styles globally. Used to live inside
+  // CursorPicker, but the writing page no longer renders that picker (it
+  // uses the desk gear panel instead) — so this lives at the layout level.
+  useApplyCursorStyles()
 
   useEffect(() => {
     setMounted(true)
@@ -52,13 +58,14 @@ export default function LayoutContent({
 
   if (isWritingPage) {
     // Writing page renders its own background and full-bleed canvas,
-    // but still needs the top navigation floating above it.
+    // but still needs the top navigation floating above it. Theme/cursor
+    // pickers are folded into the desk's gear-driven settings drawer
+    // (see DeskSettingsPanel), so the floating ones are intentionally
+    // omitted here to avoid duplicate controls.
     return (
       <>
         {children}
         <Navigation />
-        <CursorPicker />
-        <ThemeSwitcher />
         <InstallPrompt />
       </>
     )

@@ -1,0 +1,217 @@
+'use client'
+
+import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { useThemeStore } from '@/store/theme'
+import { useCursorStore } from '@/store/cursor'
+import { useDeskSettings } from '@/store/deskSettings'
+import { themes, ThemeName } from '@/lib/themes'
+import { cursors, cursorIcons, CursorName } from '@/lib/cursors'
+
+const themeIcons: Record<ThemeName, string> = {
+  winterSunset: '🌅',
+  rivendell: '🌲',
+  hobbiton: '🏡',
+  cherryBlossom: '🌸',
+  northernLights: '🌌',
+  mistyMountains: '⛰️',
+  gentleRain: '🌧️',
+  cosmos: '✨',
+  candlelight: '🕯️',
+  oceanTwilight: '🌊',
+  quietSnow: '❄️',
+}
+
+export default function DeskSettingsPanel() {
+  const [open, setOpen] = useState(false)
+  const { theme, themeName, setTheme } = useThemeStore()
+  const { cursorName, setCursor } = useCursorStore()
+  const { pageOpacity, setPageOpacity } = useDeskSettings()
+
+  // Push pageOpacity onto a CSS variable so .diary-page picks it up.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--diary-page-opacity', `${pageOpacity}%`)
+  }, [pageOpacity])
+
+  const themeList = Object.entries(themes) as [ThemeName, typeof theme][]
+  const cursorList = Object.entries(cursors) as [CursorName, (typeof cursors)[CursorName]][]
+
+  return (
+    <>
+      {/* Gear button — top-right of viewport, above the desk scene. */}
+      <motion.button
+        whileHover={{ scale: 1.05, rotate: 30 }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        onClick={() => setOpen((o) => !o)}
+        className="fixed top-6 right-6 z-50 w-12 h-12 rounded-full flex items-center justify-center text-xl"
+        style={{
+          background: theme.glass.bg,
+          backdropFilter: `blur(${theme.glass.blur})`,
+          border: `1px solid ${theme.glass.border}`,
+          color: theme.accent.warm,
+        }}
+        title="Desk settings"
+        aria-label="Open desk settings"
+      >
+        ⚙
+      </motion.button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Click-outside catcher. Doesn't dim the rest so the user can
+                see live changes on the diary while the drawer is open. */}
+            <motion.div
+              key="catcher"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40"
+              onClick={() => setOpen(false)}
+            />
+
+            {/* Right-side drawer */}
+            <motion.aside
+              key="drawer"
+              initial={{ x: '110%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '110%', opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 32 }}
+              className="fixed top-0 right-0 z-50 h-full w-[360px] flex flex-col"
+              style={{
+                background: theme.glass.bg,
+                backdropFilter: `blur(${theme.glass.blur})`,
+                borderLeft: `1px solid ${theme.glass.border}`,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <header
+                className="flex items-center justify-between px-5 py-4 border-b"
+                style={{ borderColor: theme.glass.border }}
+              >
+                <h2 className="text-sm font-medium tracking-wide uppercase" style={{ color: theme.text.primary }}>
+                  Desk Settings
+                </h2>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-lg opacity-70 hover:opacity-100 transition-opacity"
+                  style={{ color: theme.text.muted }}
+                  aria-label="Close settings"
+                >
+                  ✕
+                </button>
+              </header>
+
+              <div className="flex-1 overflow-y-auto px-5 py-5 space-y-7">
+                {/* Theme */}
+                <section>
+                  <h3 className="text-xs uppercase tracking-[0.15em] mb-3" style={{ color: theme.text.muted }}>
+                    Theme
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {themeList.map(([name, t]) => {
+                      const selected = themeName === name
+                      return (
+                        <motion.button
+                          key={name}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => setTheme(name)}
+                          className="p-2 rounded-xl flex items-center gap-2 text-left transition-all"
+                          style={{
+                            background: selected ? `${t.accent.primary}25` : 'transparent',
+                            border: selected
+                              ? `1px solid ${t.accent.primary}`
+                              : `1px solid ${theme.glass.border}`,
+                          }}
+                        >
+                          <span
+                            className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-base"
+                            style={{
+                              background: `linear-gradient(135deg, ${t.accent.warm}, ${t.accent.primary})`,
+                            }}
+                          >
+                            {themeIcons[name]}
+                          </span>
+                          <span className="text-xs leading-tight" style={{ color: theme.text.primary }}>
+                            {t.name}
+                          </span>
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                </section>
+
+                {/* Cursor */}
+                <section>
+                  <h3 className="text-xs uppercase tracking-[0.15em] mb-3" style={{ color: theme.text.muted }}>
+                    Cursor
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {cursorList.map(([name, c]) => {
+                      const selected = cursorName === name
+                      return (
+                        <motion.button
+                          key={name}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => setCursor(name)}
+                          className="p-2 rounded-xl flex items-center gap-2 text-left transition-all"
+                          style={{
+                            background: selected ? `${theme.accent.primary}25` : 'transparent',
+                            border: selected
+                              ? `1px solid ${theme.accent.primary}`
+                              : `1px solid ${theme.glass.border}`,
+                          }}
+                        >
+                          <span
+                            className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-base"
+                            style={{
+                              background: `linear-gradient(135deg, ${theme.accent.warm}30, ${theme.accent.primary}30)`,
+                            }}
+                          >
+                            {cursorIcons[name]}
+                          </span>
+                          <span className="text-xs leading-tight" style={{ color: theme.text.primary }}>
+                            {c.name}
+                          </span>
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                </section>
+
+                {/* Page opacity */}
+                <section>
+                  <div className="flex items-baseline justify-between mb-3">
+                    <h3 className="text-xs uppercase tracking-[0.15em]" style={{ color: theme.text.muted }}>
+                      Page Opacity
+                    </h3>
+                    <span className="text-xs font-mono" style={{ color: theme.text.primary }}>
+                      {pageOpacity}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={pageOpacity}
+                    onChange={(e) => setPageOpacity(Number(e.target.value))}
+                    className="w-full h-1 rounded-full appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, ${theme.accent.warm} 0%, ${theme.accent.warm} ${pageOpacity}%, ${theme.glass.border} ${pageOpacity}%, ${theme.glass.border} 100%)`,
+                      accentColor: theme.accent.warm,
+                    }}
+                  />
+                  <p className="text-[10px] mt-2 leading-relaxed" style={{ color: theme.text.muted }}>
+                    Lower = more see-through. Drag and watch the page change live.
+                  </p>
+                </section>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
