@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useThemeStore } from '@/store/theme'
 import { useCursorStore } from '@/store/cursor'
 import { useDeskSettings } from '@/store/deskSettings'
+import { useSoundStore } from '@/store/sound'
 import { themes, ThemeName } from '@/lib/themes'
 import { cursors, cursorIcons, CursorName } from '@/lib/cursors'
 import { playSfx } from '@/lib/playSfx'
@@ -28,6 +29,14 @@ export default function DeskSettingsPanel() {
   const { theme, themeName, setTheme } = useThemeStore()
   const { cursorName, setCursor } = useCursorStore()
   const { pageOpacity, setPageOpacity } = useDeskSettings()
+  const {
+    ambientEnabled,
+    ambientVolume,
+    uiSoundsEnabled,
+    setAmbientEnabled,
+    setAmbientVolume,
+    setUiSoundsEnabled,
+  } = useSoundStore()
 
   // Push pageOpacity onto a CSS variable so .diary-page picks it up.
   useEffect(() => {
@@ -210,6 +219,88 @@ export default function DeskSettingsPanel() {
                   <p className="text-[10px] mt-2 leading-relaxed" style={{ color: theme.text.muted }}>
                     Lower = more see-through. Drag and watch the page change live.
                   </p>
+                </section>
+
+                {/* Sound */}
+                <section>
+                  <h3 className="text-xs uppercase tracking-[0.15em] mb-3" style={{ color: theme.text.muted }}>
+                    Sound
+                  </h3>
+
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-xs" style={{ color: theme.text.primary }}>
+                        Ambient
+                      </p>
+                      <p className="text-[10px] mt-0.5" style={{ color: theme.text.muted }}>
+                        Background loop matched to your theme
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setAmbientEnabled(!ambientEnabled)}
+                      className="w-10 h-6 rounded-full relative transition-colors"
+                      style={{
+                        background: ambientEnabled ? theme.accent.warm : theme.glass.border,
+                      }}
+                      aria-label="Toggle ambient sound"
+                    >
+                      <motion.span
+                        className="absolute top-0.5 w-5 h-5 rounded-full bg-white"
+                        animate={{ left: ambientEnabled ? '18px' : '2px' }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="mb-4" style={{ opacity: ambientEnabled ? 1 : 0.4 }}>
+                    <div className="flex items-baseline justify-between mb-2">
+                      <span className="text-[10px] uppercase tracking-wider" style={{ color: theme.text.muted }}>
+                        Volume
+                      </span>
+                      <span className="text-[10px] font-mono" style={{ color: theme.text.primary }}>
+                        {Math.round(ambientVolume * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={Math.round(ambientVolume * 100)}
+                      onChange={(e) => setAmbientVolume(Number(e.target.value) / 100)}
+                      disabled={!ambientEnabled}
+                      className="w-full h-1 rounded-full appearance-none cursor-pointer"
+                      style={{
+                        background: `linear-gradient(to right, ${theme.accent.warm} 0%, ${theme.accent.warm} ${ambientVolume * 100}%, ${theme.glass.border} ${ambientVolume * 100}%, ${theme.glass.border} 100%)`,
+                        accentColor: theme.accent.warm,
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs" style={{ color: theme.text.primary }}>
+                        UI sounds
+                      </p>
+                      <p className="text-[10px] mt-0.5" style={{ color: theme.text.muted }}>
+                        Page turns, theme changes, letter seals
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setUiSoundsEnabled(!uiSoundsEnabled)}
+                      className="w-10 h-6 rounded-full relative transition-colors"
+                      style={{
+                        background: uiSoundsEnabled ? theme.accent.warm : theme.glass.border,
+                      }}
+                      aria-label="Toggle UI sounds"
+                    >
+                      <motion.span
+                        className="absolute top-0.5 w-5 h-5 rounded-full bg-white"
+                        animate={{ left: uiSoundsEnabled ? '18px' : '2px' }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      />
+                    </button>
+                  </div>
                 </section>
               </div>
             </motion.aside>
