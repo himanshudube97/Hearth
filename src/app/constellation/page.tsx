@@ -250,6 +250,123 @@ function CosmosBackground({ theme }: { theme: Theme }) {
   )
 }
 
+function MemoryStarSVG({
+  star,
+  color,
+  onClick,
+}: {
+  star: MemoryStar
+  color: string
+  onClick: () => void
+}) {
+  // SVG viewBox is -50..50; size scales the rendered pixels.
+  const px = Math.round(star.size * 22)
+  const uid = star.id
+
+  return (
+    <motion.div
+      className="absolute cursor-pointer"
+      style={{
+        left: `${star.x}%`,
+        top: `${star.y}%`,
+        width: px,
+        height: px,
+        transform: 'translate(-50%, -50%)',
+      }}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ delay: 0.5 + star.delay, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+      onClick={onClick}
+      whileHover={{ scale: 1.3 }}
+    >
+      {/* Slow breathing pulse */}
+      <motion.div
+        className="absolute inset-0"
+        animate={{ scale: [1, 1.06, 1], opacity: [0.92, 1, 0.92] }}
+        transition={{
+          duration: 3.2 + star.delay * 0.4,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      >
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="-50 -50 100 100"
+          style={{ overflow: 'visible', display: 'block' }}
+        >
+          <defs>
+            {/* Soft outer halo */}
+            <radialGradient id={`halo-${uid}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor={color} stopOpacity="0.55" />
+              <stop offset="25%" stopColor={color} stopOpacity="0.18" />
+              <stop offset="60%" stopColor={color} stopOpacity="0.04" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </radialGradient>
+
+            {/* Inner bright bloom (white→color) */}
+            <radialGradient id={`bloom-${uid}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+              <stop offset="20%" stopColor="#ffffff" stopOpacity="0.85" />
+              <stop offset="55%" stopColor={color} stopOpacity="0.45" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </radialGradient>
+
+            {/* Diffraction spike — fades at both tips */}
+            <linearGradient id={`spikeH-${uid}`} x1="0%" y1="50%" x2="100%" y2="50%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="40%" stopColor={color} stopOpacity="0.6" />
+              <stop offset="50%" stopColor="#ffffff" stopOpacity="1" />
+              <stop offset="60%" stopColor={color} stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id={`spikeV-${uid}`} x1="50%" y1="0%" x2="50%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="40%" stopColor={color} stopOpacity="0.6" />
+              <stop offset="50%" stopColor="#ffffff" stopOpacity="1" />
+              <stop offset="60%" stopColor={color} stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {/* Outer halo */}
+          <circle cx="0" cy="0" r="50" fill={`url(#halo-${uid})`} />
+
+          {/* Diffraction spikes (4-point) — render below bloom so they tuck under it */}
+          <motion.g
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{
+              duration: 2.6 + star.delay * 0.3,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          >
+            <rect x="-46" y="-0.4" width="92" height="0.8" fill={`url(#spikeH-${uid})`} />
+            <rect x="-0.4" y="-46" width="0.8" height="92" fill={`url(#spikeV-${uid})`} />
+          </motion.g>
+
+          {/* Inner bloom */}
+          <circle cx="0" cy="0" r="14" fill={`url(#bloom-${uid})`} />
+
+          {/* Hot pinpoint core */}
+          <motion.circle
+            cx="0"
+            cy="0"
+            r="2.2"
+            fill="#ffffff"
+            animate={{ r: [2.2, 2.6, 2.2] }}
+            transition={{
+              duration: 2 + star.delay * 0.4,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+        </svg>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 export default function ConstellationPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [memoryStars, setMemoryStars] = useState<MemoryStar[]>([])
@@ -401,66 +518,12 @@ export default function ConstellationPage() {
       {/* Your memory stars */}
       <div className="absolute inset-0">
         {memoryStars.map((star) => (
-          <motion.div
+          <MemoryStarSVG
             key={star.id}
-            className="absolute cursor-pointer"
-            style={{
-              left: `${star.x}%`,
-              top: `${star.y}%`,
-              transform: 'translate(-50%, -50%)',
-            }}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.5 + star.delay, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+            star={star}
+            color={getMoodColor(star.entry.mood)}
             onClick={() => setSelectedStar(star)}
-          >
-            {/* Soft glow */}
-            <motion.div
-              className="absolute rounded-full"
-              style={{
-                width: star.size * 8,
-                height: star.size * 8,
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                background: `radial-gradient(circle, ${getMoodColor(star.entry.mood)}25 0%, transparent 70%)`,
-              }}
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.5, 0.7, 0.5],
-              }}
-              transition={{
-                duration: 3 + star.delay,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
-
-            {/* Star core */}
-            <motion.div
-              className="relative rounded-full"
-              style={{
-                width: star.size * 2,
-                height: star.size * 2,
-                background: `radial-gradient(circle, rgba(255,255,255,0.9) 0%, ${getMoodColor(star.entry.mood)} 50%, ${getMoodColor(star.entry.mood)}80 100%)`,
-                boxShadow: `0 0 ${star.size * 2}px ${getMoodColor(star.entry.mood)}60`,
-              }}
-              whileHover={{
-                scale: 1.5,
-                boxShadow: `0 0 ${star.size * 4}px ${getMoodColor(star.entry.mood)}`,
-              }}
-              animate={{
-                opacity: [0.8, 1, 0.8],
-              }}
-              transition={{
-                opacity: {
-                  duration: 2 + star.delay * 0.5,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                },
-              }}
-            />
-          </motion.div>
+          />
         ))}
       </div>
 
