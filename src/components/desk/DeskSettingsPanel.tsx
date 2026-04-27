@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { useThemeStore } from '@/store/theme'
 import { useCursorStore } from '@/store/cursor'
 import { useDeskSettings } from '@/store/deskSettings'
@@ -25,9 +26,12 @@ const themeIcons: Record<ThemeName, string> = {
 
 export default function DeskSettingsPanel() {
   const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+  // Page-opacity controls the diary page see-through; only shown on /write.
+  const showPageOpacity = pathname === '/write'
   const { theme, themeName, setTheme } = useThemeStore()
   const { cursorName, setCursor } = useCursorStore()
-  const { pageOpacity, setPageOpacity } = useDeskSettings()
+  const { pageOpacity, animationsEnabled, setPageOpacity, setAnimationsEnabled } = useDeskSettings()
   const {
     ambientEnabled,
     ambientVolume,
@@ -189,7 +193,8 @@ export default function DeskSettingsPanel() {
                   </div>
                 </section>
 
-                {/* Page opacity */}
+                {/* Page opacity — desk-only */}
+                {showPageOpacity && (
                 <section>
                   <div className="flex items-baseline justify-between mb-3">
                     <h3 className="text-xs uppercase tracking-[0.15em]" style={{ color: theme.text.muted }}>
@@ -215,6 +220,38 @@ export default function DeskSettingsPanel() {
                   <p className="text-[10px] mt-2 leading-relaxed" style={{ color: theme.text.muted }}>
                     Lower = more see-through. Drag and watch the page change live.
                   </p>
+                </section>
+                )}
+
+                {/* Background animations */}
+                <section>
+                  <h3 className="text-xs uppercase tracking-[0.15em] mb-3" style={{ color: theme.text.muted }}>
+                    Background
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs" style={{ color: theme.text.primary }}>
+                        Animations
+                      </p>
+                      <p className="text-[10px] mt-0.5" style={{ color: theme.text.muted }}>
+                        Particles, drifting glows, and ambient motion
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setAnimationsEnabled(!animationsEnabled)}
+                      className="w-10 h-6 rounded-full relative transition-colors"
+                      style={{
+                        background: animationsEnabled ? theme.accent.warm : theme.glass.border,
+                      }}
+                      aria-label="Toggle background animations"
+                    >
+                      <motion.span
+                        className="absolute top-0.5 w-5 h-5 rounded-full bg-white"
+                        animate={{ left: animationsEnabled ? '18px' : '2px' }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      />
+                    </button>
+                  </div>
                 </section>
 
                 {/* Sound */}

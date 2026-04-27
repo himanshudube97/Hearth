@@ -6,7 +6,7 @@ import Particles, { initParticlesEngine } from '@tsparticles/react'
 import { loadSlim } from '@tsparticles/slim'
 import { createNoise2D } from 'simplex-noise'
 import { useThemeStore } from '@/store/theme'
-import { useAmbientSound } from '@/hooks/useAmbientSound'
+import { useDeskSettings } from '@/store/deskSettings'
 import type { ISourceOptions } from '@tsparticles/engine'
 
 // ========== PARTICLE CONFIGURATIONS ==========
@@ -829,7 +829,7 @@ function BackgroundComponent() {
   const [mounted, setMounted] = useState(false)
   const [particlesReady, setParticlesReady] = useState(false)
   const { theme, themeName } = useThemeStore()
-  useAmbientSound()
+  const animationsEnabled = useDeskSettings((s) => s.animationsEnabled)
 
   useEffect(() => {
     setMounted(true)
@@ -868,9 +868,12 @@ function BackgroundComponent() {
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
-      {/* Base gradient */}
+      {/* Base gradient — always renders so the theme color is visible even
+          when animations are disabled. */}
       <div className="absolute inset-0" style={{ background: theme.bg.gradient }} />
 
+      {animationsEnabled && (
+      <>
       {/* Theme-specific ambient effects */}
       {isNorthernLights && (
         <>
@@ -1427,6 +1430,8 @@ function BackgroundComponent() {
           particlesLoaded={particlesLoaded}
           options={particleConfig}
         />
+      )}
+      </>
       )}
     </div>
   )
