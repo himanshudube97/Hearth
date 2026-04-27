@@ -14,11 +14,8 @@ export const ambientSources: Record<Theme['ambience'], string> = {
   snowy: '/sounds/ambient/snowy.mp3',
 }
 
-export type SfxName = 'pageTurn' | 'themeSwitch' | 'letterSeal' | 'newEntry'
+export type SfxName = 'pageTurn'
 
 export const sfxSources: Record<SfxName, string> = {
   pageTurn: '/sounds/ui/page-turn.mp3',
-  themeSwitch: '/sounds/ui/theme-switch.mp3',
-  letterSeal: '/sounds/ui/letter-seal.mp3',
-  newEntry: '/sounds/ui/new-entry.mp3',
 }
