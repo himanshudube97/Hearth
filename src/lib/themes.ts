@@ -5,6 +5,7 @@ export type ThemeName = 'rivendell' | 'hobbiton' | 'winterSunset' | 'cherryBloss
 export interface Theme {
   name: string
   description: string
+  mode: 'light' | 'dark'
   bg: {
     primary: string
     secondary: string
@@ -43,6 +44,7 @@ export interface Theme {
 export const rivendellTheme: Theme = {
   name: 'Rivendell Sunset',
   description: 'Elvish forest at golden hour',
+  mode: 'dark',
   bg: {
     primary: '#081408',
     secondary: '#121C12',
@@ -81,6 +83,7 @@ export const rivendellTheme: Theme = {
 export const hobbitonTheme: Theme = {
   name: 'Hobbiton',
   description: 'A sunny day by the river in the Shire',
+  mode: 'dark',
   bg: {
     primary: '#0D1A12',
     secondary: '#142A1C',
@@ -119,6 +122,7 @@ export const hobbitonTheme: Theme = {
 export const winterSunsetTheme: Theme = {
   name: 'Winter Sunset',
   description: 'Snow falling at golden hour',
+  mode: 'dark',
   bg: {
     primary: '#1A1215',
     secondary: '#2D1F24',
@@ -157,6 +161,7 @@ export const winterSunsetTheme: Theme = {
 export const cherryBlossomTheme: Theme = {
   name: 'Cherry Blossom',
   description: 'Sakura petals in spring breeze',
+  mode: 'dark',
   bg: {
     primary: '#1A1520',
     secondary: '#251D2A',
@@ -195,6 +200,7 @@ export const cherryBlossomTheme: Theme = {
 export const northernLightsTheme: Theme = {
   name: 'Northern Lights',
   description: 'Aurora dancing in the arctic night',
+  mode: 'dark',
   bg: {
     primary: '#0A0E1A',
     secondary: '#0F1628',
@@ -233,6 +239,7 @@ export const northernLightsTheme: Theme = {
 export const mistyMountainsTheme: Theme = {
   name: 'Misty Mountains',
   description: 'Serene peaks veiled in gentle fog',
+  mode: 'dark',
   bg: {
     primary: '#1A1D24',
     secondary: '#252A33',
@@ -271,6 +278,7 @@ export const mistyMountainsTheme: Theme = {
 export const gentleRainTheme: Theme = {
   name: 'Gentle Rain',
   description: 'Soft rainfall on a quiet evening',
+  mode: 'dark',
   bg: {
     primary: '#12151A',
     secondary: '#1A1E26',
@@ -309,6 +317,7 @@ export const gentleRainTheme: Theme = {
 export const cosmosTheme: Theme = {
   name: 'Cosmos',
   description: 'Drifting through infinite stars',
+  mode: 'dark',
   bg: {
     primary: '#050510',
     secondary: '#0A0A1A',
@@ -347,6 +356,7 @@ export const cosmosTheme: Theme = {
 export const candlelightTheme: Theme = {
   name: 'Candlelight',
   description: 'Warm glow in the quiet hours',
+  mode: 'dark',
   bg: {
     primary: '#14100C',
     secondary: '#1E1812',
@@ -385,6 +395,7 @@ export const candlelightTheme: Theme = {
 export const oceanTwilightTheme: Theme = {
   name: 'Ocean Twilight',
   description: 'Gentle waves at the edge of night',
+  mode: 'dark',
   bg: {
     primary: '#0A1520',
     secondary: '#142030',
@@ -423,6 +434,7 @@ export const oceanTwilightTheme: Theme = {
 export const quietSnowTheme: Theme = {
   name: 'Quiet Snow',
   description: 'Peaceful snowfall on a still evening',
+  mode: 'dark',
   bg: {
     primary: '#0E1218',
     secondary: '#161C24',
@@ -461,6 +473,7 @@ export const quietSnowTheme: Theme = {
 export const warmPeacefulTheme: Theme = {
   name: 'Warm & Peaceful',
   description: 'A gentle afternoon bathed in golden light',
+  mode: 'light',
   bg: {
     primary: '#FFF6E6',
     secondary: '#FFE8D6',
