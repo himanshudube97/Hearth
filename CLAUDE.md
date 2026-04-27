@@ -126,12 +126,15 @@ Time-delayed letters to self or friends:
 - `MoodPicker.tsx`: 5-level mood selector (0=Heavy → 4=Radiant)
 - Zustand stores persist to localStorage for theme/cursor preferences
 
-### Journal Entry Editing Rules (Append-Only)
-Entries follow an **append-only** editing model:
-- **New entry**: Full page available for writing. Music/photo/doodle inputs are shown but don't waste space.
-- **Saved entries**: Existing content (text, photos, doodles, music) is **read-only and cannot be overwritten**.
-- **Empty slots are fillable**: If a saved entry has no song, photo, or doodle, the user can add them later. If empty lines remain on the page, the user can write there.
-- **Never overwrite**: Users can only ADD to empty spaces. If a photo exists, it can't be replaced. If lines have text, they can't be edited. Only empty areas are interactive.
+### Journal Entry Editing Rules (Time-Locked Autosave)
+Entries are persisted via DB autosave (no Save button, no localStorage drafts):
+- **First change**: typing/photo/song/doodle on the new-entry spread fires a debounced (1500ms) `POST /api/entries`, creating the entry. Subsequent changes `PUT /api/entries/[id]`.
+- **Within calendar day of `createdAt`**: entry is fully editable — text, photos, song, doodle, mood can all be modified freely. The new-entry spread stays bound to the active entry until the user clicks "New Entry."
+- **After calendar-day flip**: entry locks. Existing content (text, photos, song, doodle, mood) becomes **read-only**. Only empty slots remain fillable: if a photo slot is empty you can add a photo, if no song you can add one, if blank lines remain you can write there. Existing content can never be overwritten.
+- **Calendar-day comparison**: client uses local `Date.toDateString()`; server uses the `X-User-TZ` IANA header (defaults to UTC). Both sides must agree.
+- **v1 scope (currently shipped)**: only the new-entry spread is editable. Locked entries display read-only without empty-slot fillers (a v2 follow-up). Multi-entry-per-day works via "New Entry" in the entry selector — flushes the active entry's autosave, then starts a fresh one.
+
+Server enforcement lives in `src/lib/entry-lock.ts` (`isEntryLocked` + `validateAppendOnlyDiff`). Client mirror in `src/lib/entry-lock-client.ts`. Autosave is the `useAutosaveEntry` hook in `src/hooks/`.
 
 ## Environment Variables
 
