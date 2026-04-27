@@ -1,14 +1,16 @@
 'use client'
 
 import React, { memo, useState, useEffect, useCallback, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { getStroke } from 'perfect-freehand'
 import { useThemeStore } from '@/store/theme'
 import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 import { useJournalStore, StrokeData } from '@/store/journal'
+import { useDeskStore } from '@/store/desk'
 import { getRandomPrompt } from '@/lib/themes'
 import { JOURNAL } from '@/lib/journal-constants'
 import { htmlToPlainText, splitTextForSpread } from '@/lib/text-utils'
+import type { AutosaveStatus } from '@/hooks/useAutosaveEntry'
 import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
 
@@ -52,10 +54,7 @@ interface RightPageProps {
   isNewEntry: boolean
   photos?: Photo[]
   onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
-  onSaveComplete?: () => void
-  leftPageText?: string
-  text?: string
-  onTextChange?: (text: string) => void
+  autosaveStatus?: AutosaveStatus
   focusTrigger?: number
   onNavigateLeft?: () => void
 }
@@ -119,23 +118,21 @@ const RightPage = memo(function RightPage({
   isNewEntry,
   photos = [],
   onPhotoAdd,
-  onSaveComplete,
-  leftPageText = '',
-  text: externalText,
-  onTextChange,
+  autosaveStatus = 'idle',
   focusTrigger = 0,
   onNavigateLeft,
 }: RightPageProps) {
   const { theme } = useThemeStore()
   const colors = getGlassDiaryColors(theme)
-  const { currentMood, currentSong, currentDoodleStrokes, setDoodleStrokes, resetCurrentEntry } = useJournalStore()
+  const { currentDoodleStrokes, setDoodleStrokes } = useJournalStore()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [prompt, setPrompt] = useState('')
-  const [saving, setSaving] = useState(false)
 
-  const text = externalText ?? ''
-  const noopSetText = useCallback(() => {}, [])
-  const setText = onTextChange ?? noopSetText
+  // Draft text lives in desk store so typing doesn't re-render BookSpread.
+  const text = useDeskStore((s) => s.rightPageDraft)
+  const leftPageText = useDeskStore((s) => s.leftPageDraft)
+  const setRightPageDraft = useDeskStore((s) => s.setRightPageDraft)
+  const setText = setRightPageDraft
 
   const accentColor = theme.accent.warm
   const textColor = colors.bodyText
@@ -229,75 +226,6 @@ const RightPage = memo(function RightPage({
     setText(newText)
   }, [text, leftPageText, setText])
 
-  const hasAnyText = text.trim().length > 0 || leftPageText.trim().length > 0
-
-  const handleSave = useCallback(async () => {
-    if (!text.trim() && !leftPageText.trim()) return
-
-    setSaving(true)
-    try {
-      const doodlesToSave = currentDoodleStrokes.length > 0
-        ? [{ strokes: currentDoodleStrokes }]
-        : []
-
-      // Combine left and right page text — NO page-break marker
-      const leftHtml = leftPageText.trim() ? `<p>${leftPageText.replace(/\n/g, '</p><p>')}</p>` : ''
-      const rightHtml = text.trim() ? `<p>${text.replace(/\n/g, '</p><p>')}</p>` : ''
-      const combinedText = leftHtml && rightHtml
-        ? `${leftHtml}${rightHtml}`
-        : leftHtml || rightHtml
-
-      const res = await fetch('/api/entries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: combinedText,
-          mood: currentMood,
-          song: currentSong || null,
-          doodles: doodlesToSave,
-          photos: photos.map(p => ({
-            url: p.url,
-            position: p.position,
-            rotation: p.rotation,
-            spread: 1,
-          })),
-        }),
-      })
-
-      if (res.ok) {
-        setText('')
-        resetCurrentEntry()
-        setPrompt(getRandomPrompt())
-        try {
-          localStorage.removeItem(DOODLE_DRAFT_KEY)
-        } catch (e) {
-          console.error('Failed to clear doodle draft:', e)
-        }
-
-        onSaveComplete?.()
-      } else {
-        const statusCode = res.status
-        let data: Record<string, unknown> = {}
-        try {
-          data = await res.json()
-        } catch {
-          // Response wasn't JSON
-        }
-        console.error(`Save failed [${statusCode}]:`, data)
-        if (statusCode === 401) {
-          alert('Session expired. Please refresh the page and log in again.')
-        } else {
-          alert(`Failed to save (${statusCode}): ${data.error || 'Unknown error'}`)
-        }
-      }
-    } catch (error) {
-      console.error('Failed to save entry:', error)
-      alert(`Failed to save entry: ${error instanceof Error ? error.message : 'Network error'}`)
-    } finally {
-      setSaving(false)
-    }
-  }, [text, leftPageText, currentMood, currentSong, currentDoodleStrokes, photos, resetCurrentEntry, onSaveComplete, setText])
-
   if (isNewEntry) {
     const captionDate = entry?.createdAt ? new Date(entry.createdAt) : new Date()
     const dateCaption = captionDate
@@ -385,35 +313,16 @@ const RightPage = memo(function RightPage({
           </div>
         </div>
 
-        {/* Save Button */}
+        {/* Footer: char count + autosave status */}
         <div className="mt-2 flex justify-between items-center flex-shrink-0">
           <div className="text-xs" style={{ color: mutedColor }}>
             {(text.length + leftPageText.length) > 0 && `${text.length + leftPageText.length} chars`}
           </div>
-
-          <AnimatePresence mode="wait">
-            {hasAnyText ? (
-              <motion.button
-                key="save"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                onClick={handleSave}
-                disabled={saving}
-                className="px-5 py-2 rounded-full text-sm font-medium"
-                style={{
-                  background: accentColor,
-                  color: 'white',
-                  opacity: saving ? 0.6 : 1,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                }}
-                whileHover={{ scale: 1.05, y: -1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {saving ? 'Saving...' : 'Save Entry'}
-              </motion.button>
-            ) : null}
-          </AnimatePresence>
+          <div className="text-xs italic" style={{ color: mutedColor, opacity: 0.7 }}>
+            {autosaveStatus === 'saving' && 'saving…'}
+            {autosaveStatus === 'saved' && 'saved'}
+            {autosaveStatus === 'error' && "couldn't save"}
+          </div>
         </div>
       </motion.div>
     )
@@ -455,24 +364,31 @@ const RightPage = memo(function RightPage({
         />
       </div>
 
-      {/* Text content - no scroll */}
-      <div
-        className="flex-1 overflow-hidden whitespace-pre-wrap"
-        style={{
-          color: textColor,
-          fontFamily: 'var(--font-caveat), Georgia, serif',
-          fontSize: '20px',
-          lineHeight: `${LINE_HEIGHT}px`,
-          backgroundColor: 'transparent',
-          backgroundImage: linePattern,
-          backgroundAttachment: 'local',
-        }}
-      >
-        {plainText || (
-          <span style={{ color: mutedColor, fontStyle: 'italic' }}>
-            No text content
-          </span>
-        )}
+      {/* Whisper prompt + text — match new-entry layout for flip consistency.
+          "Begin writing..." placeholder only shows when the saved entry has
+          no right-page content. */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div
+          className="text-xs italic mb-1 flex-shrink-0 leading-relaxed"
+          style={{ color: mutedColor }}
+        >
+          {prompt}
+        </div>
+        <div
+          className="flex-1 min-h-0 w-full whitespace-pre-wrap overflow-hidden"
+          style={{
+            color: plainText ? textColor : mutedColor,
+            fontFamily: 'var(--font-caveat), Georgia, serif',
+            fontSize: '20px',
+            lineHeight: `${LINE_HEIGHT}px`,
+            fontStyle: plainText ? 'normal' : 'italic',
+            backgroundColor: 'transparent',
+            backgroundImage: linePattern,
+            backgroundAttachment: 'local',
+          }}
+        >
+          {plainText || 'Begin writing...'}
+        </div>
       </div>
 
       {/* Doodle — same UI as new entry template */}

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState, memo, forwardRef } from 'react'
 import dynamic from 'next/dynamic'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useDeskStore } from '@/store/desk'
 import { getGlassDiaryColors, GlassDiaryColors } from '@/lib/glassDiaryColors'
@@ -13,6 +13,9 @@ import { RibbonBookmark } from './interactive/RibbonBookmark'
 import ThemeOrnament from './decorations/ThemeOrnament'
 import WhisperFooter from './WhisperFooter'
 import { StrokeData, useJournalStore } from '@/store/journal'
+import { useAutosaveEntry, AutosaveDraft } from '@/hooks/useAutosaveEntry'
+import { isEntryLocked } from '@/lib/entry-lock-client'
+import { htmlToPlainText, splitTextForSpread } from '@/lib/text-utils'
 
 const HTMLFlipBook = dynamic(() => import('react-pageflip'), { ssr: false })
 
@@ -37,11 +40,6 @@ interface Entry {
 const PAGE_WIDTH = 650
 const PAGE_HEIGHT = 820
 
-// Pages need to read as solid paper during the flip, otherwise the curl
-// shadow washes through and adjacent pages bleed into each other. Stack the
-// theme's translucent tint over an opaque dark base so the resting look is
-// preserved but each face is fully opaque.
-const OPAQUE_PAPER_BASE = 'rgba(15, 20, 18, 1)'
 
 const PageWrapper = memo(
   forwardRef<HTMLDivElement, {
@@ -50,19 +48,16 @@ const PageWrapper = memo(
     colors: GlassDiaryColors
   }>(function PageWrapper({ children, side, colors }, ref) {
     const isLeft = side === 'left'
+    // Inline styles get wiped by the library mid-flip, so background/border/
+    // shadow live in CSS classes (see globals.css .diary-page). Width and
+    // height stay inline because the library overrides them anyway.
     return (
       <div
         ref={ref}
+        className={`diary-page ${isLeft ? 'diary-page--left' : 'diary-page--right'}`}
         style={{
           width: `${PAGE_WIDTH}px`,
           height: `${PAGE_HEIGHT}px`,
-          backgroundColor: OPAQUE_PAPER_BASE,
-          backgroundImage: `linear-gradient(${colors.pageBg}, ${colors.pageBg})`,
-          border: `1px solid ${colors.pageBorder}`,
-          borderRadius: isLeft ? '6px 0 0 6px' : '0 6px 6px 0',
-          boxShadow: isLeft
-            ? 'inset -4px 0 12px rgba(255,255,255,0.05), -6px 6px 20px rgba(0,0,0,0.25)'
-            : 'inset 4px 0 12px rgba(255,255,255,0.05), 6px 6px 20px rgba(0,0,0,0.25)',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -83,63 +78,112 @@ const PageWrapper = memo(
   })
 )
 
+function combineDraftHtml(left: string, right: string): string {
+  // Mirrors the conversion the old handleSave did: plain newline-separated
+  // text per page → <p>-wrapped HTML, concatenated with no page-break marker.
+  const leftHtml = left.trim() ? `<p>${left.replace(/\n/g, '</p><p>')}</p>` : ''
+  const rightHtml = right.trim() ? `<p>${right.replace(/\n/g, '</p><p>')}</p>` : ''
+  return leftHtml + rightHtml
+}
+
 export default function BookSpread() {
   const { theme, themeName } = useThemeStore()
-  const { setCurrentSong } = useJournalStore()
+  const setCurrentSong = useJournalStore((s) => s.setCurrentSong)
+  const setCurrentMood = useJournalStore((s) => s.setCurrentMood)
+  const setDoodleStrokes = useJournalStore((s) => s.setDoodleStrokes)
   const colors = getGlassDiaryColors(theme)
-  const {
-    currentSpread: globalCurrentSpread,
-    totalSpreads,
-    setTotalSpreads,
-    goToSpread,
-  } = useDeskStore()
+  // Subscribe via selectors so BookSpread does NOT re-render when
+  // leftPageDraft/rightPageDraft change in the desk store. If it did,
+  // react-pageflip would rebuild page DOM on every keystroke and kill focus.
+  const globalCurrentSpread = useDeskStore((s) => s.currentSpread)
+  const totalSpreads = useDeskStore((s) => s.totalSpreads)
+  const setTotalSpreads = useDeskStore((s) => s.setTotalSpreads)
+  const goToSpread = useDeskStore((s) => s.goToSpread)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flipBookRef = useRef<any>(null)
+  const diaryRootRef = useRef<HTMLDivElement>(null)
+
+  const autosave = useAutosaveEntry()
+  const autosaveRef = useRef(autosave)
+  autosaveRef.current = autosave
 
   const [entries, setEntries] = useState<Entry[]>([])
   const [todayEntries, setTodayEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
-  const [leftPageText, setLeftPageText] = useState('')
-  const [rightPageText, setRightPageText] = useState('')
   const [pendingPhotos, setPendingPhotos] = useState<Photo[]>([])
-  const [showSavedOverlay, setShowSavedOverlay] = useState(false)
   const [rightTextareaFocusTrigger, setRightTextareaFocusTrigger] = useState(0)
   const [leftTextareaFocusTrigger, setLeftTextareaFocusTrigger] = useState(0)
 
-  // Fetch entries
-  const fetchEntries = useCallback(async () => {
-    try {
-      const res = await fetch('/api/entries?limit=50')
-      if (res.ok) {
-        const data = await res.json()
-        const fetchedEntries = data.entries || []
-        setEntries(fetchedEntries)
-        // N existing spreads + 1 new-entry spread
-        setTotalSpreads(fetchedEntries.length + 1)
+  // Track pendingPhotos via ref so the autosave-trigger callback (which is
+  // wired via store .subscribe outside React's render cycle) sees fresh data.
+  const pendingPhotosRef = useRef(pendingPhotos)
+  pendingPhotosRef.current = pendingPhotos
 
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const todayEnd = new Date()
-        todayEnd.setHours(23, 59, 59, 999)
-
-        const todaysEntries = fetchedEntries.filter((e: Entry) => {
-          const entryDate = new Date(e.createdAt)
-          return entryDate >= today && entryDate <= todayEnd
-        })
-        setTodayEntries(todaysEntries)
-      }
-    } catch (error) {
-      console.error('Failed to fetch entries:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [setTotalSpreads])
-
+  // Fetch entries on mount. If there's an unlocked today-entry, pluck the
+  // most recent one to be the "active editing target" — bound to the
+  // new-entry spread, with autosave configured to PUT to its id. The rest
+  // (including any older today entries) stay in the regular flipbook list.
   useEffect(() => {
-    fetchEntries()
-  }, [fetchEntries])
+    let cancelled = false
+    const run = async () => {
+      try {
+        const res = await fetch('/api/entries?limit=50')
+        if (!res.ok) return
+        const data = await res.json()
+        const fetched: Entry[] = data.entries || []
+        if (cancelled) return
+
+        const startOfToday = new Date()
+        startOfToday.setHours(0, 0, 0, 0)
+        const isToday = (e: Entry) => new Date(e.createdAt) >= startOfToday
+        const isUnlocked = (e: Entry) => !isEntryLocked(e.createdAt)
+
+        // Most recent unlocked today entry, if any → hydrate as active.
+        const activeIdx = fetched.findIndex((e) => isToday(e) && isUnlocked(e))
+        const active = activeIdx >= 0 ? fetched[activeIdx] : null
+        const remainder = activeIdx >= 0
+          ? [...fetched.slice(0, activeIdx), ...fetched.slice(activeIdx + 1)]
+          : fetched
+
+        setEntries(remainder)
+        setTotalSpreads(remainder.length + 1)
+
+        const todays = fetched.filter(isToday)
+        setTodayEntries(todays)
+
+        if (active) {
+          // Hydrate active state from the entry.
+          const plain = htmlToPlainText(active.text || '')
+          const [leftPlain, rightPlain] = splitTextForSpread(plain)
+          useDeskStore.getState().setDrafts(leftPlain, rightPlain)
+          setCurrentSong(active.song || '')
+          setCurrentMood(active.mood ?? 2)
+          const doodleStrokes = active.doodles?.[0]?.strokes ?? []
+          setDoodleStrokes(doodleStrokes)
+          // Photos: map the entry's photos to the local pending shape.
+          const activePhotos: Photo[] = (active.photos || []).map((p) => ({
+            id: p.id,
+            url: p.url,
+            rotation: p.rotation,
+            position: p.position,
+          }))
+          setPendingPhotos(activePhotos)
+          setCurrentEntryId(active.id)
+          autosaveRef.current.reset(active.id)
+        }
+      } catch (error) {
+        console.error('Failed to fetch entries:', error)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [setTotalSpreads, setCurrentSong, setCurrentMood, setDoodleStrokes])
 
   // After loading, jump to the new-entry spread (last)
   useEffect(() => {
@@ -147,6 +191,63 @@ export default function BookSpread() {
       goToSpread(entries.length)
     }
   }, [loading, entries.length, goToSpread])
+
+  // Build the current draft from all the places its parts live.
+  const buildDraft = useCallback((): AutosaveDraft => {
+    const desk = useDeskStore.getState()
+    const journal = useJournalStore.getState()
+    const text = combineDraftHtml(desk.leftPageDraft, desk.rightPageDraft)
+    return {
+      text,
+      mood: journal.currentMood,
+      song: journal.currentSong || null,
+      photos: pendingPhotosRef.current.map((p) => ({
+        url: p.url,
+        position: p.position,
+        rotation: p.rotation,
+        spread: 1,
+      })),
+      doodles: journal.currentDoodleStrokes.length > 0
+        ? [{ strokes: journal.currentDoodleStrokes, spread: 1 }]
+        : [],
+    }
+  }, [])
+
+  // Subscribe to draft + journal store changes WITHOUT re-rendering
+  // BookSpread (which would tear down the flipbook). Each change kicks the
+  // debounced autosave trigger.
+  useEffect(() => {
+    if (loading) return
+    const unsubDesk = useDeskStore.subscribe((state, prev) => {
+      if (
+        state.leftPageDraft !== prev.leftPageDraft ||
+        state.rightPageDraft !== prev.rightPageDraft
+      ) {
+        autosaveRef.current.trigger(buildDraft())
+      }
+    })
+    const unsubJournal = useJournalStore.subscribe((state, prev) => {
+      if (
+        state.currentSong !== prev.currentSong ||
+        state.currentMood !== prev.currentMood ||
+        state.currentDoodleStrokes !== prev.currentDoodleStrokes
+      ) {
+        autosaveRef.current.trigger(buildDraft())
+      }
+    })
+    return () => {
+      unsubDesk()
+      unsubJournal()
+    }
+  }, [loading, buildDraft])
+
+  // Photos live in BookSpread state, so a normal effect catches them.
+  useEffect(() => {
+    if (loading) return
+    autosaveRef.current.trigger(buildDraft())
+    // Only fire on photo changes, not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingPhotos, loading])
 
   // Library's onFlip event: convert page index -> spread index and sync store
   const handleFlip = useCallback((e: { data: number }) => {
@@ -172,9 +273,45 @@ export default function BookSpread() {
     flipBookRef.current?.pageFlip()?.flipNext()
   }, [])
 
+  // Two-finger scroll = arrow click. Accumulate wheel delta and fire the
+  // library's full flip animation past a threshold; lock out further flips
+  // for the duration of the animation so one swipe == one page.
+  useEffect(() => {
+    const el = diaryRootRef.current
+    if (!el) return
+
+    const THRESHOLD = 60
+    const FLIP_LOCK_MS = 1300
+
+    let accumulated = 0
+    let isFlipping = false
+
+    const handler = (e: WheelEvent) => {
+      const dominant =
+        Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) e.preventDefault()
+      if (isFlipping || dominant === 0) return
+
+      accumulated += dominant
+      if (Math.abs(accumulated) < THRESHOLD) return
+
+      isFlipping = true
+      const pf = flipBookRef.current?.pageFlip?.()
+      if (accumulated > 0) pf?.flipNext()
+      else pf?.flipPrev()
+      accumulated = 0
+      setTimeout(() => {
+        isFlipping = false
+      }, FLIP_LOCK_MS)
+    }
+
+    el.addEventListener('wheel', handler, { passive: false })
+    return () => el.removeEventListener('wheel', handler)
+  }, [])
+
   const handleLeftPageFull = useCallback((overflowText: string) => {
     if (overflowText) {
-      setRightPageText(prev => overflowText + prev)
+      useDeskStore.getState().setRightPageDraft((prev) => overflowText + prev)
     }
     setRightTextareaFocusTrigger(prev => prev + 1)
   }, [])
@@ -187,40 +324,56 @@ export default function BookSpread() {
     setLeftTextareaFocusTrigger(prev => prev + 1)
   }, [])
 
-  const handleSaveComplete = useCallback(() => {
-    setShowSavedOverlay(true)
-    setLeftPageText('')
-    setRightPageText('')
+  // Hydrate the new-entry spread with an existing entry's data so the user
+  // can keep editing it. Flushes any pending autosave for the previous
+  // active entry first, then re-targets autosave at the chosen entry.
+  const hydrateActive = useCallback(async (entry: Entry) => {
+    await autosaveRef.current.flush()
+    const plain = htmlToPlainText(entry.text || '')
+    const [leftPlain, rightPlain] = splitTextForSpread(plain)
+    useDeskStore.getState().setDrafts(leftPlain, rightPlain)
+    setCurrentSong(entry.song || '')
+    setCurrentMood(entry.mood ?? 2)
+    setDoodleStrokes(entry.doodles?.[0]?.strokes ?? [])
+    setPendingPhotos((entry.photos || []).map((p) => ({
+      id: p.id,
+      url: p.url,
+      rotation: p.rotation,
+      position: p.position,
+    })))
+    setCurrentEntryId(entry.id)
+    autosaveRef.current.reset(entry.id)
+  }, [setCurrentSong, setCurrentMood, setDoodleStrokes])
+
+  const handleEntrySelect = useCallback(async (entryId: string | null) => {
+    if (!entryId) return
+    const target = todayEntries.find((e) => e.id === entryId)
+      ?? entries.find((e) => e.id === entryId)
+    if (!target) return
+
+    if (!isEntryLocked(target.createdAt)) {
+      // Today entry, still editable → hydrate onto the new-entry spread.
+      await hydrateActive(target)
+      goToSpread(entries.length)
+      return
+    }
+    // Locked entry → just navigate to its read-only spread.
+    setCurrentEntryId(entryId)
+    const idx = entries.findIndex((e) => e.id === entryId)
+    if (idx >= 0) goToSpread(idx)
+  }, [todayEntries, entries, hydrateActive, goToSpread])
+
+  const handleNewEntry = useCallback(async () => {
+    await autosaveRef.current.flush()
+    autosaveRef.current.reset(null)
+    setCurrentEntryId(null)
+    useDeskStore.getState().clearDrafts()
     setPendingPhotos([])
     setCurrentSong('')
-
-    fetchEntries()
-    setTimeout(() => {
-      setShowSavedOverlay(false)
-    }, 2000)
-  }, [fetchEntries, setCurrentSong])
-
-  const handleEntrySelect = useCallback((entryId: string | null) => {
-    setCurrentEntryId(entryId)
-    setLeftPageText('')
-    setRightPageText('')
-    setPendingPhotos([])
-    if (entryId) {
-      const idx = entries.findIndex(e => e.id === entryId)
-      if (idx >= 0) {
-        // Reverse-chronological list -> spread index of newest = 0
-        goToSpread(idx)
-      }
-    }
-  }, [entries, goToSpread])
-
-  const handleNewEntry = useCallback(() => {
-    setCurrentEntryId(null)
-    setLeftPageText('')
-    setRightPageText('')
-    setPendingPhotos([])
+    setCurrentMood(2)
+    setDoodleStrokes([])
     goToSpread(entries.length)
-  }, [entries.length, goToSpread])
+  }, [entries.length, goToSpread, setCurrentSong, setCurrentMood, setDoodleStrokes])
 
   const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
     const rotation = position === 1 ? -8 + Math.floor(Math.random() * 6) : 5 + Math.floor(Math.random() * 6)
@@ -242,10 +395,12 @@ export default function BookSpread() {
 
   return (
     <div
+      ref={diaryRootRef}
       className="relative"
       style={{
         perspective: '2500px',
         perspectiveOrigin: 'center center',
+        overscrollBehaviorX: 'contain',
       }}
     >
       {/* Top controls */}
@@ -279,14 +434,18 @@ export default function BookSpread() {
       </motion.div>
 
       {/* Book wrapper. Sized for the spread (1300x820), relative so chrome
-          can be positioned absolutely on top. */}
+          can be positioned absolutely on top. The --page-bg CSS variable is
+          inherited by the .diary-page children so each page tints to the
+          current theme without setting it inline (the library would wipe
+          inline styles mid-flip). */}
       <motion.div
         className="relative"
         style={{
           width: `${PAGE_WIDTH * 2}px`,
           height: `${PAGE_HEIGHT}px`,
           transformStyle: 'preserve-3d',
-        }}
+          ['--page-bg' as string]: colors.pageBg,
+        } as React.CSSProperties}
         initial={{ rotateX: 5, opacity: 0 }}
         animate={{ rotateX: 0, opacity: 1 }}
         transition={{ duration: 0.6 }}
@@ -324,7 +483,10 @@ export default function BookSpread() {
           </span>
         </div>
 
-        {/* Flipbook (only after entries are loaded so startPage is correct) */}
+        {/* Flipbook (only after entries are loaded so startPage is correct).
+            Page count is stable across the autosave lifecycle (the active
+            entry stays bound to the new-entry spread instead of getting
+            appended), so no remount-on-save key is needed. */}
         {!loading && (
           <HTMLFlipBook
             ref={flipBookRef}
@@ -335,10 +497,10 @@ export default function BookSpread() {
             maxWidth={PAGE_WIDTH}
             minHeight={PAGE_HEIGHT}
             maxHeight={PAGE_HEIGHT}
-            drawShadow={true}
-            maxShadowOpacity={0.5}
-            flippingTime={650}
-            useMouseEvents={true}
+            drawShadow={false}
+            maxShadowOpacity={0}
+            flippingTime={1200}
+            useMouseEvents={false}
             mobileScrollSupport={false}
             showCover={false}
             startPage={entries.length * 2}
@@ -350,7 +512,7 @@ export default function BookSpread() {
             clickEventForward={true}
             usePortrait={false}
             swipeDistance={30}
-            showPageCorners={true}
+            showPageCorners={false}
             disableFlipByClick={true}
           >
             {/* Existing entries: oldest first so the newest sits next to the
@@ -377,8 +539,6 @@ export default function BookSpread() {
               <LeftPage
                 entry={null}
                 isNewEntry={true}
-                text={leftPageText}
-                onTextChange={setLeftPageText}
                 onPageFull={handleLeftPageFull}
                 onNavigateRight={handleNavigateRight}
                 focusTrigger={leftTextareaFocusTrigger}
@@ -390,16 +550,23 @@ export default function BookSpread() {
                 isNewEntry={true}
                 photos={pendingPhotos}
                 onPhotoAdd={handlePhotoAdd}
-                onSaveComplete={handleSaveComplete}
-                leftPageText={leftPageText}
-                text={rightPageText}
-                onTextChange={setRightPageText}
+                autosaveStatus={autosave.status}
                 focusTrigger={rightTextareaFocusTrigger}
                 onNavigateLeft={handleNavigateLeft}
               />
             </PageWrapper>
           </HTMLFlipBook>
         )}
+
+        {/* Binding spine: vertical shadow at the center of the spread */}
+        <div
+          className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+          style={{
+            width: '14px',
+            background:
+              'linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0) 100%)',
+          }}
+        />
 
         {/* Left edge clicker */}
         {globalCurrentSpread > 0 && (
@@ -447,60 +614,6 @@ export default function BookSpread() {
           </motion.div>
         )}
 
-        {/* Save success overlay */}
-        <AnimatePresence>
-          {showSavedOverlay && (
-            <motion.div
-              className="absolute inset-0 z-50 flex items-center justify-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{
-                background: 'rgba(0, 0, 0, 0.15)',
-                borderRadius: '4px',
-                backdropFilter: 'blur(2px)',
-              }}
-            >
-              <motion.div
-                className="flex flex-col items-center gap-3"
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                transition={{ type: 'spring', damping: 15, stiffness: 200 }}
-              >
-                <motion.div
-                  className="w-16 h-16 rounded-full flex items-center justify-center"
-                  style={{
-                    background: theme.accent.warm,
-                    boxShadow: `0 4px 20px ${theme.accent.warm}40`,
-                  }}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', damping: 10, stiffness: 200, delay: 0.1 }}
-                >
-                  <motion.span
-                    className="text-2xl text-white"
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    ✓
-                  </motion.span>
-                </motion.div>
-                <motion.span
-                  className="text-lg font-serif font-medium"
-                  style={{ color: theme.text.primary }}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  Entry Saved
-                </motion.span>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
 
       {/* Book shadow */}

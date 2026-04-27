@@ -91,3 +91,37 @@ textarea,
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Diary page card. Styles live in a CSS class (not inline) because
+   react-pageflip's drawSoft() does element.style.cssText = ... which
+   wipes any inline styles on the page element during a flip. The page
+   tint comes from a CSS variable inherited from the book container, so
+   per-theme color still applies without using inline style. */
+.diary-page {
+  background-color: var(--page-bg, rgba(20, 25, 22, 0.5));
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Mid-flip opacity. The library marks resting pages with .--simple and
+   removes that class during the curl. Stack an opaque dark base under the
+   theme tint so each page face reads as solid paper while flipping (no
+   source content bleeding through the curling page or visible behind a
+   translucent destination). */
+.stf__item:not(.--simple).diary-page {
+  background-color: rgba(20, 25, 22, 1);
+  background-image: linear-gradient(var(--page-bg), var(--page-bg));
+}
+
+.diary-page--left {
+  border-radius: 6px 0 0 6px;
+  box-shadow:
+    inset -4px 0 12px rgba(255, 255, 255, 0.06),
+    -10px 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+.diary-page--right {
+  border-radius: 0 6px 6px 0;
+  box-shadow:
+    inset 4px 0 12px rgba(255, 255, 255, 0.06),
+    10px 12px 40px rgba(0, 0, 0, 0.55);
+}

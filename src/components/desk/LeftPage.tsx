@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 import { useJournalStore } from '@/store/journal'
+import { useDeskStore } from '@/store/desk'
 import SongEmbed from '@/components/SongEmbed'
 import { JOURNAL } from '@/lib/journal-constants'
 import { htmlToPlainText, splitTextForSpread } from '@/lib/text-utils'
@@ -23,8 +24,6 @@ interface Entry {
 interface LeftPageProps {
   entry: Entry | null
   isNewEntry: boolean
-  text?: string
-  onTextChange?: (text: string) => void
   onPageFull?: (overflowText: string) => void
   onNavigateRight?: () => void
   focusTrigger?: number
@@ -34,8 +33,6 @@ interface LeftPageProps {
 const LeftPage = memo(function LeftPage({
   entry,
   isNewEntry,
-  text = '',
-  onTextChange,
   onPageFull,
   onNavigateRight,
   focusTrigger = 0,
@@ -44,6 +41,10 @@ const LeftPage = memo(function LeftPage({
   const colors = getGlassDiaryColors(theme)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- mood picker commented out, keeping for future use
   const { currentSong, setCurrentSong, currentMood, setCurrentMood } = useJournalStore()
+  // Draft text lives in desk store so typing doesn't re-render BookSpread.
+  const text = useDeskStore((s) => s.leftPageDraft)
+  const setLeftPageDraft = useDeskStore((s) => s.setLeftPageDraft)
+  const onTextChange = setLeftPageDraft
   const [songInput, setSongInput] = useState(entry?.song || currentSong || '')
   const [isEditingSong, setIsEditingSong] = useState(!songInput)
 
@@ -252,7 +253,9 @@ const LeftPage = memo(function LeftPage({
       transition={{ delay: 0.2, duration: 0.5 }}
       className="h-full flex flex-col overflow-hidden"
     >
-      {/* Song display — same UI as new entry template */}
+      {/* Song section — match new-entry layout. Show "Listening to" embed if
+          the entry has a song; otherwise show the "Add a Song" empty state
+          with a disabled input so the layout stays structurally identical. */}
       <div className="mb-2 flex-shrink-0" style={{ minHeight: '68px' }}>
         {entry?.song ? (
           <>
@@ -287,24 +290,30 @@ const LeftPage = memo(function LeftPage({
         )}
       </div>
 
-      {/* Text content - no scroll */}
-      <div
-        className="flex-1 overflow-hidden whitespace-pre-wrap"
-        style={{
-          color: textColor,
-          fontFamily: 'var(--font-caveat), Georgia, serif',
-          fontSize: '20px',
-          lineHeight: `${LINE_HEIGHT}px`,
-          backgroundColor: 'transparent',
-          backgroundImage: linePattern,
-          backgroundAttachment: 'local',
-        }}
-      >
-        {plainText || (
-          <span style={{ color: mutedColor, fontStyle: 'italic' }}>
-            No text content
-          </span>
-        )}
+      {/* Writing area — same labels as new entry; placeholder text only
+          surfaces when the saved entry has no left-page content. */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div
+          className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium flex-shrink-0"
+          style={{ color: mutedColor }}
+        >
+          Write your thoughts
+        </div>
+        <div
+          className="flex-1 min-h-0 w-full whitespace-pre-wrap overflow-hidden"
+          style={{
+            color: plainText ? textColor : mutedColor,
+            fontFamily: 'var(--font-caveat), Georgia, serif',
+            fontSize: '20px',
+            lineHeight: `${LINE_HEIGHT}px`,
+            fontStyle: plainText ? 'normal' : 'italic',
+            backgroundColor: 'transparent',
+            backgroundImage: linePattern,
+            backgroundAttachment: 'local',
+          }}
+        >
+          {plainText || "What's on your mind today..."}
+        </div>
       </div>
     </motion.div>
   )
