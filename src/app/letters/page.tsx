@@ -15,6 +15,7 @@ import FloatingEnvelope from '@/components/FloatingEnvelope'
 import SongEmbed, { isMusicUrl } from '@/components/SongEmbed'
 import DoodlePreview from '@/components/DoodlePreview'
 import { StrokeData } from '@/store/journal'
+import { playSfx } from '@/lib/playSfx'
 
 const themeStamps: Record<ThemeName, { icon: string; color: string }> = {
   rivendell: { icon: '🍃', color: '#5E8B5A' },
@@ -193,6 +194,7 @@ export default function LettersPage() {
       }
       const res = await fetch(`/api/entries/${entryId}/seal`, { method: 'POST' })
       if (res.ok) {
+        playSfx('letterSeal')
         setSuccessData({ toLabel: recipientLabel, isFriend, unlockDate })
         setShowAnimation(true)
       } else {
