@@ -1,6 +1,6 @@
 'use client'
 
-import React, { memo, useRef, useCallback, useState } from 'react'
+import React, { memo, useRef, useCallback, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 
@@ -111,8 +111,15 @@ const PhotoSlot = memo(function PhotoSlot({
   const mutedColor = theme.text.muted
   const borderColor = 'rgba(255,255,255,0.2)'
 
-  // Random rotation for polaroid effect (-15 to 15 degrees)
-  const defaultRotation = position === 1 ? -8 : 8
+  // Random tilt per mount so empty polaroids feel as natural as freshly-clicked ones
+  const defaultRotation = useMemo(() => {
+    const base = position === 1 ? -7 : 7
+    const jitter = (Math.random() - 0.5) * 6 // ±3°
+    return base + jitter
+  }, [position])
+
+  // Subtle wiggle target for hover (opposite direction = more "alive")
+  const hoverRotation = defaultRotation + (position === 1 ? 2 : -2)
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -158,15 +165,14 @@ const PhotoSlot = memo(function PhotoSlot({
 
   // If photo exists, show the polaroid
   if (photo) {
+    const filledRotation = photo.rotation || defaultRotation
     return (
       <motion.div
         className={`relative ${className}`}
-        style={{
-          transform: `rotate(${photo.rotation || defaultRotation}deg)`,
-          transformOrigin: 'center center',
-        }}
+        style={{ transformOrigin: 'center center' }}
         initial={{ opacity: 0, scale: 0.8, rotate: 0 }}
-        animate={{ opacity: 1, scale: 1, rotate: photo.rotation || defaultRotation }}
+        animate={{ opacity: 1, scale: 1, rotate: filledRotation }}
+        whileHover={{ scale: 1.04, rotate: filledRotation + (position === 1 ? 2 : -2) }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       >
         <div
@@ -249,12 +255,10 @@ const PhotoSlot = memo(function PhotoSlot({
       className={`relative ${className}`}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
-      style={{
-        transform: `rotate(${defaultRotation}deg)`,
-        transformOrigin: 'center center',
-      }}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
+      style={{ transformOrigin: 'center center' }}
+      initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
+      animate={{ opacity: 1, scale: 1, rotate: defaultRotation }}
+      whileHover={{ scale: 1.04, rotate: hoverRotation }}
       transition={{ type: 'spring', stiffness: 300, damping: 22 }}
     >
       <input
@@ -266,21 +270,23 @@ const PhotoSlot = memo(function PhotoSlot({
         className="hidden"
       />
 
-      {/* Polaroid card (cream paper) */}
+      {/* Polaroid frame (cream borders, transparent center so page bg shows through) */}
       <div
         className="relative"
         style={{
-          background: '#f5efdc',
-          padding: '8px 8px 22px',
+          background: 'transparent',
+          borderStyle: 'solid',
+          borderColor: '#f5efdc',
+          borderWidth: '8px 8px 22px 8px',
           boxShadow: '0 6px 14px rgba(0,0,0,0.35)',
         }}
       >
-        {/* Washi-tape strip at the top */}
+        {/* Washi-tape strip at the top (offset by border width to keep visual position) */}
         <div
           aria-hidden
           style={{
             position: 'absolute',
-            top: '-8px',
+            top: '-16px',
             left: '50%',
             transform: 'translateX(-50%) rotate(-2deg)',
             width: '50px',
@@ -291,14 +297,14 @@ const PhotoSlot = memo(function PhotoSlot({
           }}
         />
 
-        {/* Inner photo well (empty state) */}
+        {/* Inner photo well (empty state — transparent so page bg shows through) */}
         <div
           className="w-full flex flex-col items-center justify-center"
           style={{
             aspectRatio: '4/5',
-            background: 'rgba(40,60,45,0.4)',
+            background: 'transparent',
             border: `1px dashed ${
-              isHovering ? 'rgba(60,40,20,0.55)' : 'rgba(60,40,20,0.3)'
+              isHovering ? 'rgba(245,239,220,0.7)' : 'rgba(245,239,220,0.4)'
             }`,
           }}
         >
@@ -347,16 +353,17 @@ const PhotoSlot = memo(function PhotoSlot({
           )}
         </div>
 
-        {/* Date caption strip below photo well */}
+        {/* Date caption — sits inside the bottom cream border */}
         <div
           aria-hidden
           style={{
             position: 'absolute',
-            bottom: '4px',
-            left: '8px',
-            right: '8px',
+            bottom: '-18px',
+            left: '0',
+            right: '0',
             display: 'flex',
             justifyContent: 'flex-end',
+            paddingRight: '4px',
             fontFamily: "'Caveat', cursive",
             fontSize: '11px',
             color: 'rgba(60,40,20,0.5)',
