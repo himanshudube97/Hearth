@@ -299,6 +299,10 @@ const RightPage = memo(function RightPage({
   }, [text, leftPageText, currentMood, currentSong, currentDoodleStrokes, photos, resetCurrentEntry, onSaveComplete, setText])
 
   if (isNewEntry) {
+    const captionDate = entry?.createdAt ? new Date(entry.createdAt) : new Date()
+    const dateCaption = captionDate
+      .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      .toLowerCase()
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -317,6 +321,7 @@ const RightPage = memo(function RightPage({
           <PhotoBlock
             photos={photos}
             onPhotoAdd={handlePhotoAdd}
+            dateCaption={dateCaption}
           />
         </div>
 
@@ -423,6 +428,11 @@ const RightPage = memo(function RightPage({
   const entryPhotos = entry?.photos || []
   const entryDoodle = entry?.doodles?.[0]
 
+  const captionDate = entry?.createdAt ? new Date(entry.createdAt) : new Date()
+  const dateCaption = captionDate
+    .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    .toLowerCase()
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -441,6 +451,7 @@ const RightPage = memo(function RightPage({
         <PhotoBlock
           photos={entryPhotos}
           disabled
+          dateCaption={dateCaption}
         />
       </div>
 

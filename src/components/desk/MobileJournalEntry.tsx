@@ -234,6 +234,10 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
   if (!isNewEntry && currentEntry) {
     const plainText = htmlToPlainText(currentEntry.text)
     const entryPhotos = currentEntry.photos || []
+    const captionDate = currentEntry?.createdAt ? new Date(currentEntry.createdAt) : new Date()
+    const dateCaption = captionDate
+      .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      .toLowerCase()
     return (
       <div className="fixed inset-0 overflow-y-auto z-40" style={{ background: theme.bg.primary }}>
         <div className="max-w-lg mx-auto px-4 py-6 pb-20">
@@ -263,7 +267,7 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
           }}>
             {plainText || <span style={{ color: colors.prompt, fontStyle: 'italic' }}>No text</span>}
           </div>
-          {entryPhotos.length > 0 && <div className="mb-4"><PhotoBlock photos={entryPhotos} disabled /></div>}
+          {entryPhotos.length > 0 && <div className="mb-4"><PhotoBlock photos={entryPhotos} disabled dateCaption={dateCaption} /></div>}
         </div>
       </div>
     )
@@ -480,6 +484,10 @@ function PhotosDoodlePage({
   saving: boolean
   onSave: () => void
 }) {
+  const captionDate = new Date()
+  const dateCaption = captionDate
+    .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    .toLowerCase()
   return (
     <div
       className="h-full p-4 rounded-2xl flex flex-col gap-3 overflow-y-auto"
@@ -496,7 +504,7 @@ function PhotosDoodlePage({
           style={{ color: colors.sectionLabel }}>
           Photos
         </div>
-        <PhotoBlock photos={photos} onPhotoAdd={onPhotoAdd} />
+        <PhotoBlock photos={photos} onPhotoAdd={onPhotoAdd} dateCaption={dateCaption} />
       </div>
 
       <div>

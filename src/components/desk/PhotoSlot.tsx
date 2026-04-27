@@ -15,6 +15,7 @@ interface PhotoSlotProps {
   onCameraCapture?: () => void
   disabled?: boolean
   className?: string
+  dateCaption?: string  // e.g. "apr 27"
 }
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5MB
@@ -99,6 +100,7 @@ const PhotoSlot = memo(function PhotoSlot({
   onCameraCapture,
   disabled = false,
   className = '',
+  dateCaption = '~',
 }: PhotoSlotProps) {
   void _spread // Acknowledge unused parameter
   const { theme } = useThemeStore()
@@ -167,17 +169,33 @@ const PhotoSlot = memo(function PhotoSlot({
         animate={{ opacity: 1, scale: 1, rotate: photo.rotation || defaultRotation }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       >
-        {/* Polaroid frame */}
         <div
-          className="rounded-sm overflow-hidden shadow-lg"
+          className="relative"
           style={{
-            background: 'white',
-            padding: '8px 8px 24px 8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.1)',
+            background: '#f5efdc',
+            padding: '8px 8px 22px',
+            boxShadow: '0 6px 14px rgba(0,0,0,0.35)',
           }}
         >
+          {/* Washi-tape strip */}
           <div
-            className="w-full overflow-hidden rounded-sm"
+            aria-hidden
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              left: '50%',
+              transform: 'translateX(-50%) rotate(-2deg)',
+              width: '50px',
+              height: '14px',
+              background: 'rgba(220, 200, 140, 0.55)',
+              border: '1px solid rgba(220, 200, 140, 0.25)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Photo */}
+          <div
+            className="w-full overflow-hidden"
             style={{ aspectRatio: '4/5' }}
           >
             <img
@@ -185,6 +203,24 @@ const PhotoSlot = memo(function PhotoSlot({
               alt="Journal photo"
               className="w-full h-full object-cover"
             />
+          </div>
+
+          {/* Date caption */}
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute',
+              bottom: '4px',
+              left: '8px',
+              right: '8px',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              fontFamily: "'Caveat', cursive",
+              fontSize: '11px',
+              color: 'rgba(60,40,20,0.6)',
+            }}
+          >
+            {dateCaption}
           </div>
         </div>
       </motion.div>

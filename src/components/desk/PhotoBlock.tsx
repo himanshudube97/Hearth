@@ -17,6 +17,7 @@ interface PhotoBlockProps {
   onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
   disabled?: boolean
   className?: string
+  dateCaption?: string
 }
 
 const PhotoBlock = memo(function PhotoBlock({
@@ -24,6 +25,7 @@ const PhotoBlock = memo(function PhotoBlock({
   onPhotoAdd,
   disabled = false,
   className = '',
+  dateCaption,
 }: PhotoBlockProps) {
   const [cameraModalOpen, setCameraModalOpen] = useState(false)
   const [activePosition, setActivePosition] = useState<1 | 2>(1)
@@ -78,6 +80,7 @@ const PhotoBlock = memo(function PhotoBlock({
             onCameraCapture={handleCameraOpen(1)}
             disabled={disabled || !!photo1}
             className="w-28"
+            dateCaption={dateCaption}
           />
         </div>
 
@@ -91,6 +94,7 @@ const PhotoBlock = memo(function PhotoBlock({
             onCameraCapture={handleCameraOpen(2)}
             disabled={disabled || !!photo2}
             className="w-28"
+            dateCaption={dateCaption}
           />
         </div>
       </motion.div>
