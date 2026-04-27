@@ -37,6 +37,7 @@ const themeStamps: Record<ThemeName, { icon: string; color: string }> = {
   candlelight: { icon: '🕯️', color: '#E8A050' },
   oceanTwilight: { icon: '🌊', color: '#50A0C8' },
   quietSnow: { icon: '❄️', color: '#88A8C8' },
+  warmPeaceful: { icon: '☀️', color: '#E8704A' },
 }
 
 // Floating sparkle particles for reading phase

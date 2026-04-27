@@ -473,6 +473,51 @@ const getSnowflakesConfig = (): ISourceOptions => ({
   detectRetina: true,
 })
 
+// Sunbeam configuration - warm pollen-like motes drifting in afternoon light
+const getSunbeamConfig = (): ISourceOptions => ({
+  fullScreen: false,
+  background: { color: { value: 'transparent' } },
+  fpsLimit: 30,
+  particles: {
+    number: { value: 28, density: { enable: true } },
+    color: { value: ['#F5C078', '#E8945A', '#FFD4A8', '#F2A06B'] },
+    shape: { type: 'circle' },
+    opacity: {
+      value: { min: 0.15, max: 0.5 },
+      animation: {
+        enable: true,
+        speed: 0.3,
+        sync: false,
+        mode: 'random' as const,
+      },
+    },
+    size: {
+      value: { min: 2, max: 5 },
+    },
+    move: {
+      enable: true,
+      speed: { min: 0.05, max: 0.18 },
+      direction: 'top-right' as const,
+      random: true,
+      straight: false,
+      outModes: { default: 'out' as const },
+      drift: { min: -0.1, max: 0.1 },
+    },
+    wobble: {
+      enable: true,
+      distance: 6,
+      speed: { min: -0.2, max: 0.2 },
+    },
+    shadow: {
+      enable: true,
+      color: '#F5C078',
+      blur: 6,
+      offset: { x: 0, y: 0 },
+    },
+  },
+  detectRetina: true,
+})
+
 // ========== CSS AURORA COMPONENT (simple, elegant) ==========
 
 const CssAurora = React.memo(function CssAurora() {
@@ -850,6 +895,7 @@ function BackgroundComponent() {
     if (theme.particles === 'foam') return getFoamConfig()
     if (theme.particles === 'snowflakes') return getSnowflakesConfig()
     if (theme.particles === 'dandelion') return getDandelionConfig()
+    if (theme.particles === 'sunbeam') return getSunbeamConfig()
     return getFirefliesConfig()
   }, [theme.particles, themeName])
 

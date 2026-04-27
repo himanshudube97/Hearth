@@ -17,6 +17,7 @@ const themeIcons: Record<ThemeName, string> = {
   candlelight: '🕯️',
   oceanTwilight: '🌊',
   quietSnow: '❄️',
+  warmPeaceful: '☀️',
 }
 
 export default function ThemeSwitcher() {

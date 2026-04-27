@@ -158,6 +158,19 @@ const ornaments: Record<ThemeName, React.ReactNode> = {
       <line x1="19" y1="24" x2="16" y2="21" stroke="currentColor" strokeWidth="0.7" />
     </>
   ),
+  warmPeaceful: (
+    <>
+      <circle cx="16" cy="16" r="5" fill="currentColor" />
+      <line x1="16" y1="3" x2="16" y2="8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="16" y1="24" x2="16" y2="29" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="3" y1="16" x2="8" y2="16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="24" y1="16" x2="29" y2="16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="6.5" y1="6.5" x2="10" y2="10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="22" y1="22" x2="25.5" y2="25.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="6.5" y1="25.5" x2="10" y2="22" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="22" y1="10" x2="25.5" y2="6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </>
+  ),
 }
 
 interface ThemeOrnamentProps {

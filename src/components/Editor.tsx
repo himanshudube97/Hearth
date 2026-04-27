@@ -3,7 +3,8 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
-import { useEffect } from 'react'
+import CharacterCount from '@tiptap/extension-character-count'
+import { useEffect, useMemo } from 'react'
 import { useThemeStore } from '@/store/theme'
 import { useJournalStore } from '@/store/journal'
 
@@ -15,27 +16,36 @@ interface EditorProps {
   customStyles?: React.CSSProperties // Custom styles for the EditorContent element
   bare?: boolean // When true, strips notebook chrome for use in postcard UI
   noScroll?: boolean // When true, disables scrolling (clips overflow)
+  maxChars?: number // When set, hard-caps text input at this many characters
+  onCharCountChange?: (count: number) => void // Fires whenever the live character count changes
 }
 
-export default function Editor({ prompt, value, onChange, flexible, customStyles, bare, noScroll }: EditorProps) {
+export default function Editor({ prompt, value, onChange, flexible, customStyles, bare, noScroll, maxChars, onCharCountChange }: EditorProps) {
   // Use controlled mode if value/onChange provided, otherwise use global store
   const { currentText: storeText, setCurrentText: setStoreText } = useJournalStore()
   const currentText = value !== undefined ? value : storeText
   const setCurrentText = onChange || setStoreText
   const { theme } = useThemeStore()
 
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
+  const extensions = useMemo(
+    () => [
       StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
+        heading: { levels: [1, 2, 3] },
       }),
       Placeholder.configure({
         placeholder: prompt || 'Write freely...',
       }),
+      ...(typeof maxChars === 'number' ? [CharacterCount.configure({ limit: maxChars })] : []),
     ],
+    // Prompt updates flow through the separate effect below; rebuilding extensions on every
+    // prompt change would re-mount the editor and lose focus.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [maxChars],
+  )
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions,
     content: currentText,
     editorProps: {
       attributes: {
@@ -44,6 +54,9 @@ export default function Editor({ prompt, value, onChange, flexible, customStyles
     },
     onUpdate: ({ editor }) => {
       setCurrentText(editor.getHTML())
+      if (onCharCountChange) {
+        onCharCountChange(editor.storage.characterCount?.characters() ?? 0)
+      }
     },
   })
 
@@ -68,8 +81,24 @@ export default function Editor({ prompt, value, onChange, flexible, customStyles
         // Load content for editing
         editor.commands.setContent(currentText)
       }
+      if (onCharCountChange) {
+        onCharCountChange(editor.storage.characterCount?.characters() ?? 0)
+      }
     }
+    // onCharCountChange is intentionally omitted — emitting on its identity change would
+    // double-fire whenever the parent re-renders without the content actually changing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, currentText])
+
+  // Emit the initial character count once the editor is ready so the parent has a starting value
+  // before the user types anything (e.g. when editing an existing entry).
+  useEffect(() => {
+    if (editor && onCharCountChange) {
+      onCharCountChange(editor.storage.characterCount?.characters() ?? 0)
+    }
+    // Intentionally fire only on editor creation, not on every onCharCountChange identity change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor])
 
   // Line height in pixels — must match EditorContent lineHeight (20px font * 2 = 40px)
   const lineHeight = 40

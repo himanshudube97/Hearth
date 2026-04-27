@@ -8,6 +8,12 @@ import Editor from '@/components/Editor'
 
 export type Recipient = 'self' | 'friend'
 
+// Postcard body cap. Large enough for a postcard's worth of writing, small enough to keep the
+// page from needing a scrollbar at our standard size.
+const POSTCARD_MAX_CHARS = 500
+// Number of characters before the cap at which the gentle "running out of room" fade begins.
+const POSTCARD_FADE_START = 50
+
 const themeStamps: Record<ThemeName, { icon: string }> = {
   rivendell: { icon: '🍃' },
   hobbiton: { icon: '🌻' },
@@ -20,6 +26,7 @@ const themeStamps: Record<ThemeName, { icon: string }> = {
   candlelight: { icon: '🕯️' },
   oceanTwilight: { icon: '🌊' },
   quietSnow: { icon: '❄️' },
+  warmPeaceful: { icon: '☀️' },
 }
 
 interface PostcardFrontProps {
@@ -43,6 +50,15 @@ export default function PostcardFront({
   const stamp = themeStamps[themeName] || themeStamps.rivendell
   const [pickerOpen, setPickerOpen] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
+  const [charCount, setCharCount] = useState(0)
+
+  // Compute the body fade. Stays at 1.0 until the user crosses (cap - fade-start), then drops
+  // linearly toward 0.6 as they fill the remaining room. The hard cap on the editor itself
+  // prevents going beyond it.
+  const charsRemaining = Math.max(0, POSTCARD_MAX_CHARS - charCount)
+  const fadeProgress = Math.min(1, Math.max(0, (POSTCARD_FADE_START - charsRemaining) / POSTCARD_FADE_START))
+  const bodyOpacity = 1 - 0.4 * fadeProgress
+  const showRemaining = charsRemaining <= POSTCARD_FADE_START
 
   // Click-outside to close the recipient picker.
   useEffect(() => {
@@ -93,12 +109,14 @@ export default function PostcardFront({
 
       {/* Full-width writing area */}
       <div className="flex-1 relative px-6 pb-0 min-h-0 overflow-hidden">
-        {/* Ruled lines — 40px intervals to match ProseMirror line-height */}
+        {/* Ruled lines — 40px intervals to match ProseMirror line-height. The Y offset is
+            tuned so each rule sits at the body text's baseline (the bottom of the lowercase
+            x-height + descender area for 20px Caveat at 40px line-height). */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage: `repeating-linear-gradient(transparent, transparent 39px, ${colors.ruledLine} 39px, ${colors.ruledLine} 40px)`,
-            backgroundPosition: '0 12px',
+            backgroundPosition: '0 33px',
           }}
         />
 
@@ -206,7 +224,13 @@ export default function PostcardFront({
           </div>
 
           {/* Editor body */}
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div
+            className="flex-1 min-h-0 overflow-hidden"
+            style={{
+              opacity: bodyOpacity,
+              transition: 'opacity 200ms ease-out',
+            }}
+          >
             <Editor
               prompt="..."
               value={letterText}
@@ -214,6 +238,8 @@ export default function PostcardFront({
               bare
               flexible
               noScroll
+              maxChars={POSTCARD_MAX_CHARS}
+              onCharCountChange={setCharCount}
               customStyles={{
                 fontFamily: "var(--font-caveat), 'Caveat', cursive",
                 fontSize: '20px',
@@ -223,6 +249,21 @@ export default function PostcardFront({
               }}
             />
           </div>
+        </div>
+
+        {/* Remaining-characters whisper. Only fades in once the user is in the last stretch,
+            so the rest of the writing experience stays free of UI chrome. */}
+        <div
+          aria-live="polite"
+          className="absolute bottom-1 right-3 z-20 pointer-events-none text-[11px] tracking-wider"
+          style={{
+            color: colors.prompt,
+            fontFamily: "'Georgia', serif",
+            opacity: showRemaining ? 0.7 : 0,
+            transition: 'opacity 220ms ease-out',
+          }}
+        >
+          {charsRemaining} left
         </div>
       </div>
 

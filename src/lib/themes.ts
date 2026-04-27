@@ -1,6 +1,6 @@
 // Theme definitions for Hearth
 
-export type ThemeName = 'rivendell' | 'hobbiton' | 'winterSunset' | 'cherryBlossom' | 'northernLights' | 'mistyMountains' | 'gentleRain' | 'cosmos' | 'candlelight' | 'oceanTwilight' | 'quietSnow'
+export type ThemeName = 'rivendell' | 'hobbiton' | 'winterSunset' | 'cherryBlossom' | 'northernLights' | 'mistyMountains' | 'gentleRain' | 'cosmos' | 'candlelight' | 'oceanTwilight' | 'quietSnow' | 'warmPeaceful'
 
 export interface Theme {
   name: string
@@ -35,7 +35,7 @@ export interface Theme {
   }
   moodEmojis: string[]
   moodLabels: string[]
-  particles: 'fireflies' | 'snow' | 'sakura' | 'aurora' | 'mist' | 'rain' | 'stars' | 'dust' | 'foam' | 'snowflakes' | 'dandelion'
+  particles: 'fireflies' | 'snow' | 'sakura' | 'aurora' | 'mist' | 'rain' | 'stars' | 'dust' | 'foam' | 'snowflakes' | 'dandelion' | 'sunbeam'
   ambience: 'forest' | 'sunset' | 'spring' | 'arctic' | 'mountains' | 'rainy' | 'cosmos' | 'candle' | 'ocean' | 'snowy' | 'shire'
 }
 
@@ -457,6 +457,44 @@ export const quietSnowTheme: Theme = {
   ambience: 'snowy',
 }
 
+// Warm & Peaceful - Bright cream afternoon (the only light theme)
+export const warmPeacefulTheme: Theme = {
+  name: 'Warm & Peaceful',
+  description: 'A gentle afternoon bathed in golden light',
+  bg: {
+    primary: '#FFF6E6',
+    secondary: '#FFE8D6',
+    gradient: 'linear-gradient(180deg, #FFF4D8 0%, #FFEAD0 35%, #FFE0D2 70%, #FBD8D8 100%)',
+  },
+  text: {
+    primary: '#3A2A20',
+    secondary: '#7A5A48',
+    muted: '#B59882',
+  },
+  accent: {
+    primary: '#E8704A',
+    secondary: '#F2A06B',
+    warm: '#F5C078',
+    highlight: '#FFD4A8',
+  },
+  glass: {
+    bg: 'rgba(255, 248, 235, 0.65)',
+    border: 'rgba(232, 112, 74, 0.18)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#8A7868',
+    1: '#B89888',
+    2: '#E8945A',
+    3: '#F08858',
+    4: '#F5C078',
+  },
+  moodEmojis: ['☁️', '🌤️', '☀️', '🌻', '🌅'],
+  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
+  particles: 'sunbeam',
+  ambience: 'spring',
+}
+
 export const themes: Record<ThemeName, Theme> = {
   rivendell: rivendellTheme,
   hobbiton: hobbitonTheme,
@@ -469,6 +507,7 @@ export const themes: Record<ThemeName, Theme> = {
   candlelight: candlelightTheme,
   oceanTwilight: oceanTwilightTheme,
   quietSnow: quietSnowTheme,
+  warmPeaceful: warmPeacefulTheme,
 }
 
 // Time-based greetings
