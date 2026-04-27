@@ -111,7 +111,7 @@ export default function PageContent({ side, spreadIndex, onSaveComplete, entries
             className="text-xl font-serif italic mb-2 tracking-wide"
             style={{
               color: textColor,
-              fontFamily: 'var(--font-playfair), Georgia, serif',
+              fontFamily: 'var(--font-serif), Georgia, serif',
             }}
           >
             Your thoughts,
@@ -120,7 +120,7 @@ export default function PageContent({ side, spreadIndex, onSaveComplete, entries
             className="text-xl font-serif italic mb-8 tracking-wide"
             style={{
               color: textColor,
-              fontFamily: 'var(--font-playfair), Georgia, serif',
+              fontFamily: 'var(--font-serif), Georgia, serif',
             }}
           >
             your sanctuary.

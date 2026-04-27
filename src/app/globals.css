@@ -13,7 +13,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Georgia, Palatino, serif;
+  font-family: var(--font-serif), 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
   overflow-x: hidden;
 }
 

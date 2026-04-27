@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Caveat } from "next/font/google";
+import { EB_Garamond, Caveat } from "next/font/google";
 import "./globals.css";
 import LayoutContent from "@/components/LayoutContent";
 import AuthProvider from "@/components/AuthProvider";
 import E2EEProvider from "@/components/e2ee/E2EEProvider";
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+const ebGaramond = EB_Garamond({
+  variable: "--font-serif",
   subsets: ["latin"],
+  style: ["normal", "italic"],
 });
 
 const caveat = Caveat({
@@ -62,7 +63,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${playfair.variable} ${caveat.variable} antialiased`}>
+      <body className={`${ebGaramond.variable} ${caveat.variable} antialiased font-serif`}>
         <AuthProvider>
           <E2EEProvider>
             <LayoutContent>{children}</LayoutContent>
