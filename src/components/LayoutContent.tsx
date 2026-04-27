@@ -38,11 +38,25 @@ export default function LayoutContent({
     return null
   }
 
-  if (isLandingPage || isPricingPage || isWritingPage) {
-    // Landing, Pricing, & Writing pages - no background, navigation, or padding (they handle their own)
+  if (isLandingPage || isPricingPage) {
+    // Landing & Pricing - no navigation (public pages)
     return (
       <>
         {children}
+        <CursorPicker />
+        <ThemeSwitcher />
+        <InstallPrompt />
+      </>
+    )
+  }
+
+  if (isWritingPage) {
+    // Writing page renders its own background and full-bleed canvas,
+    // but still needs the top navigation floating above it.
+    return (
+      <>
+        {children}
+        <Navigation />
         <CursorPicker />
         <ThemeSwitcher />
         <InstallPrompt />

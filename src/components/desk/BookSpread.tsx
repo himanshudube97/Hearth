@@ -240,36 +240,34 @@ export default function BookSpread() {
       }}
     >
 
-      {/* Entry selector for multiple entries per day */}
-      {(todayEntries.length > 0 || isNewEntrySpread) && (
-        <motion.div
-          className="absolute -top-14 left-1/2 -translate-x-1/2 z-20"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+      {/* Top-of-book controls: page indicator + entry selector,
+          grouped on the left so the top-center lane stays free for the
+          global navigation that floats above the diary. */}
+      <motion.div
+        className="absolute -top-14 left-0 z-20 flex items-center gap-3"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+      >
+        <div
+          className="px-4 py-2 rounded-full text-xs"
+          style={{
+            background: theme.glass.bg,
+            color: theme.text.muted,
+            border: `1px solid ${theme.glass.border}`,
+          }}
         >
+          {isNewEntrySpread ? 'New Entry' : `Entry ${entries.length - globalCurrentSpread} of ${entries.length}`}
+        </div>
+
+        {(todayEntries.length > 0 || isNewEntrySpread) && (
           <EntrySelector
             entries={todayEntries}
             currentEntryId={currentEntryId}
             onEntrySelect={handleEntrySelect}
             onNewEntry={handleNewEntry}
           />
-        </motion.div>
-      )}
-
-      {/* Page indicator */}
-      <motion.div
-        className="absolute -top-14 left-0 z-20 px-4 py-2 rounded-full text-xs"
-        style={{
-          background: theme.glass.bg,
-          color: theme.text.muted,
-          border: `1px solid ${theme.glass.border}`,
-        }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-      >
-        {isNewEntrySpread ? 'New Entry' : `Entry ${entries.length - globalCurrentSpread} of ${entries.length}`}
+        )}
       </motion.div>
 
       {/* Book container */}

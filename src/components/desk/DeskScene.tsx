@@ -107,11 +107,16 @@ export default function DeskScene() {
         <MobileJournalEntry onClose={handleMobileClose} />
       ) : (
         <>
-          {/* Book - center */}
+          {/* Book - center.
+              `top` uses max() so on short viewports the book stays
+              anchored ~100px below the page top, keeping the global
+              navigation bar and the book's top decorations from
+              colliding. On taller viewports the 50% wins and the book
+              renders perfectly centered as before. */}
           <motion.div
             className="absolute z-30"
             style={{
-              top: '50%',
+              top: 'max(50%, 510px)',
               left: '50%',
               transform: layoutMode === 'tablet'
                 ? `translate(-50%, -50%) scale(${scaleForTablet})`
