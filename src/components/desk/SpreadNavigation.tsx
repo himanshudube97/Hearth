@@ -3,6 +3,7 @@
 import React, { memo } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
+import { playSfx } from '@/lib/playSfx'
 
 interface SpreadNavigationProps {
   currentSpread: number
@@ -35,7 +36,10 @@ const SpreadNavigation = memo(function SpreadNavigation({
         {Array.from({ length: totalSpreads }, (_, i) => i + 1).map((spreadNum) => (
           <motion.button
             key={spreadNum}
-            onClick={() => onSpreadChange(spreadNum)}
+            onClick={() => {
+              if (spreadNum !== currentSpread) playSfx('pageTurn')
+              onSpreadChange(spreadNum)
+            }}
             className="relative flex items-center justify-center"
             whileHover={{ scale: 1.2 }}
             whileTap={{ scale: 0.9 }}
