@@ -37,9 +37,12 @@ interface Entry {
 const PAGE_WIDTH = 650
 const PAGE_HEIGHT = 820
 
-// Page wrapper with FIXED dimensions (no flex). The library positions each
-// child absolutely; flex-1 would collapse them. forwardRef so the library can
-// attach refs to the underlying DOM node.
+// Pages need to read as solid paper during the flip, otherwise the curl
+// shadow washes through and adjacent pages bleed into each other. Stack the
+// theme's translucent tint over an opaque dark base so the resting look is
+// preserved but each face is fully opaque.
+const OPAQUE_PAPER_BASE = 'rgba(15, 20, 18, 1)'
+
 const PageWrapper = memo(
   forwardRef<HTMLDivElement, {
     children: React.ReactNode
@@ -53,9 +56,8 @@ const PageWrapper = memo(
         style={{
           width: `${PAGE_WIDTH}px`,
           height: `${PAGE_HEIGHT}px`,
-          background: colors.pageBg,
-          backdropFilter: `blur(${colors.pageBlur})`,
-          WebkitBackdropFilter: `blur(${colors.pageBlur})`,
+          backgroundColor: OPAQUE_PAPER_BASE,
+          backgroundImage: `linear-gradient(${colors.pageBg}, ${colors.pageBg})`,
           border: `1px solid ${colors.pageBorder}`,
           borderRadius: isLeft ? '6px 0 0 6px' : '0 6px 6px 0',
           boxShadow: isLeft
