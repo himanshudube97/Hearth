@@ -215,7 +215,11 @@ const PhotoSlot = memo(function PhotoSlot({
       onMouseLeave={() => setIsHovering(false)}
       style={{
         transform: `rotate(${defaultRotation}deg)`,
+        transformOrigin: 'center center',
       }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 22 }}
     >
       <input
         ref={fileInputRef}
@@ -226,56 +230,104 @@ const PhotoSlot = memo(function PhotoSlot({
         className="hidden"
       />
 
-      {/* Polaroid frame with upload/camera options inside */}
+      {/* Polaroid card (cream paper) */}
       <div
-        className="w-full flex flex-col items-center justify-center"
+        className="relative"
         style={{
-          aspectRatio: '4/5',
-          border: `2px dashed ${isHovering ? theme.accent.warm : borderColor}`,
-          borderRadius: '4px',
-          background: 'rgba(255,255,255,0.05)',
-          padding: '6px',
+          background: '#f5efdc',
+          padding: '8px 8px 22px',
+          boxShadow: '0 6px 14px rgba(0,0,0,0.35)',
         }}
       >
-        {isProcessing ? (
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            className="text-lg"
-            style={{ color: mutedColor }}
-          >
-            ...
-          </motion.div>
-        ) : (
-          <div className="flex flex-col items-center gap-1.5 w-full">
-            <motion.button
-              onClick={handleUploadClick}
-              className="w-full py-1.5 rounded text-[10px] flex items-center justify-center gap-1 cursor-pointer"
-              style={{
-                color: mutedColor,
-                background: 'rgba(255,255,255,0.08)',
-              }}
-              whileHover={{ scale: 1.03, backgroundColor: 'rgba(255,255,255,0.15)' }}
-              whileTap={{ scale: 0.97 }}
+        {/* Washi-tape strip at the top */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: '-8px',
+            left: '50%',
+            transform: 'translateX(-50%) rotate(-2deg)',
+            width: '50px',
+            height: '14px',
+            background: 'rgba(220, 200, 140, 0.55)',
+            border: '1px solid rgba(220, 200, 140, 0.25)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Inner photo well (empty state) */}
+        <div
+          className="w-full flex flex-col items-center justify-center"
+          style={{
+            aspectRatio: '4/5',
+            background: 'rgba(40,60,45,0.4)',
+            border: `1px dashed ${
+              isHovering ? 'rgba(60,40,20,0.55)' : 'rgba(60,40,20,0.3)'
+            }`,
+          }}
+        >
+          {isProcessing ? (
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              className="text-lg"
+              style={{ color: 'rgba(60,40,20,0.5)' }}
             >
-              Upload
-            </motion.button>
-            {onCameraCapture && (
+              ...
+            </motion.div>
+          ) : (
+            <div className="flex flex-col items-center gap-1.5 w-3/4">
               <motion.button
-                onClick={handleCameraClick}
-                className="w-full py-1.5 rounded text-[10px] flex items-center justify-center gap-1 cursor-pointer"
+                onClick={handleUploadClick}
+                className="w-full py-1.5 rounded text-[11px] cursor-pointer"
                 style={{
-                  color: mutedColor,
-                  background: 'rgba(255,255,255,0.08)',
+                  fontFamily: "'Caveat', cursive",
+                  color: 'rgba(60,40,20,0.65)',
+                  background: 'rgba(255,250,235,0.6)',
+                  border: '1px solid rgba(60,40,20,0.15)',
                 }}
-                whileHover={{ scale: 1.03, backgroundColor: 'rgba(255,255,255,0.15)' }}
+                whileHover={{ scale: 1.03, backgroundColor: 'rgba(255,250,235,0.85)' }}
                 whileTap={{ scale: 0.97 }}
               >
-                Click
+                Upload
               </motion.button>
-            )}
-          </div>
-        )}
+              {onCameraCapture && (
+                <motion.button
+                  onClick={handleCameraClick}
+                  className="w-full py-1.5 rounded text-[11px] cursor-pointer"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    color: 'rgba(60,40,20,0.65)',
+                    background: 'rgba(255,250,235,0.6)',
+                    border: '1px solid rgba(60,40,20,0.15)',
+                  }}
+                  whileHover={{ scale: 1.03, backgroundColor: 'rgba(255,250,235,0.85)' }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  Click
+                </motion.button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Date caption strip below photo well */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            bottom: '4px',
+            left: '8px',
+            right: '8px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            fontFamily: "'Caveat', cursive",
+            fontSize: '11px',
+            color: 'rgba(60,40,20,0.5)',
+          }}
+        >
+          ~
+        </div>
       </div>
     </motion.div>
   )
