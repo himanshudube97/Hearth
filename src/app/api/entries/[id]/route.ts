@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
+import { isEntryLocked, validateAppendOnlyDiff } from '@/lib/entry-lock'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string, maxLength = 150): string {
@@ -77,10 +78,19 @@ export async function PUT(
 
     const { id } = await params
 
-    // Verify ownership
+    // Load enough state up-front to run the calendar-day lock check below.
     const existing = await prisma.journalEntry.findUnique({
       where: { id },
-      select: { userId: true, encryptionType: true },
+      select: {
+        userId: true,
+        encryptionType: true,
+        createdAt: true,
+        text: true,
+        song: true,
+        mood: true,
+        photos: { select: { spread: true, position: true } },
+        doodles: { select: { spread: true } },
+      },
     })
 
     if (!existing) {
@@ -99,6 +109,33 @@ export async function PUT(
     } = body
 
     const isE2EE = encryptionType === 'e2ee' || existing.encryptionType === 'e2ee'
+
+    // Calendar-day lock: once we've crossed midnight (in the user's tz) the
+    // entry becomes append-only. Existing fields are read-only; only empty
+    // slots can be filled.
+    const userTz = request.headers.get('x-user-tz') ?? 'UTC'
+    if (isEntryLocked(existing.createdAt, userTz)) {
+      const decryptedExisting = isE2EE ? { text: existing.text } : decryptEntryFields({ text: existing.text })
+      const diff = validateAppendOnlyDiff({
+        oldText: decryptedExisting.text,
+        newText: text,
+        appendText,
+        oldSong: existing.song,
+        newSong: song,
+        oldPhotos: existing.photos,
+        newPhotoSlots: newPhotos?.map((p: { spread: number; position: number }) => ({
+          spread: p.spread,
+          position: p.position,
+        })),
+        oldDoodleSpreads: existing.doodles.map((d) => d.spread),
+        newDoodleSpreads: newDoodles?.map((d: { spread?: number }) => d.spread ?? 1),
+        oldMood: existing.mood,
+        newMood: mood,
+      })
+      if (!diff.ok) {
+        return NextResponse.json({ error: diff.reason }, { status: 403 })
+      }
+    }
 
     // Build update data
     const updateData: Record<string, unknown> = {}
