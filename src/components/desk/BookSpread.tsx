@@ -1,18 +1,20 @@
 'use client'
 
-import React, { useCallback, useEffect, useState, memo } from 'react'
+import React, { useCallback, useEffect, useRef, useState, memo, forwardRef } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useDeskStore } from '@/store/desk'
 import { getGlassDiaryColors, GlassDiaryColors } from '@/lib/glassDiaryColors'
 import LeftPage from './LeftPage'
 import RightPage from './RightPage'
-import PageTurn from './PageTurn'
 import EntrySelector from './EntrySelector'
 import { RibbonBookmark } from './interactive/RibbonBookmark'
 import ThemeOrnament from './decorations/ThemeOrnament'
 import WhisperFooter from './WhisperFooter'
 import { StrokeData, useJournalStore } from '@/store/journal'
+
+const HTMLFlipBook = dynamic(() => import('react-pageflip'), { ssr: false })
 
 interface Photo {
   id?: string
@@ -31,44 +33,53 @@ interface Entry {
   createdAt: string
 }
 
-// Memoized page wrapper for performance
-const PageWrapper = memo(function PageWrapper({
-  children,
-  side,
-  colors,
-}: {
-  children: React.ReactNode
-  side: 'left' | 'right'
-  colors: GlassDiaryColors
-}) {
-  const isLeft = side === 'left'
+// Fixed page dimensions for the flipbook
+const PAGE_WIDTH = 650
+const PAGE_HEIGHT = 820
 
-  return (
-    <div
-      className="relative flex-1 overflow-hidden"
-      style={{
-        background: colors.pageBg,
-        backdropFilter: `blur(${colors.pageBlur})`,
-        WebkitBackdropFilter: `blur(${colors.pageBlur})`,
-        border: `1px solid ${colors.pageBorder}`,
-        borderRadius: isLeft ? '6px 0 0 6px' : '0 6px 6px 0',
-        boxShadow: isLeft
-          ? 'inset -4px 0 12px rgba(255,255,255,0.05), -6px 6px 20px rgba(0,0,0,0.25)'
-          : 'inset 4px 0 12px rgba(255,255,255,0.05), 6px 6px 20px rgba(0,0,0,0.25)',
-        willChange: 'transform',
-      }}
-    >
+// Page wrapper with FIXED dimensions (no flex). The library positions each
+// child absolutely; flex-1 would collapse them. forwardRef so the library can
+// attach refs to the underlying DOM node.
+const PageWrapper = memo(
+  forwardRef<HTMLDivElement, {
+    children: React.ReactNode
+    side: 'left' | 'right'
+    colors: GlassDiaryColors
+  }>(function PageWrapper({ children, side, colors }, ref) {
+    const isLeft = side === 'left'
+    return (
       <div
-        className="relative h-full overflow-hidden z-10"
+        ref={ref}
         style={{
-          padding: isLeft ? '20px 20px 20px 50px' : '20px 50px 20px 20px',
+          width: `${PAGE_WIDTH}px`,
+          height: `${PAGE_HEIGHT}px`,
+          background: colors.pageBg,
+          backdropFilter: `blur(${colors.pageBlur})`,
+          WebkitBackdropFilter: `blur(${colors.pageBlur})`,
+          border: `1px solid ${colors.pageBorder}`,
+          borderRadius: isLeft ? '6px 0 0 6px' : '0 6px 6px 0',
+          boxShadow: isLeft
+            ? 'inset -4px 0 12px rgba(255,255,255,0.05), -6px 6px 20px rgba(0,0,0,0.25)'
+            : 'inset 4px 0 12px rgba(255,255,255,0.05), 6px 6px 20px rgba(0,0,0,0.25)',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        {children}
+        <div
+          style={{
+            height: '100%',
+            position: 'relative',
+            overflow: 'hidden',
+            zIndex: 10,
+            padding: isLeft ? '20px 20px 20px 50px' : '20px 50px 20px 20px',
+          }}
+        >
+          {children}
+        </div>
       </div>
-    </div>
-  )
-})
+    )
+  })
+)
 
 export default function BookSpread() {
   const { theme, themeName } = useThemeStore()
@@ -77,13 +88,12 @@ export default function BookSpread() {
   const {
     currentSpread: globalCurrentSpread,
     totalSpreads,
-    turnPage,
-    isPageTurning,
-    turnDirection,
-    finishPageTurn,
     setTotalSpreads,
     goToSpread,
   } = useDeskStore()
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const flipBookRef = useRef<any>(null)
 
   const [entries, setEntries] = useState<Entry[]>([])
   const [todayEntries, setTodayEntries] = useState<Entry[]>([])
@@ -104,9 +114,9 @@ export default function BookSpread() {
         const data = await res.json()
         const fetchedEntries = data.entries || []
         setEntries(fetchedEntries)
-        setTotalSpreads(fetchedEntries.length)
+        // N existing spreads + 1 new-entry spread
+        setTotalSpreads(fetchedEntries.length + 1)
 
-        // Filter today's entries
         const today = new Date()
         today.setHours(0, 0, 0, 0)
         const todayEnd = new Date()
@@ -129,27 +139,36 @@ export default function BookSpread() {
     fetchEntries()
   }, [fetchEntries])
 
+  // After loading, jump to the new-entry spread (last)
   useEffect(() => {
-    if (!loading && entries.length >= 0) {
+    if (!loading) {
       goToSpread(entries.length)
     }
   }, [loading, entries.length, goToSpread])
 
-  const handlePageTurnComplete = useCallback(() => {
-    finishPageTurn()
-  }, [finishPageTurn])
+  // Library's onFlip event: convert page index -> spread index and sync store
+  const handleFlip = useCallback((e: { data: number }) => {
+    goToSpread(Math.floor(e.data / 2))
+  }, [goToSpread])
+
+  // Programmatic external goToSpread() calls (e.g. EntrySelector clicks)
+  // need to be pushed back to the library so its visible page matches.
+  useEffect(() => {
+    const pageFlip = flipBookRef.current?.pageFlip?.()
+    if (!pageFlip) return
+    const targetPage = globalCurrentSpread * 2
+    if (pageFlip.getCurrentPageIndex?.() !== targetPage) {
+      pageFlip.turnToPage?.(targetPage)
+    }
+  }, [globalCurrentSpread])
 
   const handlePrevPage = useCallback(() => {
-    if (globalCurrentSpread > 0 && !isPageTurning) {
-      turnPage('backward')
-    }
-  }, [globalCurrentSpread, isPageTurning, turnPage])
+    flipBookRef.current?.pageFlip()?.flipPrev()
+  }, [])
 
   const handleNextPage = useCallback(() => {
-    if (globalCurrentSpread < totalSpreads && !isPageTurning) {
-      turnPage('forward')
-    }
-  }, [globalCurrentSpread, totalSpreads, isPageTurning, turnPage])
+    flipBookRef.current?.pageFlip()?.flipNext()
+  }, [])
 
   const handleLeftPageFull = useCallback((overflowText: string) => {
     if (overflowText) {
@@ -179,17 +198,16 @@ export default function BookSpread() {
     }, 2000)
   }, [fetchEntries, setCurrentSong])
 
-  // Handle entry selection
   const handleEntrySelect = useCallback((entryId: string | null) => {
     setCurrentEntryId(entryId)
     setLeftPageText('')
     setRightPageText('')
     setPendingPhotos([])
-    // Sync spread position
     if (entryId) {
       const idx = entries.findIndex(e => e.id === entryId)
       if (idx >= 0) {
-        goToSpread(entries.length - 1 - idx)
+        // Reverse-chronological list -> spread index of newest = 0
+        goToSpread(idx)
       }
     }
   }, [entries, goToSpread])
@@ -202,7 +220,6 @@ export default function BookSpread() {
     goToSpread(entries.length)
   }, [entries.length, goToSpread])
 
-  // Handle photo add
   const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
     const rotation = position === 1 ? -8 + Math.floor(Math.random() * 6) : 5 + Math.floor(Math.random() * 6)
     const newPhoto: Photo = {
@@ -213,23 +230,13 @@ export default function BookSpread() {
     setPendingPhotos(prev => [...prev.filter(p => p.position !== position), newPhoto])
   }, [])
 
-  // Get the current entry
-  const currentEntry = currentEntryId
-    ? entries.find(e => e.id === currentEntryId)
-    : (globalCurrentSpread < entries.length ? entries[entries.length - 1 - globalCurrentSpread] : null)
+  const isNewEntrySpread = globalCurrentSpread === entries.length
 
-  const isNewEntrySpread = currentEntryId === null && globalCurrentSpread === entries.length
-
-  // Get date for the spread
-  const spreadDate = currentEntry
-    ? new Date(currentEntry.createdAt)
-    : new Date()
-
-  // Get photos
-  const currentPhotos = [
-    ...(currentEntry?.photos || []),
-    ...pendingPhotos,
-  ]
+  // Floating date pill: derive from the spread currently visible
+  const visibleEntry = !isNewEntrySpread && globalCurrentSpread < entries.length
+    ? entries[globalCurrentSpread]
+    : null
+  const spreadDate = visibleEntry ? new Date(visibleEntry.createdAt) : new Date()
 
   return (
     <div
@@ -239,10 +246,7 @@ export default function BookSpread() {
         perspectiveOrigin: 'center center',
       }}
     >
-
-      {/* Top-of-book controls: page indicator + entry selector,
-          grouped on the left so the top-center lane stays free for the
-          global navigation that floats above the diary. */}
+      {/* Top controls */}
       <motion.div
         className="absolute -top-14 left-0 z-20 flex items-center gap-3"
         initial={{ opacity: 0 }}
@@ -257,7 +261,9 @@ export default function BookSpread() {
             border: `1px solid ${theme.glass.border}`,
           }}
         >
-          {isNewEntrySpread ? 'New Entry' : `Entry ${entries.length - globalCurrentSpread} of ${entries.length}`}
+          {isNewEntrySpread
+            ? 'New Entry'
+            : `Entry ${entries.length - globalCurrentSpread} of ${entries.length}`}
         </div>
 
         {(todayEntries.length > 0 || isNewEntrySpread) && (
@@ -270,12 +276,13 @@ export default function BookSpread() {
         )}
       </motion.div>
 
-      {/* Book container */}
+      {/* Book wrapper. Sized for the spread (1300x820), relative so chrome
+          can be positioned absolutely on top. */}
       <motion.div
-        className="relative flex"
+        className="relative"
         style={{
-          width: '1300px',
-          height: '820px',
+          width: `${PAGE_WIDTH * 2}px`,
+          height: `${PAGE_HEIGHT}px`,
           transformStyle: 'preserve-3d',
         }}
         initial={{ rotateX: 5, opacity: 0 }}
@@ -285,7 +292,7 @@ export default function BookSpread() {
         {/* Ribbon bookmark */}
         <RibbonBookmark color={colors.ribbon} />
 
-        {/* Whisper + ornaments below the spread, in the dark space outside the book */}
+        {/* Whisper + ornaments below the spread */}
         <div className="absolute -bottom-12 left-0 right-0 flex items-center justify-center gap-4 pointer-events-none z-10">
           <ThemeOrnament themeName={themeName} color={colors.ribbon} size={28} flip />
           <WhisperFooter color={colors.prompt} />
@@ -315,45 +322,84 @@ export default function BookSpread() {
           </span>
         </div>
 
-        {/* Left page */}
-        <PageWrapper side="left" colors={colors}>
-          <LeftPage
-            entry={currentEntry || null}
-            isNewEntry={isNewEntrySpread}
-            text={leftPageText}
-            onTextChange={setLeftPageText}
-            onPageFull={handleLeftPageFull}
-            onNavigateRight={handleNavigateRight}
-            focusTrigger={leftTextareaFocusTrigger}
-          />
-        </PageWrapper>
+        {/* Flipbook (only after entries are loaded so startPage is correct) */}
+        {!loading && (
+          <HTMLFlipBook
+            ref={flipBookRef}
+            width={PAGE_WIDTH}
+            height={PAGE_HEIGHT}
+            size="fixed"
+            minWidth={PAGE_WIDTH}
+            maxWidth={PAGE_WIDTH}
+            minHeight={PAGE_HEIGHT}
+            maxHeight={PAGE_HEIGHT}
+            drawShadow={true}
+            maxShadowOpacity={0.5}
+            flippingTime={650}
+            useMouseEvents={true}
+            mobileScrollSupport={false}
+            showCover={false}
+            startPage={entries.length * 2}
+            onFlip={handleFlip}
+            className=""
+            style={{}}
+            startZIndex={0}
+            autoSize={false}
+            clickEventForward={true}
+            usePortrait={false}
+            swipeDistance={30}
+            showPageCorners={true}
+            disableFlipByClick={true}
+          >
+            {/* Existing entries: oldest first so the newest sits next to the
+                new-entry spread at the back of the book. Reverse-chronological
+                navigation: ‹ goes to older entries, › advances toward the new-entry. */}
+            {[...entries].reverse().flatMap((entry) => [
+              <PageWrapper key={`${entry.id}-L`} side="left" colors={colors}>
+                <LeftPage
+                  entry={entry}
+                  isNewEntry={false}
+                />
+              </PageWrapper>,
+              <PageWrapper key={`${entry.id}-R`} side="right" colors={colors}>
+                <RightPage
+                  entry={entry}
+                  isNewEntry={false}
+                  photos={entry.photos || []}
+                />
+              </PageWrapper>,
+            ])}
 
-        {/* Center binding */}
-        <div
-          className="w-6 relative z-10 flex-shrink-0"
-          style={{
-            background: colors.spineGradient,
-            boxShadow: 'inset 2px 0 4px rgba(255,255,255,0.1), inset -2px 0 4px rgba(255,255,255,0.1)',
-          }}
-        />
+            {/* New-entry spread (always last) */}
+            <PageWrapper key="new-L" side="left" colors={colors}>
+              <LeftPage
+                entry={null}
+                isNewEntry={true}
+                text={leftPageText}
+                onTextChange={setLeftPageText}
+                onPageFull={handleLeftPageFull}
+                onNavigateRight={handleNavigateRight}
+                focusTrigger={leftTextareaFocusTrigger}
+              />
+            </PageWrapper>
+            <PageWrapper key="new-R" side="right" colors={colors}>
+              <RightPage
+                entry={null}
+                isNewEntry={true}
+                photos={pendingPhotos}
+                onPhotoAdd={handlePhotoAdd}
+                onSaveComplete={handleSaveComplete}
+                leftPageText={leftPageText}
+                text={rightPageText}
+                onTextChange={setRightPageText}
+                focusTrigger={rightTextareaFocusTrigger}
+                onNavigateLeft={handleNavigateLeft}
+              />
+            </PageWrapper>
+          </HTMLFlipBook>
+        )}
 
-        {/* Right page */}
-        <PageWrapper side="right" colors={colors}>
-          <RightPage
-            entry={currentEntry || null}
-            isNewEntry={isNewEntrySpread}
-            photos={currentPhotos}
-            onPhotoAdd={handlePhotoAdd}
-            onSaveComplete={handleSaveComplete}
-            leftPageText={leftPageText}
-            text={rightPageText}
-            onTextChange={setRightPageText}
-            focusTrigger={rightTextareaFocusTrigger}
-            onNavigateLeft={handleNavigateLeft}
-          />
-        </PageWrapper>
-
-        {/* Left edge - Previous entry */}
+        {/* Left edge clicker */}
         {globalCurrentSpread > 0 && (
           <motion.div
             onClick={handlePrevPage}
@@ -376,8 +422,8 @@ export default function BookSpread() {
           </motion.div>
         )}
 
-        {/* Right edge - Next entry */}
-        {globalCurrentSpread < totalSpreads && !isPageTurning && (
+        {/* Right edge clicker */}
+        {globalCurrentSpread < totalSpreads - 1 && (
           <motion.div
             onClick={handleNextPage}
             className="absolute right-0 top-0 bottom-0 w-14 cursor-pointer z-30 flex items-center justify-center"
@@ -398,36 +444,6 @@ export default function BookSpread() {
             </motion.div>
           </motion.div>
         )}
-
-        {/* Stack of pages hints */}
-        {globalCurrentSpread > 0 && (
-          <div
-            className="absolute top-3 bottom-3 left-0 w-2 pointer-events-none z-20"
-            style={{
-              background: 'repeating-linear-gradient(180deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.15) 2px, rgba(255,255,255,0.15) 4px)',
-              borderRadius: '2px 0 0 2px',
-            }}
-          />
-        )}
-        {globalCurrentSpread < entries.length && (
-          <div
-            className="absolute top-3 bottom-3 right-0 w-2 pointer-events-none z-20"
-            style={{
-              background: 'repeating-linear-gradient(180deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.15) 2px, rgba(255,255,255,0.15) 4px)',
-              borderRadius: '0 2px 2px 0',
-            }}
-          />
-        )}
-
-        {/* Page turn animation overlay */}
-        <AnimatePresence>
-          {isPageTurning && turnDirection && (
-            <PageTurn
-              direction={turnDirection}
-              onComplete={handlePageTurnComplete}
-            />
-          )}
-        </AnimatePresence>
 
         {/* Save success overlay */}
         <AnimatePresence>
