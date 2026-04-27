@@ -13,6 +13,14 @@ export interface AutosaveDraft {
   song: string | null
   photos: { url: string; position: number; rotation: number; spread: number }[]
   doodles: { strokes: StrokeData[]; spread: number }[]
+  // Letter-only fields. Absent for normal journal entries; present (possibly
+  // null) for letter drafts so the server can persist recipient/scheduling.
+  entryType?: string
+  recipientEmail?: string | null
+  recipientName?: string | null
+  senderName?: string | null
+  letterLocation?: string | null
+  unlockDate?: string | null
 }
 
 export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error'
@@ -78,6 +86,14 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
         spread: p.spread ?? 1,
       })),
       doodles: draft.doodles,
+      // Letter fields — only included when present, so journal saves stay
+      // identical on the wire.
+      ...(draft.entryType !== undefined ? { entryType: draft.entryType } : {}),
+      ...(draft.recipientEmail !== undefined ? { recipientEmail: draft.recipientEmail } : {}),
+      ...(draft.recipientName !== undefined ? { recipientName: draft.recipientName } : {}),
+      ...(draft.senderName !== undefined ? { senderName: draft.senderName } : {}),
+      ...(draft.letterLocation !== undefined ? { letterLocation: draft.letterLocation } : {}),
+      ...(draft.unlockDate !== undefined ? { unlockDate: draft.unlockDate } : {}),
     })
 
     try {

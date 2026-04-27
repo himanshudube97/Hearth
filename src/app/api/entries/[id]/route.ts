@@ -78,7 +78,9 @@ export async function PUT(
 
     const { id } = await params
 
-    // Load enough state up-front to run the calendar-day lock check below.
+    // Load enough state up-front to run the lock check below. For letters we
+    // also need entryType + isSealed because their lock semantics differ
+    // (sealed = locked, draft = fully editable across days).
     const existing = await prisma.journalEntry.findUnique({
       where: { id },
       select: {
@@ -88,6 +90,8 @@ export async function PUT(
         text: true,
         song: true,
         mood: true,
+        entryType: true,
+        isSealed: true,
         photos: { select: { spread: true, position: true } },
         doodles: { select: { spread: true } },
       },
@@ -104,17 +108,29 @@ export async function PUT(
     const body = await request.json()
     const {
       text, mood, song, tags, encryptionType, e2eeIV,
-      // New fields
       spreads, appendText, newPhotos, newDoodles,
+      // Letter-only fields. Drafts can be edited freely; sealed letters reject
+      // all writes via the lock check below.
+      entryType, recipientEmail, recipientName, senderName, letterLocation, unlockDate,
     } = body
 
     const isE2EE = encryptionType === 'e2ee' || existing.encryptionType === 'e2ee'
+    const isLetter = existing.entryType !== 'normal'
 
-    // Calendar-day lock: once we've crossed midnight (in the user's tz) the
-    // entry becomes append-only. Existing fields are read-only; only empty
-    // slots can be filled.
+    // Lock check. Letters: sealed = full reject. Journal entries: calendar-day
+    // → append-only diff allowed.
     const userTz = request.headers.get('x-user-tz') ?? 'UTC'
-    if (isEntryLocked(existing.createdAt, userTz)) {
+    const locked = isEntryLocked(existing.createdAt, userTz, {
+      entryType: existing.entryType,
+      isSealed: existing.isSealed,
+    })
+    if (locked) {
+      if (isLetter) {
+        return NextResponse.json(
+          { error: 'This letter is sealed and cannot be modified' },
+          { status: 403 },
+        )
+      }
       const decryptedExisting = isE2EE ? { text: existing.text } : decryptEntryFields({ text: existing.text })
       const diff = validateAppendOnlyDiff({
         oldText: decryptedExisting.text,
@@ -168,6 +184,28 @@ export async function PUT(
     if (spreads !== undefined) updateData.spreads = spreads
     if (encryptionType !== undefined) updateData.encryptionType = encryptionType
     if (e2eeIV !== undefined) updateData.e2eeIV = e2eeIV
+
+    // Letter fields. recipientEmail is plaintext (cron job needs it to look up
+    // user / send the email). recipientName / senderName / letterLocation get
+    // the same server-side encryption as text. unlockDate is a plain date.
+    if (entryType !== undefined) updateData.entryType = entryType
+    if (recipientEmail !== undefined) updateData.recipientEmail = recipientEmail || null
+    if (recipientName !== undefined) {
+      updateData.recipientName = recipientName
+        ? (isE2EE ? recipientName : encrypt(recipientName))
+        : null
+    }
+    if (senderName !== undefined) {
+      updateData.senderName = senderName
+        ? (isE2EE ? senderName : encrypt(senderName))
+        : null
+    }
+    if (letterLocation !== undefined) {
+      updateData.letterLocation = letterLocation
+        ? (isE2EE ? letterLocation : encrypt(letterLocation))
+        : null
+    }
+    if (unlockDate !== undefined) updateData.unlockDate = unlockDate ? new Date(unlockDate) : null
 
     // Update the entry
     await prisma.journalEntry.update({

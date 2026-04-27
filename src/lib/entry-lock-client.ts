@@ -4,7 +4,14 @@
  * IANA tz the client sends, so as long as the client is honest about its
  * timezone, both sides agree.
  */
-export function isEntryLocked(createdAt: Date | string): boolean {
+export function isEntryLocked(
+  createdAt: Date | string,
+  opts?: { entryType?: string | null; isSealed?: boolean | null },
+): boolean {
+  // Letters lock on seal, not on the day flip. Mirror server logic.
+  if (opts?.entryType && opts.entryType !== 'normal') {
+    return opts.isSealed === true
+  }
   const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt
   return created.toDateString() !== new Date().toDateString()
 }

@@ -26,7 +26,24 @@ function dayKey(date: Date, tz: string): string {
   }
 }
 
-export function isEntryLocked(createdAt: Date | string, tz: string = 'UTC'): boolean {
+export interface EntryLockOpts {
+  /** Entry kind. 'normal' (or undefined) → calendar-day lock applies. Anything
+   *  else (letter, unsent_letter, ephemeral) → lock only when sealed. */
+  entryType?: string | null
+  isSealed?: boolean | null
+}
+
+export function isEntryLocked(
+  createdAt: Date | string,
+  tz: string = 'UTC',
+  opts?: EntryLockOpts,
+): boolean {
+  // Letters are time-locked by sealing, not by the calendar day. While a
+  // letter draft is unsealed it stays fully editable across days; once sealed
+  // it becomes immutable until delivery.
+  if (opts?.entryType && opts.entryType !== 'normal') {
+    return opts.isSealed === true
+  }
   const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt
   return dayKey(created, tz) !== dayKey(new Date(), tz)
 }

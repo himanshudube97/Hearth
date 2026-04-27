@@ -1,46 +1,80 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { useThemeStore } from '@/store/theme'
+import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 import { ThemeName } from '@/lib/themes'
 import Editor from '@/components/Editor'
 
-const themeStamps: Record<ThemeName, { icon: string; color: string }> = {
-  rivendell: { icon: '🍃', color: '#5E8B5A' },
-  hobbiton: { icon: '🌻', color: '#60B060' },
-  winterSunset: { icon: '❄️', color: '#E8945A' },
-  cherryBlossom: { icon: '🌸', color: '#D4839A' },
-  northernLights: { icon: '✨', color: '#64B5C6' },
-  mistyMountains: { icon: '⛰️', color: '#7B8FA8' },
-  gentleRain: { icon: '🌧️', color: '#6A9EC0' },
-  cosmos: { icon: '🌟', color: '#9B7EC8' },
-  candlelight: { icon: '🕯️', color: '#D4A574' },
-  oceanTwilight: { icon: '🌊', color: '#5A9EA0' },
-  quietSnow: { icon: '❄️', color: '#8BA8C4' },
+export type Recipient = 'self' | 'friend'
+
+const themeStamps: Record<ThemeName, { icon: string }> = {
+  rivendell: { icon: '🍃' },
+  hobbiton: { icon: '🌻' },
+  winterSunset: { icon: '❄️' },
+  cherryBlossom: { icon: '🌸' },
+  northernLights: { icon: '✨' },
+  mistyMountains: { icon: '⛰️' },
+  gentleRain: { icon: '🌧️' },
+  cosmos: { icon: '🌟' },
+  candlelight: { icon: '🕯️' },
+  oceanTwilight: { icon: '🌊' },
+  quietSnow: { icon: '❄️' },
 }
 
 interface PostcardFrontProps {
   letterText: string
   onTextChange: (html: string) => void
-  recipientType: 'self' | 'friend'
+  recipient: Recipient
+  onRecipientChange: (r: Recipient) => void
+  /** Friend's name, used to render "Dear Sarah," when present. */
+  friendName?: string
 }
 
-export default function PostcardFront({ letterText, onTextChange, recipientType }: PostcardFrontProps) {
-  const { themeName } = useThemeStore()
+export default function PostcardFront({
+  letterText,
+  onTextChange,
+  recipient,
+  onRecipientChange,
+  friendName,
+}: PostcardFrontProps) {
+  const { theme, themeName } = useThemeStore()
+  const colors = getGlassDiaryColors(theme)
   const stamp = themeStamps[themeName] || themeStamps.rivendell
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const pickerRef = useRef<HTMLDivElement>(null)
+
+  // Click-outside to close the recipient picker.
+  useEffect(() => {
+    if (!pickerOpen) return
+    const onDoc = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [pickerOpen])
+
+  const recipientLabel =
+    recipient === 'friend'
+      ? (friendName?.trim() || 'a friend')
+      : 'future me'
 
   return (
     <div
       className="postcard-front w-full h-full relative flex flex-col"
       style={{
-        background: '#f5f0e6',
+        background: colors.pageBg,
+        backdropFilter: `blur(${colors.pageBlur})`,
         fontFamily: "var(--font-caveat), 'Caveat', cursive",
       }}
     >
-      {/* Air mail stripe */}
+      {/* Subtle accent stripe in place of the airmail bar */}
       <div
-        className="h-3 w-full shrink-0"
+        className="h-2 w-full shrink-0"
         style={{
-          background: 'repeating-linear-gradient(135deg, #c62828 0px, #c62828 8px, #fff 8px, #fff 12px, #1565c0 12px, #1565c0 20px, #fff 20px, #fff 24px)',
+          background: `linear-gradient(90deg, transparent, ${theme.accent.warm}55, transparent)`,
         }}
       />
 
@@ -48,7 +82,7 @@ export default function PostcardFront({ letterText, onTextChange, recipientType 
       <div className="text-center py-2 shrink-0">
         <span
           className="text-lg tracking-[0.3em] font-semibold"
-          style={{ color: '#8B6914', fontFamily: "'Georgia', serif" }}
+          style={{ color: colors.sectionLabel, fontFamily: "'Georgia', serif" }}
         >
           POST CARD
         </span>
@@ -56,70 +90,149 @@ export default function PostcardFront({ letterText, onTextChange, recipientType 
 
       {/* Full-width writing area */}
       <div className="flex-1 relative px-6 pb-0 min-h-0 overflow-hidden">
-        {/* Ruled lines background — 40px intervals to match ProseMirror line-height */}
+        {/* Ruled lines — 40px intervals to match ProseMirror line-height */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: 'repeating-linear-gradient(transparent, transparent 39px, #d4c5a0 39px, #d4c5a0 40px)',
+            backgroundImage: `repeating-linear-gradient(transparent, transparent 39px, ${colors.ruledLine} 39px, ${colors.ruledLine} 40px)`,
             backgroundPosition: '0 12px',
-            opacity: 0.5,
           }}
         />
 
-        {/* Stamp watermark — top-right corner */}
-        <div className="absolute top-2 right-4 z-20 opacity-30 pointer-events-none">
+        {/* Stamp watermark */}
+        <div className="absolute top-2 right-4 z-20 opacity-40 pointer-events-none">
           <div
             className="w-16 h-20 border-2 flex flex-col items-center justify-center"
             style={{
-              borderColor: stamp.color,
+              borderColor: theme.accent.warm,
               borderStyle: 'dashed',
             }}
           >
             <span className="text-xl">{stamp.icon}</span>
             <span
               className="text-[9px] mt-1 tracking-wider"
-              style={{ color: stamp.color, fontFamily: "'Georgia', serif" }}
+              style={{ color: theme.accent.warm, fontFamily: "'Georgia', serif" }}
             >
               HEARTH
             </span>
           </div>
         </div>
 
-        {/* TipTap editor — full width, no scroll */}
-        <div className="relative z-10 h-full overflow-hidden">
-          <Editor
-            prompt={
-              recipientType === 'self'
-                ? 'Dear future me...'
-                : 'Dear friend...'
-            }
-            value={letterText}
-            onChange={onTextChange}
-            bare
-            flexible
-            noScroll
-            customStyles={{
+        <div className="relative z-10 h-full flex flex-col">
+          {/* Greeting line with inline recipient picker. The picker reads as
+              part of the handwriting, with a dashed underline as a fill-in
+              affordance. Click → small popover with the two recipient
+              options. Stranger lands here in a future PR. */}
+          <div
+            className="shrink-0 flex items-baseline gap-1 pt-3 pb-2"
+            style={{
               fontFamily: "var(--font-caveat), 'Caveat', cursive",
-              fontSize: '20px',
-              color: '#3d2c1a',
+              fontSize: '24px',
+              color: colors.bodyText,
               lineHeight: '40px',
-              background: 'transparent',
             }}
-          />
+          >
+            <span>Dear&nbsp;</span>
+            <div ref={pickerRef} className="relative inline-block">
+              <button
+                type="button"
+                onClick={() => setPickerOpen((v) => !v)}
+                className="inline-flex items-baseline gap-1 px-1 outline-none"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: `1px dashed ${colors.sectionLabel}`,
+                  color: colors.bodyText,
+                  fontFamily: 'inherit',
+                  fontSize: 'inherit',
+                  cursor: 'pointer',
+                }}
+              >
+                <span>{recipientLabel}</span>
+                <span style={{ fontSize: '14px', opacity: 0.6 }}>▾</span>
+              </button>
+              {pickerOpen && (
+                <div
+                  className="absolute top-full left-0 mt-1 z-30 rounded-lg overflow-hidden"
+                  style={{
+                    background: theme.glass.bg,
+                    backdropFilter: `blur(${theme.glass.blur})`,
+                    border: `1px solid ${theme.glass.border}`,
+                    minWidth: '160px',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
+                  }}
+                >
+                  {([
+                    { value: 'self' as Recipient, label: 'Future Me' },
+                    { value: 'friend' as Recipient, label: 'A Friend' },
+                  ]).map((opt) => {
+                    const selected = recipient === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          onRecipientChange(opt.value)
+                          setPickerOpen(false)
+                        }}
+                        className="block w-full text-left px-3 py-2 text-sm"
+                        style={{
+                          background: selected ? `${theme.accent.warm}25` : 'transparent',
+                          color: theme.text.primary,
+                          fontFamily: "'Georgia', serif",
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                  <div
+                    className="px-3 py-1.5 text-[10px] uppercase tracking-wider"
+                    style={{
+                      color: theme.text.muted,
+                      borderTop: `1px solid ${theme.glass.border}`,
+                      fontFamily: "'Georgia', serif",
+                    }}
+                  >
+                    A stranger — coming soon
+                  </div>
+                </div>
+              )}
+            </div>
+            <span>,</span>
+          </div>
+
+          {/* Editor body */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <Editor
+              prompt="..."
+              value={letterText}
+              onChange={onTextChange}
+              bare
+              flexible
+              noScroll
+              customStyles={{
+                fontFamily: "var(--font-caveat), 'Caveat', cursive",
+                fontSize: '20px',
+                color: colors.bodyText,
+                lineHeight: '40px',
+                background: 'transparent',
+              }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* "the end" at bottom */}
+      {/* end marker */}
       <div className="shrink-0 text-center pb-3 pt-1">
         <span
           className="text-xs tracking-[0.2em]"
-          style={{ color: '#c4a26560', fontFamily: "'Georgia', serif" }}
+          style={{ color: colors.prompt, fontFamily: "'Georgia', serif" }}
         >
           — the end —
         </span>
       </div>
 
-      {/* Override ProseMirror scroll within the postcard */}
       <style jsx global>{`
         .postcard-front .ProseMirror {
           overflow: hidden !important;
