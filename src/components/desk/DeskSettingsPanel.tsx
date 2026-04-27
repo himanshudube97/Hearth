@@ -7,6 +7,7 @@ import { useCursorStore } from '@/store/cursor'
 import { useDeskSettings } from '@/store/deskSettings'
 import { themes, ThemeName } from '@/lib/themes'
 import { cursors, cursorIcons, CursorName } from '@/lib/cursors'
+import { playSfx } from '@/lib/playSfx'
 
 const themeIcons: Record<ThemeName, string> = {
   winterSunset: '🌅',
@@ -116,7 +117,10 @@ export default function DeskSettingsPanel() {
                         <motion.button
                           key={name}
                           whileTap={{ scale: 0.97 }}
-                          onClick={() => setTheme(name)}
+                          onClick={() => {
+                            if (name !== themeName) playSfx('themeSwitch')
+                            setTheme(name)
+                          }}
                           className="p-2 rounded-xl flex items-center gap-2 text-left transition-all"
                           style={{
                             background: selected ? `${t.accent.primary}25` : 'transparent',
