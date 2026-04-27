@@ -6,6 +6,7 @@ import Particles, { initParticlesEngine } from '@tsparticles/react'
 import { loadSlim } from '@tsparticles/slim'
 import { createNoise2D } from 'simplex-noise'
 import { useThemeStore } from '@/store/theme'
+import { useAmbientSound } from '@/hooks/useAmbientSound'
 import type { ISourceOptions } from '@tsparticles/engine'
 
 // ========== PARTICLE CONFIGURATIONS ==========
@@ -828,6 +829,7 @@ function BackgroundComponent() {
   const [mounted, setMounted] = useState(false)
   const [particlesReady, setParticlesReady] = useState(false)
   const { theme, themeName } = useThemeStore()
+  useAmbientSound()
 
   useEffect(() => {
     setMounted(true)
