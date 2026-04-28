@@ -444,15 +444,89 @@ function hashId(id: string): number {
   return Math.abs(h)
 }
 
-// Theme-aware paper colors. For now: cream paper for all themes (works
-// well on the existing dark-leaning palette). Theme-specific paper packs
-// can replace this map later without changing call sites.
-export function paperForTheme(_themeName: ThemeName): {
+// Theme-aware paper presets. Each is a hand-tuned "sheet" — the base color
+// is the paper itself (always muted / paper-like, never saturated), and the
+// highlight / shadow / grain values give the page its depth.
+export interface PaperPreset {
   base: string
   grain: string
-} {
-  return {
-    base: '#f3ead2',
-    grain: 'rgba(120, 90, 50, 0.04)',
-  }
+  highlight: string // soft warm glow (top-left radial)
+  shadow: string    // soft cool shade (bottom-right radial)
+}
+
+const PAPER_PRESETS: Record<ThemeName, PaperPreset> = {
+  // kraft cream — warm cozy brown undertones
+  hearth: {
+    base: '#e8d8b0',
+    grain: 'rgba(120, 80, 30, 0.06)',
+    highlight: 'rgba(255, 240, 200, 0.45)',
+    shadow: 'rgba(120, 80, 30, 0.10)',
+  },
+  // forest tan — slight olive undertone for sunset / woodland mood
+  rivendell: {
+    base: '#d8c8a0',
+    grain: 'rgba(80, 70, 30, 0.07)',
+    highlight: 'rgba(245, 230, 190, 0.40)',
+    shadow: 'rgba(70, 60, 25, 0.12)',
+  },
+  // pale honey paper — bright cream sheet
+  paperSun: {
+    base: '#f0e0b0',
+    grain: 'rgba(140, 100, 40, 0.05)',
+    highlight: 'rgba(255, 245, 210, 0.45)',
+    shadow: 'rgba(120, 80, 30, 0.10)',
+  },
+  // blush cream — dusty rose-tinted paper
+  rose: {
+    base: '#f0ddd0',
+    grain: 'rgba(140, 80, 80, 0.05)',
+    highlight: 'rgba(255, 235, 230, 0.45)',
+    shadow: 'rgba(140, 70, 80, 0.10)',
+  },
+  // sage linen — warm cream with green undertone
+  sage: {
+    base: '#e0dcba',
+    grain: 'rgba(90, 100, 50, 0.06)',
+    highlight: 'rgba(245, 240, 210, 0.42)',
+    shadow: 'rgba(80, 90, 45, 0.10)',
+  },
+  // cool cream — pale greyish paper for ocean palette
+  ocean: {
+    base: '#dcdcc8',
+    grain: 'rgba(60, 70, 80, 0.06)',
+    highlight: 'rgba(240, 240, 230, 0.42)',
+    shadow: 'rgba(40, 60, 70, 0.10)',
+  },
+  // honey paper — warm golden sheet
+  saffron: {
+    base: '#e8cc88',
+    grain: 'rgba(140, 90, 30, 0.07)',
+    highlight: 'rgba(250, 230, 180, 0.45)',
+    shadow: 'rgba(120, 70, 20, 0.12)',
+  },
+  // mint linen — cream with garden-green undertone
+  garden: {
+    base: '#dcdcb8',
+    grain: 'rgba(80, 110, 50, 0.06)',
+    highlight: 'rgba(240, 240, 210, 0.42)',
+    shadow: 'rgba(70, 100, 50, 0.10)',
+  },
+  // manila / buff — kraft envelope paper
+  postal: {
+    base: '#e0cfa8',
+    grain: 'rgba(110, 75, 30, 0.07)',
+    highlight: 'rgba(245, 230, 195, 0.42)',
+    shadow: 'rgba(95, 60, 25, 0.12)',
+  },
+  // soft linen — clean off-white sheet
+  linen: {
+    base: '#efe8d4',
+    grain: 'rgba(120, 95, 50, 0.05)',
+    highlight: 'rgba(255, 248, 230, 0.45)',
+    shadow: 'rgba(110, 85, 45, 0.09)',
+  },
+}
+
+export function paperForTheme(themeName: ThemeName): PaperPreset {
+  return PAPER_PRESETS[themeName] ?? PAPER_PRESETS.hearth
 }

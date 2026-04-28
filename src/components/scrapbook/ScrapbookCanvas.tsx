@@ -246,12 +246,6 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
     setEditingId(null)
   }
 
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  })
-
   const tapeLeft = withAlpha(theme.accent.warm, 0.78)
   const tapeRight = withAlpha(theme.accent.secondary, 0.78)
 
@@ -264,39 +258,11 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
           the viewport. */}
 
       <div
-        className="mb-3 flex items-center gap-3"
-        style={{
-          color: theme.text.secondary,
-          fontFamily: 'var(--font-caveat), cursive',
-          fontSize: 22,
-          letterSpacing: 0.3,
-        }}
-      >
-        <span>scrapbook</span>
-        <span style={{ opacity: 0.5 }}>·</span>
-        <span style={{ opacity: 0.75 }}>{today.toLowerCase()}</span>
-      </div>
-
-      <div className="mb-4 z-30">
-        <CanvasToolbar
-          onAddText={addText}
-          onAddSticker={addSticker}
-          onAddPhoto={addPhoto}
-          onAddSong={addSong}
-          onAddDoodle={addDoodle}
-          onAddClip={addClip}
-          onAddMood={addMood}
-          onAddStamp={addStamp}
-          onReset={resetBoard}
-        />
-      </div>
-
-      <div
         style={{
           fontSize: 12,
           color: 'rgba(58, 52, 41, 0.55)',
           fontFamily: 'var(--font-caveat), cursive',
-          marginTop: 4,
+          marginBottom: 8,
           minHeight: 16,
         }}
       >
@@ -305,14 +271,28 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
         {saveStatus === 'error' && 'save error — retrying'}
       </div>
 
-      <div className="w-full flex justify-center">
+      <div className="w-full flex justify-center items-start gap-5">
+        <div className="flex-shrink-0" style={{ position: 'sticky', top: 96, zIndex: 1000 }}>
+          <CanvasToolbar
+            onAddText={addText}
+            onAddSticker={addSticker}
+            onAddPhoto={addPhoto}
+            onAddSong={addSong}
+            onAddDoodle={addDoodle}
+            onAddClip={addClip}
+            onAddMood={addMood}
+            onAddStamp={addStamp}
+            onReset={resetBoard}
+          />
+        </div>
+
         <div
           ref={canvasRef}
           onClick={deselectAll}
           className="relative"
           style={{
-            width: 'min(720px, calc((100vh - 220px) * 0.8))',
-            aspectRatio: '4 / 5',
+            width: 'min(1102px, calc((100vh - 220px) * 1.45))',
+            height: 'min(760px, calc(100vh - 220px))',
             cursor: selectedId ? 'default' : 'auto',
           }}
         >

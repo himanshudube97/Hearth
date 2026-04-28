@@ -61,12 +61,13 @@ export default function CanvasToolbar({
 
   return (
     <div
-      className="flex items-center gap-2 px-3 py-2 rounded-full"
+      className="flex flex-col items-stretch gap-1.5 px-2 py-3 rounded-3xl"
       style={{
         background: '#fefaf0',
         border: '1px solid rgba(58, 52, 41, 0.18)',
         boxShadow: '0 6px 22px rgba(20, 14, 4, 0.18)',
         fontFamily: 'var(--font-caveat), cursive',
+        width: 132,
       }}
     >
       <ToolbarButton onClick={onAddText} icon="✎" label="text" />
@@ -82,9 +83,11 @@ export default function CanvasToolbar({
         />
         {songPromptOpen && (
           <div
-            className="absolute left-1/2 -translate-x-1/2 mt-2 p-3 rounded-2xl flex flex-col gap-2"
+            className="absolute p-3 rounded-2xl flex flex-col gap-2"
             style={{
-              top: '100%',
+              top: 0,
+              left: '100%',
+              marginLeft: 10,
               background: '#fefaf0',
               border: '1px solid rgba(58, 52, 41, 0.18)',
               boxShadow: '0 8px 24px rgba(20, 14, 4, 0.22)',
@@ -150,9 +153,11 @@ export default function CanvasToolbar({
         />
         {stickerOpen && (
           <div
-            className="absolute left-1/2 -translate-x-1/2 mt-2 p-3 rounded-2xl"
+            className="absolute p-3 rounded-2xl"
             style={{
-              top: '100%',
+              top: 0,
+              left: '100%',
+              marginLeft: 10,
               background: '#fefaf0',
               border: '1px solid rgba(58, 52, 41, 0.18)',
               boxShadow: '0 8px 24px rgba(20, 14, 4, 0.22)',
@@ -208,9 +213,11 @@ export default function CanvasToolbar({
         />
         {clipOpen && (
           <div
-            className="absolute left-1/2 -translate-x-1/2 mt-2 p-2 rounded-2xl flex flex-col gap-1"
+            className="absolute p-2 rounded-2xl flex flex-col gap-1"
             style={{
-              top: '100%',
+              top: 0,
+              left: '100%',
+              marginLeft: 10,
               background: '#fefaf0',
               border: '1px solid rgba(58, 52, 41, 0.18)',
               boxShadow: '0 8px 24px rgba(20, 14, 4, 0.22)',
@@ -244,7 +251,7 @@ export default function CanvasToolbar({
       <ToolbarButton onClick={onAddMood} icon="❤" label="mood" />
       <ToolbarButton onClick={onAddStamp} icon="◉" label="stamp" />
 
-      <div style={{ width: 1, height: 22, background: 'rgba(58, 52, 41, 0.18)', margin: '0 4px' }} />
+      <div style={{ height: 1, width: '70%', alignSelf: 'center', background: 'rgba(58, 52, 41, 0.18)', margin: '4px 0' }} />
 
       <ToolbarButton
         onClick={() => {
@@ -276,7 +283,7 @@ function ToolbarButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all"
+      className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all w-full"
       style={{
         background: active ? '#3a3429' : 'transparent',
         color: disabled ? 'rgba(58, 52, 41, 0.35)' : active ? '#f4ecd8' : '#3a3429',
@@ -285,10 +292,11 @@ function ToolbarButton({
         border: '1px solid',
         borderColor: active ? '#3a3429' : 'rgba(58, 52, 41, 0.22)',
         cursor: disabled ? 'not-allowed' : 'pointer',
+        textAlign: 'left',
       }}
       title={disabled ? 'coming soon' : label}
     >
-      <span style={{ fontSize: 13 }}>{icon}</span>
+      <span style={{ fontSize: 13, width: 14, display: 'inline-block', textAlign: 'center' }}>{icon}</span>
       <span>{label}</span>
     </button>
   )
