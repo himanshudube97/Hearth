@@ -25,6 +25,43 @@ import SongItem from './items/SongItem'
 import DoodleItem from './items/DoodleItem'
 import CameraModal from './CameraModal'
 
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024
+const PHOTO_MAX_WIDTH = 1600
+
+async function compressPhoto(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const reader = new FileReader()
+    reader.onload = (e) => { img.src = e.target?.result as string }
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return reject(new Error('Canvas context unavailable'))
+
+      let width = img.width
+      let height = img.height
+      if (width > PHOTO_MAX_WIDTH) {
+        height = Math.round((height * PHOTO_MAX_WIDTH) / width)
+        width = PHOTO_MAX_WIDTH
+      }
+      canvas.width = width
+      canvas.height = height
+      ctx.drawImage(img, 0, 0, width, height)
+
+      let quality = 0.85
+      let dataUrl = canvas.toDataURL('image/jpeg', quality)
+      while (dataUrl.length > PHOTO_MAX_BYTES * 1.37 && quality > 0.3) {
+        quality -= 0.1
+        dataUrl = canvas.toDataURL('image/jpeg', quality)
+      }
+      resolve(dataUrl)
+    }
+    img.onerror = () => reject(new Error('Image load failed'))
+    reader.onerror = () => reject(new Error('File read failed'))
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function ScrapbookCanvas() {
   const { theme, themeName } = useThemeStore()
   const [items, setItems] = useState<ScrapbookItem[]>([])
@@ -111,17 +148,17 @@ export default function ScrapbookCanvas() {
     fileInputRef.current?.click()
   }
 
-  function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     const targetId = uploadTargetId
     e.target.value = ''
     if (!file || !targetId) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const result = ev.target?.result
-      if (typeof result === 'string') fillPhoto(targetId, result)
+    try {
+      const dataUrl = await compressPhoto(file)
+      fillPhoto(targetId, dataUrl)
+    } catch (err) {
+      console.error('Failed to compress photo:', err)
     }
-    reader.readAsDataURL(file)
     setUploadTargetId(null)
   }
 
