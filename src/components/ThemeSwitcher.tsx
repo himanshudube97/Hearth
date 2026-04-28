@@ -6,18 +6,17 @@ import { useThemeStore } from '@/store/theme'
 import { themes, ThemeName } from '@/lib/themes'
 
 const themeIcons: Record<ThemeName, string> = {
-  winterSunset: '🌅',
   rivendell: '🌲',
-  hobbiton: '🏡',
-  cherryBlossom: '🌸',
-  northernLights: '🌌',
-  mistyMountains: '⛰️',
-  gentleRain: '🌧️',
-  cosmos: '✨',
-  candlelight: '🕯️',
-  oceanTwilight: '🌊',
-  quietSnow: '❄️',
-  warmPeaceful: '☀️',
+  hearth: '🔥',
+  paperSun: '☀️',
+  rose: '🌸',
+  sage: '🌿',
+  ocean: '🌊',
+  saffron: '🌼',
+  garden: '🌷',
+  postal: '✉️',
+  linen: '🕊️',
+  midnight: '✨',
 }
 
 export default function ThemeSwitcher() {

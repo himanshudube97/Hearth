@@ -15,18 +15,17 @@ const POSTCARD_MAX_CHARS = 500
 const POSTCARD_FADE_START = 50
 
 const themeStamps: Record<ThemeName, { icon: string }> = {
-  rivendell: { icon: '🍃' },
-  hobbiton: { icon: '🌻' },
-  winterSunset: { icon: '❄️' },
-  cherryBlossom: { icon: '🌸' },
-  northernLights: { icon: '✨' },
-  mistyMountains: { icon: '⛰️' },
-  gentleRain: { icon: '🌧️' },
-  cosmos: { icon: '🌟' },
-  candlelight: { icon: '🕯️' },
-  oceanTwilight: { icon: '🌊' },
-  quietSnow: { icon: '❄️' },
-  warmPeaceful: { icon: '☀️' },
+  rivendell: { icon: '🌲' },
+  hearth: { icon: '🔥' },
+  paperSun: { icon: '☀️' },
+  rose: { icon: '🌸' },
+  sage: { icon: '🌿' },
+  ocean: { icon: '🌊' },
+  saffron: { icon: '🌼' },
+  garden: { icon: '🌷' },
+  postal: { icon: '✉️' },
+  linen: { icon: '🕊️' },
+  midnight: { icon: '✨' },
 }
 
 interface PostcardFrontProps {

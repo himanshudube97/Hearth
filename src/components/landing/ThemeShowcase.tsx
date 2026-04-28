@@ -6,17 +6,17 @@ import { useThemeStore } from '@/store/theme'
 import { themes, ThemeName } from '@/lib/themes'
 
 const themeList: { key: ThemeName; emoji: string }[] = [
-  { key: 'rivendell', emoji: '🌿' },
-  { key: 'hobbiton', emoji: '🏡' },
-  { key: 'winterSunset', emoji: '🌅' },
-  { key: 'cherryBlossom', emoji: '🌸' },
-  { key: 'northernLights', emoji: '🌌' },
-  { key: 'mistyMountains', emoji: '⛰️' },
-  { key: 'gentleRain', emoji: '🌧️' },
-  { key: 'cosmos', emoji: '✨' },
-  { key: 'candlelight', emoji: '🕯️' },
-  { key: 'oceanTwilight', emoji: '🌊' },
-  { key: 'quietSnow', emoji: '❄️' },
+  { key: 'rivendell', emoji: '🌲' },
+  { key: 'hearth', emoji: '🔥' },
+  { key: 'paperSun', emoji: '☀️' },
+  { key: 'rose', emoji: '🌸' },
+  { key: 'sage', emoji: '🌿' },
+  { key: 'ocean', emoji: '🌊' },
+  { key: 'saffron', emoji: '🌼' },
+  { key: 'garden', emoji: '🌷' },
+  { key: 'postal', emoji: '✉️' },
+  { key: 'linen', emoji: '🕊️' },
+  { key: 'midnight', emoji: '✨' },
 ]
 
 export default function ThemeShowcase() {

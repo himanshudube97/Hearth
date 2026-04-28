@@ -11,18 +11,17 @@ import { themes, ThemeName } from '@/lib/themes'
 import { cursors, cursorIcons, CursorName } from '@/lib/cursors'
 
 const themeIcons: Record<ThemeName, string> = {
-  winterSunset: '🌅',
   rivendell: '🌲',
-  hobbiton: '🏡',
-  cherryBlossom: '🌸',
-  northernLights: '🌌',
-  mistyMountains: '⛰️',
-  gentleRain: '🌧️',
-  cosmos: '✨',
-  candlelight: '🕯️',
-  oceanTwilight: '🌊',
-  quietSnow: '❄️',
-  warmPeaceful: '☀️',
+  hearth: '🔥',
+  paperSun: '☀️',
+  rose: '🌸',
+  sage: '🌿',
+  ocean: '🌊',
+  saffron: '🌼',
+  garden: '🌷',
+  postal: '✉️',
+  linen: '🕊️',
+  midnight: '✨',
 }
 
 export default function DeskSettingsPanel() {
