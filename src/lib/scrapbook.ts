@@ -2,7 +2,9 @@
 
 import type { ThemeName } from '@/lib/themes'
 
-export type ScrapbookItemType = 'text' | 'sticker' | 'photo' | 'song' | 'doodle'
+export type ScrapbookItemType =
+  | 'text' | 'sticker' | 'photo' | 'song' | 'doodle'
+  | 'clip' | 'mood' | 'stamp' | 'date'
 
 export interface BaseItem {
   id: string
@@ -41,7 +43,10 @@ export function isEditableType(type: ScrapbookItemType): boolean {
     type === 'text' ||
     type === 'photo' ||
     type === 'song' ||
-    type === 'doodle'
+    type === 'doodle' ||
+    type === 'clip' ||
+    type === 'stamp' ||
+    type === 'date'
   )
 }
 
@@ -75,12 +80,43 @@ export interface DoodleItemData extends BaseItem {
   strokes: DoodleStroke[]
 }
 
+export type ClipVariant = 'index-card' | 'ticket-stub' | 'receipt'
+
+export interface ClipItemData extends BaseItem {
+  type: 'clip'
+  variant: ClipVariant
+  lines: string[] // e.g. ['L TRAIN · 04·28·26', 'Bedford → 1st']
+}
+
+export interface MoodItemData extends BaseItem {
+  type: 'mood'
+  level: 0 | 1 | 2 | 3 | 4
+}
+
+export interface StampItemData extends BaseItem {
+  type: 'stamp'
+  topLine: string
+  midLine: string
+  bottomLine: string
+  ink: 'red' | 'blue' | 'black'
+}
+
+export interface DateItemData extends BaseItem {
+  type: 'date'
+  isoDate: string         // 'YYYY-MM-DD'
+  displayText?: string    // user override; falls back to formatted isoDate
+}
+
 export type ScrapbookItem =
   | TextItemData
   | StickerItemData
   | PhotoItemData
   | SongItemData
   | DoodleItemData
+  | ClipItemData
+  | MoodItemData
+  | StampItemData
+  | DateItemData
 
 export function makeId(): string {
   return Math.random().toString(36).slice(2, 11)
@@ -279,17 +315,133 @@ export function lockAspectFor(type: ScrapbookItemType): boolean {
 
 export function minSizeFor(type: ScrapbookItemType): { w: number; h: number } {
   switch (type) {
-    case 'sticker':
-      return { w: 4, h: 4 }
-    case 'text':
-      return { w: 12, h: 4 }
-    case 'photo':
-      return { w: 12, h: 12 }
-    case 'song':
-      return { w: 22, h: 6 }
-    case 'doodle':
-      return { w: 12, h: 12 }
+    case 'sticker': return { w: 4, h: 4 }
+    case 'text':    return { w: 12, h: 4 }
+    case 'photo':   return { w: 12, h: 12 }
+    case 'song':    return { w: 22, h: 6 }
+    case 'doodle':  return { w: 12, h: 12 }
+    case 'clip':    return { w: 16, h: 6 }
+    case 'mood':    return { w: 6, h: 6 }
+    case 'stamp':   return { w: 10, h: 10 }
+    case 'date':    return { w: 14, h: 4 }
   }
+}
+
+export function makeClipItem(
+  variant: ClipVariant,
+  lines: string[],
+  items: ScrapbookItem[],
+): ClipItemData {
+  const sizeByVariant: Record<ClipVariant, { width: number; height: number }> = {
+    'index-card': { width: 26, height: 14 },
+    'ticket-stub': { width: 24, height: 8 },
+    'receipt': { width: 16, height: 14 },
+  }
+  const { width, height } = sizeByVariant[variant]
+  return {
+    id: makeId(),
+    type: 'clip',
+    x: 35,
+    y: 50,
+    width,
+    height,
+    rotation: randomTilt(),
+    z: nextZ(items),
+    variant,
+    lines,
+  }
+}
+
+export function makeMoodItem(level: 0 | 1 | 2 | 3 | 4, items: ScrapbookItem[]): MoodItemData {
+  return {
+    id: makeId(),
+    type: 'mood',
+    x: 50,
+    y: 55,
+    width: 8,
+    height: 8,
+    rotation: randomTilt(),
+    z: nextZ(items),
+    level,
+  }
+}
+
+export function makeStampItem(
+  topLine: string,
+  midLine: string,
+  bottomLine: string,
+  items: ScrapbookItem[],
+): StampItemData {
+  return {
+    id: makeId(),
+    type: 'stamp',
+    x: 70,
+    y: 30,
+    width: 14,
+    height: 14,
+    rotation: randomTilt() * 1.5,
+    z: nextZ(items),
+    topLine,
+    midLine,
+    bottomLine,
+    ink: 'red',
+  }
+}
+
+export function makeDateItem(date: Date, items: ScrapbookItem[]): DateItemData {
+  const iso = date.toISOString().slice(0, 10)
+  return {
+    id: makeId(),
+    type: 'date',
+    x: 42,
+    y: 6,
+    width: 18,
+    height: 5,
+    rotation: 0,
+    z: nextZ(items),
+    isoDate: iso,
+  }
+}
+
+// Default mood color palette — reused by MoodItem and any other surface
+// that wants to render the 0-4 mood scale.
+export const MOOD_COLORS: Record<number, string> = {
+  0: '#5b6b7a', // Heavy — slate
+  1: '#5e80a8', // Low — blue
+  2: '#c97da3', // Tender — pink
+  3: '#d39a4f', // Warm — amber
+  4: '#d3a84f', // Radiant — gold
+}
+
+export type AttachmentKind =
+  | 'pin'           // push-pin top-center
+  | 'tape'          // washi tape top edge
+  | 'corners'       // photo corners (four corners)
+  | 'grommets'      // two grommets on left edge
+  | 'paper-clip'    // tiny clip top-left
+  | 'none'          // no attachment
+
+export function attachmentForItem(item: ScrapbookItem): AttachmentKind {
+  switch (item.type) {
+    case 'text':    return 'pin'
+    case 'photo':   return hashId(item.id) % 2 === 0 ? 'tape' : 'pin'
+    case 'song':    return 'tape'
+    case 'doodle':  return 'corners'
+    case 'sticker': return 'none'
+    case 'mood':    return 'none'
+    case 'stamp':   return 'none'
+    case 'date':    return 'pin'
+    case 'clip':
+      if (item.variant === 'ticket-stub') return 'grommets'
+      if (item.variant === 'receipt')     return 'paper-clip'
+      return 'pin'
+  }
+}
+
+function hashId(id: string): number {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0
+  return Math.abs(h)
 }
 
 // Theme-aware paper colors. For now: cream paper for all themes (works
