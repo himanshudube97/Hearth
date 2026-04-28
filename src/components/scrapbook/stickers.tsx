@@ -34,6 +34,7 @@ const baseProps = {
 const Star: React.FC<StickerProps> = () => (
   <svg {...baseProps}>
     <path
+      className="sb-anim sb-anim-pulse"
       d="M50 8 L60 38 L92 40 L66 60 L76 92 L50 73 L24 92 L34 60 L8 40 L40 38 Z"
       fill="#e6b450"
       stroke="#7a4a1a"
@@ -46,6 +47,7 @@ const Star: React.FC<StickerProps> = () => (
 const Heart: React.FC<StickerProps> = () => (
   <svg {...baseProps}>
     <path
+      className="sb-anim sb-anim-beat"
       d="M50 88 C 18 66, 6 46, 18 28 C 28 14, 44 18, 50 32 C 56 18, 72 14, 82 28 C 94 46, 82 66, 50 88 Z"
       fill="#d97a6c"
       stroke="#6a2a22"
@@ -57,19 +59,21 @@ const Heart: React.FC<StickerProps> = () => (
 
 const Leaf: React.FC<StickerProps> = () => (
   <svg {...baseProps}>
-    <path
-      d="M20 80 C 20 40, 50 14, 84 16 C 86 50, 60 80, 20 80 Z"
-      fill="#7da668"
-      stroke="#3d5a30"
-      strokeWidth="2.5"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M22 78 C 38 64, 56 48, 80 22"
-      stroke="#3d5a30"
-      strokeWidth="1.6"
-      fill="none"
-    />
+    <g className="sb-anim sb-anim-sway">
+      <path
+        d="M20 80 C 20 40, 50 14, 84 16 C 86 50, 60 80, 20 80 Z"
+        fill="#7da668"
+        stroke="#3d5a30"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M22 78 C 38 64, 56 48, 80 22"
+        stroke="#3d5a30"
+        strokeWidth="1.6"
+        fill="none"
+      />
+    </g>
   </svg>
 )
 
@@ -106,26 +110,29 @@ const Moon: React.FC<StickerProps> = () => (
 
 const Sun: React.FC<StickerProps> = () => (
   <svg {...baseProps}>
+    <g className="sb-anim sb-anim-spin">
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
+        <line
+          key={angle}
+          x1="50"
+          y1="20"
+          x2="50"
+          y2="10"
+          stroke="#7a4a1a"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          transform={`rotate(${angle} 50 50)`}
+        />
+      ))}
+    </g>
     <circle cx="50" cy="50" r="20" fill="#f5b840" stroke="#7a4a1a" strokeWidth="2.5" />
-    {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
-      <line
-        key={angle}
-        x1="50"
-        y1="20"
-        x2="50"
-        y2="10"
-        stroke="#7a4a1a"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        transform={`rotate(${angle} 50 50)`}
-      />
-    ))}
   </svg>
 )
 
 const Sparkle: React.FC<StickerProps> = () => (
   <svg {...baseProps}>
     <path
+      className="sb-anim sb-anim-twinkle"
       d="M50 10 C 50 35, 60 45, 90 50 C 60 55, 50 65, 50 90 C 50 65, 40 55, 10 50 C 40 45, 50 35, 50 10 Z"
       fill="#e8d370"
       stroke="#7a4a1a"
@@ -153,69 +160,76 @@ const WashiTape: React.FC<StickerProps> = () => (
 
 const Butterfly: React.FC<StickerProps> = () => (
   <svg {...baseProps}>
-    {/* body */}
+    {/* left wing — pinches toward body */}
+    <g className="sb-wing-left">
+      <path
+        d="M48 38 C 22 24, 14 36, 18 52 C 22 64, 36 60, 48 56 Z"
+        fill="#c98ec4"
+        stroke="#5a2a4a"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M48 56 C 28 62, 22 70, 32 74 C 40 76, 46 70, 48 64 Z"
+        fill="#a36ca0"
+        stroke="#5a2a4a"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </g>
+    {/* right wing — pinches toward body */}
+    <g className="sb-wing-right">
+      <path
+        d="M52 38 C 78 24, 86 36, 82 52 C 78 64, 64 60, 52 56 Z"
+        fill="#c98ec4"
+        stroke="#5a2a4a"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M52 56 C 72 62, 78 70, 68 74 C 60 76, 54 70, 52 64 Z"
+        fill="#a36ca0"
+        stroke="#5a2a4a"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </g>
+    {/* body — drawn last so it's on top of wings */}
     <ellipse cx="50" cy="50" rx="2.5" ry="22" fill="#3a2a1a" />
     <circle cx="50" cy="30" r="3" fill="#3a2a1a" />
-    {/* left wing */}
-    <path
-      d="M48 38 C 22 24, 14 36, 18 52 C 22 64, 36 60, 48 56 Z"
-      fill="#c98ec4"
-      stroke="#5a2a4a"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M48 56 C 28 62, 22 70, 32 74 C 40 76, 46 70, 48 64 Z"
-      fill="#a36ca0"
-      stroke="#5a2a4a"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    {/* right wing */}
-    <path
-      d="M52 38 C 78 24, 86 36, 82 52 C 78 64, 64 60, 52 56 Z"
-      fill="#c98ec4"
-      stroke="#5a2a4a"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M52 56 C 72 62, 78 70, 68 74 C 60 76, 54 70, 52 64 Z"
-      fill="#a36ca0"
-      stroke="#5a2a4a"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
   </svg>
 )
 
 const Mushroom: React.FC<StickerProps> = () => (
   <svg {...baseProps}>
-    {/* cap */}
-    <path
-      d="M16 50 C 16 28, 38 14, 50 14 C 62 14, 84 28, 84 50 C 84 54, 80 56, 50 56 C 20 56, 16 54, 16 50 Z"
-      fill="#c83a36"
-      stroke="#5a1a18"
-      strokeWidth="2.5"
-      strokeLinejoin="round"
-    />
-    <ellipse cx="38" cy="32" rx="6" ry="5" fill="#fdf3ee" />
-    <ellipse cx="60" cy="40" rx="5" ry="4" fill="#fdf3ee" />
-    <ellipse cx="48" cy="22" rx="4" ry="3.5" fill="#fdf3ee" />
-    {/* stem */}
-    <path
-      d="M36 56 L 38 84 C 38 90, 62 90, 62 84 L 64 56 Z"
-      fill="#f0e0c0"
-      stroke="#5a4a2a"
-      strokeWidth="2.5"
-      strokeLinejoin="round"
-    />
+    <g className="sb-anim sb-anim-wobble">
+      {/* cap */}
+      <path
+        d="M16 50 C 16 28, 38 14, 50 14 C 62 14, 84 28, 84 50 C 84 54, 80 56, 50 56 C 20 56, 16 54, 16 50 Z"
+        fill="#c83a36"
+        stroke="#5a1a18"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <ellipse cx="38" cy="32" rx="6" ry="5" fill="#fdf3ee" />
+      <ellipse cx="60" cy="40" rx="5" ry="4" fill="#fdf3ee" />
+      <ellipse cx="48" cy="22" rx="4" ry="3.5" fill="#fdf3ee" />
+      {/* stem */}
+      <path
+        d="M36 56 L 38 84 C 38 90, 62 90, 62 84 L 64 56 Z"
+        fill="#f0e0c0"
+        stroke="#5a4a2a"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+    </g>
   </svg>
 )
 
 const Cloud: React.FC<StickerProps> = () => (
   <svg {...baseProps}>
     <path
+      className="sb-anim sb-anim-drift"
       d="M22 64 C 12 64, 12 50, 22 48 C 22 36, 38 32, 44 40 C 48 30, 64 30, 68 42 C 80 40, 86 56, 76 60 C 78 70, 64 72, 60 66 C 54 72, 38 72, 34 64 C 30 70, 22 70, 22 64 Z"
       fill="#fdfaf2"
       stroke="#7a7060"
@@ -227,21 +241,23 @@ const Cloud: React.FC<StickerProps> = () => (
 
 const Raindrop: React.FC<StickerProps> = () => (
   <svg {...baseProps}>
-    <path
-      d="M50 12 C 30 38, 22 56, 26 70 C 30 84, 70 84, 74 70 C 78 56, 70 38, 50 12 Z"
-      fill="#7ab2d9"
-      stroke="#2a4a6a"
-      strokeWidth="2.5"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M40 50 C 36 58, 36 66, 42 70"
-      fill="none"
-      stroke="#fdfaf2"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      opacity="0.7"
-    />
+    <g className="sb-anim sb-anim-bob">
+      <path
+        d="M50 12 C 30 38, 22 56, 26 70 C 30 84, 70 84, 74 70 C 78 56, 70 38, 50 12 Z"
+        fill="#7ab2d9"
+        stroke="#2a4a6a"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M40 50 C 36 58, 36 66, 42 70"
+        fill="none"
+        stroke="#fdfaf2"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+    </g>
   </svg>
 )
 

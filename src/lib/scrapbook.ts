@@ -176,6 +176,32 @@ export function makeDoodleItem(items: ScrapbookItem[]): DoodleItemData {
   }
 }
 
+export function deriveSongMeta(url: string): { title: string; provider: SongItemData['provider'] } {
+  return { title: parseSongTitle(url), provider: parseSongProvider(url) }
+}
+
+export function getSongEmbedUrl(item: SongItemData): { src: string; height: number } | null {
+  const url = item.url
+  if (item.provider === 'youtube') {
+    const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/|music\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/)
+    if (m) return { src: `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=0&modestbranding=1`, height: 180 }
+  }
+  if (item.provider === 'spotify') {
+    const m = url.match(/open\.spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/)
+    if (m) return { src: `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator`, height: 80 }
+  }
+  if (item.provider === 'apple') {
+    return { src: url.replace('://music.apple.com', '://embed.music.apple.com'), height: 175 }
+  }
+  if (item.provider === 'soundcloud') {
+    return {
+      src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=true&color=%23ff7700&visual=false`,
+      height: 120,
+    }
+  }
+  return null
+}
+
 function parseSongProvider(url: string): SongItemData['provider'] {
   const u = url.toLowerCase()
   if (u.includes('spotify.com')) return 'spotify'
@@ -186,18 +212,43 @@ function parseSongProvider(url: string): SongItemData['provider'] {
 }
 
 function parseSongTitle(url: string): string {
-  // Best-effort: pull a slug out of common URLs.
-  // User can edit the title inline in the song card if they want.
+  // Best-effort: pull a slug out of common URLs. We deliberately skip
+  // opaque IDs (YouTube video IDs, raw track hashes) and fall back to
+  // a human label — users can rename inline.
+  const provider = parseSongProvider(url)
   try {
     const u = new URL(url)
     const segments = u.pathname.split('/').filter(Boolean)
-    const last = segments[segments.length - 1] || u.hostname
-    return decodeURIComponent(last)
-      .replace(/-/g, ' ')
-      .replace(/\?.*$/, '')
-      .slice(0, 60)
+    const last = segments[segments.length - 1] || ''
+
+    // YouTube + short links: opaque 11-char IDs. Don't show these.
+    if (provider === 'youtube') return 'a youtube song'
+
+    // Spotify track/album/playlist URLs end in a 22-char base62 ID
+    // and have a slug-free path — show provider rather than the ID.
+    if (provider === 'spotify') return 'a spotify track'
+
+    // Apple Music: paths often include a song slug like
+    // /us/album/song-name/1234?i=5678 — pull the slug.
+    if (provider === 'apple') {
+      const slug = segments.find(
+        (s) => /[a-z]/i.test(s) && !/^\d+$/.test(s) && s.length < 60,
+      )
+      if (slug) return decodeURIComponent(slug).replace(/-/g, ' ')
+      return 'an apple music track'
+    }
+
+    // SoundCloud: /artist/track-name
+    if (provider === 'soundcloud' && last) {
+      return decodeURIComponent(last).replace(/-/g, ' ').slice(0, 60)
+    }
+
+    if (last && /[a-z]/i.test(last) && last.length < 60) {
+      return decodeURIComponent(last).replace(/-/g, ' ')
+    }
+    return u.hostname
   } catch {
-    return url.slice(0, 40)
+    return 'a song'
   }
 }
 

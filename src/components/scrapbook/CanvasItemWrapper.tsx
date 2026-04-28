@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   ScrapbookItem,
   clampToCanvas,
@@ -64,6 +64,15 @@ export default function CanvasItemWrapper({
   const bodyTrackerRef = useRef<BodyTracker | null>(null)
   const [activeDrag, setActiveDrag] = useState<'move' | DragKind | null>(null)
   const [hovered, setHovered] = useState(false)
+
+  // Pop-in on mount: items appear with a tiny scale+fade so the canvas
+  // feels alive when you add things. Settles to identity transform after
+  // ~380ms; subsequent interactions (hover, drag) take over inline.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
 
   // ---- handle-driven drags (rotate, resize) ----
   function beginHandleDrag(kind: DragKind, e: React.PointerEvent<HTMLElement>) {
@@ -367,9 +376,15 @@ export default function CanvasItemWrapper({
               : hovered && !selected
                 ? 'drop-shadow(0 6px 10px rgba(20,14,4,0.3))'
                 : 'drop-shadow(0 3px 5px rgba(20,14,4,0.18))',
-          transform:
-            hovered && !selected && !activeDrag ? 'scale(1.015)' : 'scale(1)',
-          transition: activeDrag ? 'none' : 'transform 180ms ease, filter 180ms ease',
+          opacity: mounted ? 1 : 0,
+          transform: !mounted
+            ? 'scale(0.78)'
+            : hovered && !selected && !activeDrag
+              ? 'scale(1.015)'
+              : 'scale(1)',
+          transition: activeDrag
+            ? 'none'
+            : 'transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 240ms ease, filter 180ms ease',
         }}
       >
         {children}
