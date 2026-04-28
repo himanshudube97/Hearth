@@ -10,8 +10,10 @@ import LeftPage from './LeftPage'
 import RightPage from './RightPage'
 import EntrySelector from './EntrySelector'
 import { RibbonBookmark } from './interactive/RibbonBookmark'
+import RibbonTag from './interactive/RibbonTag'
 import ThemeOrnament from './decorations/ThemeOrnament'
 import WhisperFooter from './WhisperFooter'
+import SpineOrnaments from './SpineOrnaments'
 import { StrokeData, useJournalStore } from '@/store/journal'
 import { useAutosaveEntry, AutosaveDraft } from '@/hooks/useAutosaveEntry'
 import { isEntryLocked } from '@/lib/entry-lock-client'
@@ -464,8 +466,10 @@ export default function BookSpread() {
         animate={{ rotateX: 0, opacity: 1 }}
         transition={{ duration: 0.6 }}
       >
-        {/* Ribbon bookmark */}
-        <RibbonBookmark color={colors.ribbon} />
+        {/* Ribbon bookmark with brass swivel clasp + oval hangtag dangling beneath */}
+        <RibbonBookmark color={colors.ribbon}>
+          <RibbonTag date={spreadDate} colors={colors} />
+        </RibbonBookmark>
 
         {/* Whisper + ornaments below the spread */}
         <div className="absolute -bottom-12 left-0 right-0 flex items-center justify-center gap-4 pointer-events-none z-10">
@@ -474,27 +478,14 @@ export default function BookSpread() {
           <ThemeOrnament themeName={themeName} color={colors.ribbon} size={28} />
         </div>
 
-        {/* Date header */}
+        {/* Top flourish — chapter-opener ornament that adapts per theme.
+            Replaces the date pill (date now lives on the bookmark hangtag). */}
         <div
-          className="absolute -top-1 left-1/2 -translate-x-1/2 z-20 px-6 py-1.5 rounded-b-lg"
-          style={{
-            background: colors.pageBg,
-            backdropFilter: `blur(${colors.pageBlur})`,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            border: `1px solid ${colors.pageBorder}`,
-          }}
+          className="absolute -top-1 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 pointer-events-none"
         >
-          <span
-            className="text-sm font-serif"
-            style={{ color: colors.date }}
-          >
-            {spreadDate.toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </span>
+          <div style={{ width: '36px', height: '1px', background: colors.pageBorder }} />
+          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={20} />
+          <div style={{ width: '36px', height: '1px', background: colors.pageBorder }} />
         </div>
 
         {/* Flipbook (only after entries are loaded so startPage is correct).
@@ -572,15 +563,9 @@ export default function BookSpread() {
           </HTMLFlipBook>
         )}
 
-        {/* Binding spine: vertical shadow at the center of the spread */}
-        <div
-          className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
-          style={{
-            width: '14px',
-            background:
-              'linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0) 100%)',
-          }}
-        />
+        {/* Binding spine: slim kraft band + twine wrap + dated hangtag.
+            Rendered as a sibling of HTMLFlipBook so flip animation is untouched. */}
+        <SpineOrnaments colors={colors} />
 
         {/* Left edge clicker */}
         {globalCurrentSpread > 0 && (
