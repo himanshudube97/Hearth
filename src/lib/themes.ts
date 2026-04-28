@@ -7,6 +7,11 @@ export type ThemeName =
   | 'rose'
   | 'sage'
   | 'ocean'
+  | 'saffron'
+  | 'garden'
+  | 'postal'
+  | 'linen'
+  | 'midnight'
 
 export interface Theme {
   name: string
@@ -280,6 +285,201 @@ export const oceanTheme: Theme = {
   ambience: 'ocean',
 }
 
+// Saffron — marigold paper with indigo accent
+export const saffronTheme: Theme = {
+  name: 'Saffron',
+  description: 'Marigold petals and indigo evening',
+  mode: 'light',
+  bg: {
+    primary: '#F2DA9A',
+    secondary: '#ECCF80',
+    gradient: 'linear-gradient(180deg, #F5DFA0 0%, #EFD488 50%, #E8C870 100%)',
+  },
+  text: {
+    primary: '#2A2218',
+    secondary: '#54422A',
+    muted: '#8A6E48',
+  },
+  accent: {
+    primary: '#283057',
+    secondary: '#1F244A',
+    warm: '#B05028',
+    highlight: '#D87045',
+  },
+  glass: {
+    bg: 'rgba(242, 218, 154, 0.7)',
+    border: 'rgba(40, 48, 87, 0.2)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#8A7848',
+    1: '#A88858',
+    2: '#B05028',
+    3: '#283057',
+    4: '#D87045',
+  },
+  moodEmojis: ['🌑', '🌒', '🌕', '🌟', '✨'],
+  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
+  particles: 'sakura',
+  ambience: 'saffron',
+}
+
+// Garden — pressed flora on sage paper
+export const gardenTheme: Theme = {
+  name: 'Garden',
+  description: 'Pressed flora between cream pages',
+  mode: 'light',
+  bg: {
+    primary: '#EBE9CD',
+    secondary: '#DDDABA',
+    gradient: 'linear-gradient(180deg, #EFEDD0 0%, #E1DEBE 50%, #D3CFAA 100%)',
+  },
+  text: {
+    primary: '#2D2A20',
+    secondary: '#5A5440',
+    muted: '#8A8260',
+  },
+  accent: {
+    primary: '#A04E2F',
+    secondary: '#8A4225',
+    warm: '#C26B45',
+    highlight: '#D88A65',
+  },
+  glass: {
+    bg: 'rgba(235, 233, 205, 0.7)',
+    border: 'rgba(160, 78, 47, 0.18)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#7A7858',
+    1: '#8A8268',
+    2: '#A04E2F',
+    3: '#C26B45',
+    4: '#D88A65',
+  },
+  moodEmojis: ['🍂', '🌱', '🌿', '🌷', '🌻'],
+  moodLabels: ['Wilting', 'Budding', 'Blooming', 'Radiant', 'Full Bloom'],
+  particles: 'leaves',
+  ambience: 'garden',
+}
+
+// Postal — letter office parchment with indigo + rust
+export const postalTheme: Theme = {
+  name: 'Postal',
+  description: 'A quiet letter office at dusk',
+  mode: 'light',
+  bg: {
+    primary: '#F0E5C8',
+    secondary: '#E8DBB6',
+    gradient: 'linear-gradient(180deg, #F4EACE 0%, #ECDFBC 50%, #E4D4AA 100%)',
+  },
+  text: {
+    primary: '#2A2418',
+    secondary: '#54482C',
+    muted: '#8A7A4A',
+  },
+  accent: {
+    primary: '#1F2750',
+    secondary: '#161D40',
+    warm: '#B04830',
+    highlight: '#D26845',
+  },
+  glass: {
+    bg: 'rgba(240, 229, 200, 0.7)',
+    border: 'rgba(31, 39, 80, 0.2)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#7A7050',
+    1: '#9A8858',
+    2: '#1F2750',
+    3: '#B04830',
+    4: '#D26845',
+  },
+  moodEmojis: ['✉️', '📮', '📬', '💌', '✨'],
+  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
+  particles: 'dust',
+  ambience: 'postal',
+}
+
+// Linen — minimal off-white linen with soft rust
+export const linenTheme: Theme = {
+  name: 'Linen',
+  description: 'Minimal calm on linen-textured paper',
+  mode: 'light',
+  bg: {
+    primary: '#F5EFE0',
+    secondary: '#EDE3D0',
+    gradient: 'linear-gradient(180deg, #F8F3E5 0%, #F0E7D5 50%, #E8DCC4 100%)',
+  },
+  text: {
+    primary: '#2A2520',
+    secondary: '#5A4F40',
+    muted: '#8A7C68',
+  },
+  accent: {
+    primary: '#A85530',
+    secondary: '#944525',
+    warm: '#C27050',
+    highlight: '#D88870',
+  },
+  glass: {
+    bg: 'rgba(245, 239, 224, 0.7)',
+    border: 'rgba(168, 85, 48, 0.16)',
+    blur: '22px',
+  },
+  moods: {
+    0: '#8A7868',
+    1: '#A89080',
+    2: '#A85530',
+    3: '#C27050',
+    4: '#D88870',
+  },
+  moodEmojis: ['☁️', '🌤️', '☀️', '🌻', '🌅'],
+  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
+  particles: 'dust',
+  ambience: 'linen',
+}
+
+// Midnight — gold leaf library
+export const midnightTheme: Theme = {
+  name: 'Midnight',
+  description: 'A library after hours, lit by gold leaf',
+  mode: 'dark',
+  bg: {
+    primary: '#0E1830',
+    secondary: '#142040',
+    gradient: 'linear-gradient(180deg, #142040 0%, #0E1830 50%, #0A1428 100%)',
+  },
+  text: {
+    primary: '#E8DCC0',
+    secondary: '#B8A88A',
+    muted: '#7A6A50',
+  },
+  accent: {
+    primary: '#C9A04A',
+    secondary: '#B08838',
+    warm: '#E0BC68',
+    highlight: '#F2D488',
+  },
+  glass: {
+    bg: 'rgba(20, 32, 64, 0.55)',
+    border: 'rgba(201, 160, 74, 0.18)',
+    blur: '32px',
+  },
+  moods: {
+    0: '#3A4055',
+    1: '#5A5070',
+    2: '#7A6A50',
+    3: '#C9A04A',
+    4: '#F2D488',
+  },
+  moodEmojis: ['🌑', '🌒', '🌓', '🌔', '🌕'],
+  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
+  particles: 'goldFlecks',
+  ambience: 'midnight',
+}
+
 export const themes: Record<ThemeName, Theme> = {
   rivendell: rivendellTheme,
   hearth: hearthTheme,
@@ -287,6 +487,11 @@ export const themes: Record<ThemeName, Theme> = {
   rose: roseTheme,
   sage: sageTheme,
   ocean: oceanTheme,
+  saffron: saffronTheme,
+  garden: gardenTheme,
+  postal: postalTheme,
+  linen: linenTheme,
+  midnight: midnightTheme,
 }
 
 // Time-based greetings
