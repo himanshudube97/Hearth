@@ -358,6 +358,51 @@ const getGoldFlecksConfig = (): ISourceOptions => ({
   detectRetina: true,
 })
 
+// Leaves configuration - gently falling leaves for Sage and Garden themes
+const getLeavesConfig = (color: string, count: number): ISourceOptions => ({
+  fullScreen: false,
+  background: { color: { value: 'transparent' } },
+  fpsLimit: 30,
+  particles: {
+    number: { value: count, density: { enable: true } },
+    color: { value: [color] },
+    shape: {
+      type: 'image',
+      options: {
+        image: [
+          {
+            src: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTQiIHZpZXdCb3g9IjAgMCAxMCAxNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNSwxIEMyLDMgMSw3IDUsMTMgQzksNyA4LDMgNSwxIFoiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
+            width: 10,
+            height: 14,
+          },
+        ],
+      },
+    },
+    opacity: {
+      value: { min: 0.2, max: 0.4 },
+    },
+    size: {
+      value: { min: 5, max: 10 },
+    },
+    move: {
+      enable: true,
+      speed: { min: 0.1, max: 0.3 },
+      direction: 'bottom' as const,
+      outModes: { default: 'out' as const },
+      drift: { min: -0.3, max: 0.3 },
+    },
+    rotate: {
+      value: { min: 0, max: 360 },
+      animation: {
+        enable: true,
+        speed: 3,
+        sync: false,
+      },
+    },
+  },
+  detectRetina: true,
+})
+
 // ========== CSS AURORA COMPONENT (simple, elegant) ==========
 
 const CssAurora = React.memo(function CssAurora() {
@@ -732,6 +777,10 @@ function BackgroundComponent() {
     if (theme.particles === 'sunbeam') return getSunbeamConfig()
     if (theme.particles === 'embers') return getEmbersConfig()
     if (theme.particles === 'goldFlecks') return getGoldFlecksConfig()
+    if (theme.particles === 'leaves') {
+      const count = themeName === 'garden' ? 12 : 18
+      return getLeavesConfig(theme.accent.primary, count)
+    }
     return getFirefliesConfig()
   }, [theme.particles, themeName])
 
