@@ -1,11 +1,22 @@
 'use client'
 
-import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import type { Theme } from '@/lib/themes'
 import type { JournalEntry } from '@/store/journal'
 import type { MemoryStar } from './ConstellationRenderer'
 import { MemoryModal } from './MemoryModal'
+import { useGardenParallax } from './garden/useGardenParallax'
+import {
+  SkyBand,
+  Hills,
+  DistantTrees,
+  MidGrove,
+  Wildflowers,
+  ForegroundFrame,
+  GroundBand,
+} from './garden/gardenLayers'
+import { AmbientDrift } from './garden/AmbientDrift'
+import { LetterClothesline } from './garden/LetterClothesline'
 
 export interface GardenRendererProps {
   loading: boolean
@@ -16,78 +27,6 @@ export interface GardenRendererProps {
   theme: Theme
 }
 
-// Deterministic placement derived from entry id so leaves stay put across renders
-function deterministicPlacement(id: string) {
-  let hash = 0
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0
-  const abs = Math.abs(hash)
-  return {
-    x: (abs % 80) + 10,                 // 10-90 vw
-    y: ((abs >> 7) % 70) + 15,          // 15-85 vh
-    rotate: ((abs >> 14) % 60) - 30,    // -30 to +30 deg
-    isFlower: ((abs >> 21) % 8) === 0,  // ~1 in 8
-  }
-}
-
-function PressedLeaf({
-  color,
-  stem,
-  rotate,
-  size = 40,
-}: {
-  color: string
-  stem: string
-  rotate: number
-  size?: number
-}) {
-  return (
-    <svg
-      width={size}
-      height={size * 1.4}
-      viewBox="0 0 10 14"
-      style={{ transform: `rotate(${rotate}deg)`, display: 'block' }}
-    >
-      <path d="M5,1 C2,3 1,7 5,13 C9,7 8,3 5,1 Z" fill={color} opacity="0.85" />
-      <line x1="5" y1="0.5" x2="5" y2="13" stroke={stem} strokeWidth="0.3" opacity="0.6" />
-      <line x1="5" y1="6" x2="3" y2="9" stroke={stem} strokeWidth="0.2" opacity="0.5" />
-      <line x1="5" y1="6" x2="7" y2="9" stroke={stem} strokeWidth="0.2" opacity="0.5" />
-    </svg>
-  )
-}
-
-function PressedFlower({
-  color,
-  rotate,
-  size = 40,
-}: {
-  color: string
-  rotate: number
-  size?: number
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 12 12"
-      style={{ transform: `rotate(${rotate}deg)`, display: 'block' }}
-    >
-      {[0, 60, 120, 180, 240, 300].map(a => (
-        <ellipse
-          key={a}
-          cx="6"
-          cy="3.5"
-          rx="1.6"
-          ry="2.5"
-          fill={color}
-          opacity="0.7"
-          transform={`rotate(${a} 6 6)`}
-        />
-      ))}
-      <circle cx="6" cy="6" r="1.2" fill={color} opacity="0.95" />
-    </svg>
-  )
-}
-
 export function GardenRenderer({
   loading,
   entries,
@@ -96,6 +35,8 @@ export function GardenRenderer({
   setSelectedStar,
   theme,
 }: GardenRendererProps) {
+  const parallax = useGardenParallax()
+
   const getMoodColor = (mood: number) => {
     const colors = [
       theme.moods[0],
@@ -106,16 +47,6 @@ export function GardenRenderer({
     ]
     return colors[mood] || theme.accent.primary
   }
-
-  // Compute deterministic placements once per memoryStars list
-  const placements = useMemo(
-    () =>
-      memoryStars.map(star => ({
-        star,
-        placement: deterministicPlacement(star.entry.id),
-      })),
-    [memoryStars],
-  )
 
   if (loading) {
     return (
@@ -192,44 +123,37 @@ export function GardenRenderer({
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Pressed leaves and flowers */}
-      <div className="absolute inset-0">
-        {placements.map(({ star, placement }) => {
-          const color = getMoodColor(star.entry.mood)
-          const stem = theme.accent.secondary
+      {/* Sky atmosphere */}
+      <SkyBand parallax={parallax} theme={theme} />
 
-          return (
-            <motion.div
-              key={star.id}
-              className="absolute cursor-pointer"
-              style={{
-                left: `${placement.x}%`,
-                top: `${placement.y}%`,
-                transform: 'translate(-50%, -50%)',
-              }}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{
-                delay: 0.3 + star.delay,
-                duration: 0.9,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              whileHover={{
-                y: -4,
-                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.18))',
-                transition: { duration: 0.2 },
-              }}
-              onClick={() => setSelectedStar(star)}
-            >
-              {placement.isFlower ? (
-                <PressedFlower color={color} rotate={placement.rotate} />
-              ) : (
-                <PressedLeaf color={color} stem={stem} rotate={placement.rotate} />
-              )}
-            </motion.div>
-          )
-        })}
-      </div>
+      {/* Watercolor mountains */}
+      <Hills parallax={parallax} theme={theme} />
+
+      {/* Distant tree silhouettes along the horizon */}
+      <DistantTrees parallax={parallax} theme={theme} />
+
+      {/* Mid-distance grove of trees & shrubs */}
+      <MidGrove parallax={parallax} theme={theme} />
+
+      {/* Ground band (grass) */}
+      <GroundBand theme={theme} />
+
+      {/* Wildflowers scattered across the meadow */}
+      <Wildflowers parallax={parallax} theme={theme} />
+
+      {/* Letter clothesline — primary memory display, hangs across mid-scene */}
+      <LetterClothesline
+        memoryStars={memoryStars}
+        onSelect={setSelectedStar}
+        theme={theme}
+        getMoodColor={getMoodColor}
+      />
+
+      {/* Ambient creatures (butterflies, bee, bird) */}
+      <AmbientDrift theme={theme} />
+
+      {/* Foreground frame — large plants in corners (parallax inversion) */}
+      <ForegroundFrame parallax={parallax} theme={theme} />
 
       {/* Header */}
       <motion.div
