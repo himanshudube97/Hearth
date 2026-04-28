@@ -270,6 +270,46 @@ const getSunbeamConfig = (): ISourceOptions => ({
   detectRetina: true,
 })
 
+// Embers configuration - rising warm embers for Hearth theme
+const getEmbersConfig = (): ISourceOptions => ({
+  fullScreen: false,
+  background: { color: { value: 'transparent' } },
+  fpsLimit: 30,
+  particles: {
+    number: { value: 40, density: { enable: true } },
+    color: { value: ['#E8A050', '#FFD090', '#C8742C'] },
+    shape: { type: 'circle' },
+    opacity: {
+      value: { min: 0.2, max: 0.7 },
+      animation: {
+        enable: true,
+        speed: 0.4,
+        sync: false,
+        mode: 'random' as const,
+      },
+    },
+    size: {
+      value: { min: 1.5, max: 4 },
+    },
+    move: {
+      enable: true,
+      speed: { min: 0.15, max: 0.4 },
+      direction: 'top' as const,
+      random: true,
+      straight: false,
+      outModes: { default: 'out' as const },
+      drift: { min: -0.15, max: 0.15 },
+    },
+    shadow: {
+      enable: true,
+      color: '#E8A050',
+      blur: 8,
+      offset: { x: 0, y: 0 },
+    },
+  },
+  detectRetina: true,
+})
+
 // ========== CSS AURORA COMPONENT (simple, elegant) ==========
 
 const CssAurora = React.memo(function CssAurora() {
@@ -642,6 +682,7 @@ function BackgroundComponent() {
     if (theme.particles === 'dust') return getDustConfig()
     if (theme.particles === 'foam') return getFoamConfig()
     if (theme.particles === 'sunbeam') return getSunbeamConfig()
+    if (theme.particles === 'embers') return getEmbersConfig()
     return getFirefliesConfig()
   }, [theme.particles, themeName])
 
