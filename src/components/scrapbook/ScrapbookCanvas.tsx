@@ -157,16 +157,15 @@ export default function ScrapbookCanvas() {
   const tapeRight = withAlpha(theme.accent.secondary, 0.78)
 
   return (
-    <div
-      className="min-h-screen w-full flex flex-col items-center justify-start"
-      style={{
-        background: theme.bg.gradient,
-        paddingTop: 80,
-        paddingBottom: 40,
-      }}
-    >
+    <div className="w-full flex flex-col items-center">
+      {/* This page sits inside LayoutContent's <main> which already supplies
+          the global theme background (via <Background />), pt-20 padding,
+          and min-h-screen. We must NOT add another full-viewport background
+          layer here or the page will look "doubled up" and scroll past
+          the viewport. */}
+
       <div
-        className="mb-4 flex items-center gap-3"
+        className="mb-3 flex items-center gap-3"
         style={{
           color: theme.text.secondary,
           fontFamily: 'var(--font-caveat), cursive',
@@ -179,7 +178,7 @@ export default function ScrapbookCanvas() {
         <span style={{ opacity: 0.75 }}>{today.toLowerCase()}</span>
       </div>
 
-      <div className="mb-5 z-30">
+      <div className="mb-4 z-30">
         <CanvasToolbar
           onAddText={addText}
           onAddSticker={addSticker}
@@ -189,14 +188,18 @@ export default function ScrapbookCanvas() {
         />
       </div>
 
-      <div className="w-full flex justify-center px-6 pb-10">
+      <div className="w-full flex justify-center">
         <div
           ref={canvasRef}
           onClick={deselectAll}
           className="relative"
           style={{
-            width: '100%',
-            maxWidth: 720,
+            // Cap the canvas so the entire scrapbook page fits inside the
+            // viewport — no whole-page scrollbar. Width is the smaller of
+            // 720px (max paper size) or 80% of the available vertical room
+            // (height minus surrounding chrome ≈ 220px: nav + label +
+            // toolbar + main pt/pb gaps). Aspect-ratio derives the height.
+            width: 'min(720px, calc((100vh - 220px) * 0.8))',
             aspectRatio: '4 / 5',
             background: paper.base,
             backgroundImage: `radial-gradient(circle at 20% 30%, ${paper.grain} 0%, transparent 40%),
