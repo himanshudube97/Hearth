@@ -88,10 +88,20 @@ export default function ThemeSwitcher() {
                 >
                   {themeIcons[name]}
                 </span>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
-                    {t.name}
-                  </p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
+                      {t.name}
+                    </p>
+                    <span
+                      className="text-xs opacity-60"
+                      style={{ color: theme.text.muted }}
+                      title={t.mode === 'light' ? 'Light theme' : 'Dark theme'}
+                      aria-label={t.mode === 'light' ? 'Light theme' : 'Dark theme'}
+                    >
+                      {t.mode === 'light' ? '☀' : '☾'}
+                    </span>
+                  </div>
                   <p className="text-xs" style={{ color: theme.text.muted }}>
                     {t.description}
                   </p>
