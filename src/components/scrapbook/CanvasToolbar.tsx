@@ -9,6 +9,10 @@ interface Props {
   onAddPhoto: () => void
   onAddSong: (url: string) => void
   onAddDoodle: () => void
+  onAddClip: (variant: 'index-card' | 'ticket-stub' | 'receipt') => void
+  onAddMood: () => void
+  onAddStamp: () => void
+  onReset: () => void
 }
 
 export default function CanvasToolbar({
@@ -17,12 +21,18 @@ export default function CanvasToolbar({
   onAddPhoto,
   onAddSong,
   onAddDoodle,
+  onAddClip,
+  onAddMood,
+  onAddStamp,
+  onReset,
 }: Props) {
   const [stickerOpen, setStickerOpen] = useState(false)
   const [songPromptOpen, setSongPromptOpen] = useState(false)
   const [songUrl, setSongUrl] = useState('')
+  const [clipOpen, setClipOpen] = useState(false)
   const stickerWrapRef = useRef<HTMLDivElement>(null)
   const songWrapRef = useRef<HTMLDivElement>(null)
+  const clipWrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -31,6 +41,9 @@ export default function CanvasToolbar({
       }
       if (songWrapRef.current && !songWrapRef.current.contains(e.target as Node)) {
         setSongPromptOpen(false)
+      }
+      if (clipWrapRef.current && !clipWrapRef.current.contains(e.target as Node)) {
+        setClipOpen(false)
       }
     }
     document.addEventListener('mousedown', onDocClick)
@@ -185,6 +198,63 @@ export default function CanvasToolbar({
       </div>
 
       <ToolbarButton onClick={onAddDoodle} icon="✏" label="doodle" />
+
+      <div className="relative" ref={clipWrapRef}>
+        <ToolbarButton
+          onClick={() => setClipOpen((o) => !o)}
+          icon="✂"
+          label="clip"
+          active={clipOpen}
+        />
+        {clipOpen && (
+          <div
+            className="absolute left-1/2 -translate-x-1/2 mt-2 p-2 rounded-2xl flex flex-col gap-1"
+            style={{
+              top: '100%',
+              background: '#fefaf0',
+              border: '1px solid rgba(58, 52, 41, 0.18)',
+              boxShadow: '0 8px 24px rgba(20, 14, 4, 0.22)',
+              zIndex: 50,
+              width: 160,
+            }}
+          >
+            {(['index-card', 'ticket-stub', 'receipt'] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => { onAddClip(v); setClipOpen(false) }}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(58, 52, 41, 0.18)',
+                  background: '#fefdf8',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-caveat), cursive',
+                  fontSize: 16,
+                  color: '#3a3429',
+                  textAlign: 'left',
+                }}
+              >
+                {v.replace('-', ' ')}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <ToolbarButton onClick={onAddMood} icon="❤" label="mood" />
+      <ToolbarButton onClick={onAddStamp} icon="◉" label="stamp" />
+
+      <div style={{ width: 1, height: 22, background: 'rgba(58, 52, 41, 0.18)', margin: '0 4px' }} />
+
+      <ToolbarButton
+        onClick={() => {
+          if (window.confirm('Reset this scrapbook? All items will be removed.')) {
+            onReset()
+          }
+        }}
+        icon="↺"
+        label="reset"
+      />
     </div>
   )
 }
