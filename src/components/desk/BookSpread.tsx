@@ -511,8 +511,8 @@ export default function BookSpread() {
             maxWidth={PAGE_WIDTH}
             minHeight={PAGE_HEIGHT}
             maxHeight={PAGE_HEIGHT}
-            drawShadow={false}
-            maxShadowOpacity={0}
+            drawShadow={true}
+            maxShadowOpacity={0.5}
             flippingTime={1200}
             useMouseEvents={false}
             mobileScrollSupport={false}

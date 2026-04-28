@@ -115,12 +115,11 @@ textarea,
 }
 
 /* Mid-flip opacity. The library marks resting pages with .--simple and
-   removes that class during the curl. Stack an opaque dark base under the
-   theme tint so each page face reads as solid paper while flipping (no
-   source content bleeding through the curling page or visible behind a
-   translucent destination). */
+   removes that class during the curl. Use the theme's own solid paper
+   color as the opaque base so each page reads as paper while flipping —
+   no dark bleed-through on light themes. */
 .stf__item:not(.--simple).diary-page {
-  background-color: rgba(20, 25, 22, 1);
+  background-color: var(--page-bg-solid, rgb(20, 25, 22));
   background-image: linear-gradient(var(--page-bg), var(--page-bg));
 }
 
