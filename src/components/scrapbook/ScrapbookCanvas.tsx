@@ -9,7 +9,6 @@ import {
   PhotoItemData,
   SongItemData,
   DoodleItemData,
-  DoodleStroke,
   makeStickerItem,
   makeTextItem,
   makePhotoItem,
@@ -24,16 +23,13 @@ import StickerItem from './items/StickerItem'
 import PhotoItem from './items/PhotoItem'
 import SongItem from './items/SongItem'
 import DoodleItem from './items/DoodleItem'
-import DoodleCanvas from '@/components/DoodleCanvas'
 import CameraModal from './CameraModal'
-import type { StrokeData } from '@/store/journal'
 
 export default function ScrapbookCanvas() {
   const { theme, themeName } = useThemeStore()
   const [items, setItems] = useState<ScrapbookItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [doodleEditingId, setDoodleEditingId] = useState<string | null>(null)
   const [cameraTargetId, setCameraTargetId] = useState<string | null>(null)
   const [uploadTargetId, setUploadTargetId] = useState<string | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -61,6 +57,7 @@ export default function ScrapbookCanvas() {
     setItems((prev) => prev.filter((it) => it.id !== id))
     if (selectedId === id) setSelectedId(null)
     if (editingId === id) setEditingId(null)
+    if (cameraTargetId === id) setCameraTargetId(null)
   }
 
   function selectItem(id: string) {
@@ -144,20 +141,9 @@ export default function ScrapbookCanvas() {
     const item = makeDoodleItem(items)
     setItems((prev) => [...prev, item])
     setSelectedId(item.id)
-    setDoodleEditingId(item.id)
-  }
-
-  const editingDoodle = doodleEditingId
-    ? (items.find((it) => it.id === doodleEditingId) as DoodleItemData | undefined)
-    : undefined
-
-  function saveDoodle(strokes: StrokeData[]) {
-    if (!editingDoodle) {
-      setDoodleEditingId(null)
-      return
-    }
-    updateItem({ ...editingDoodle, strokes: strokes as DoodleStroke[] })
-    setDoodleEditingId(null)
+    // Drop straight into edit mode so the user can start drawing immediately —
+    // toolbar appears below and pointer events draw on the doodle surface.
+    setEditingId(item.id)
   }
 
   const today = new Date().toLocaleDateString('en-US', {
@@ -301,7 +287,8 @@ export default function ScrapbookCanvas() {
                   <DoodleItem
                     item={item as DoodleItemData}
                     selected={isItemSelected}
-                    onRequestEdit={() => setDoodleEditingId(item.id)}
+                    isEditing={isItemEditing}
+                    onChange={updateItem}
                   />
                 )}
               </CanvasItemWrapper>
@@ -309,14 +296,6 @@ export default function ScrapbookCanvas() {
           })}
         </div>
       </div>
-
-      {editingDoodle && (
-        <DoodleCanvas
-          initialStrokes={editingDoodle.strokes as StrokeData[]}
-          onSave={saveDoodle}
-          onClose={() => setDoodleEditingId(null)}
-        />
-      )}
 
       {cameraTargetId && (
         <CameraModal

@@ -37,7 +37,12 @@ export const NOTE_PALETTE = [
 ]
 
 export function isEditableType(type: ScrapbookItemType): boolean {
-  return type === 'text' || type === 'photo' || type === 'song'
+  return (
+    type === 'text' ||
+    type === 'photo' ||
+    type === 'song' ||
+    type === 'doodle'
+  )
 }
 
 export interface StickerItemData extends BaseItem {
