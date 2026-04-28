@@ -26,19 +26,6 @@ const ornaments: Record<ThemeName, React.ReactNode> = {
       />
     </>
   ),
-  paperSun: (
-    <>
-      <circle cx="16" cy="16" r="5" fill="currentColor" />
-      <line x1="16" y1="3" x2="16" y2="8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="16" y1="24" x2="16" y2="29" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="3" y1="16" x2="8" y2="16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="24" y1="16" x2="29" y2="16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="6.5" y1="6.5" x2="10" y2="10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="22" y1="22" x2="25.5" y2="25.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="6.5" y1="25.5" x2="10" y2="22" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="22" y1="10" x2="25.5" y2="6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </>
-  ),
   rose: (
     <>
       <circle cx="16" cy="9" r="3" fill="currentColor" opacity="0.8" />
@@ -82,26 +69,6 @@ const ornaments: Record<ThemeName, React.ReactNode> = {
         strokeLinecap="round"
         opacity="0.7"
       />
-    </>
-  ),
-  saffron: (
-    <>
-      <path
-        d="M16 4 L 17.5 14.5 L 28 16 L 17.5 17.5 L 16 28 L 14.5 17.5 L 4 16 L 14.5 14.5 Z"
-        fill="currentColor"
-      />
-      <circle cx="22" cy="8" r="0.8" fill="currentColor" />
-      <circle cx="9" cy="24" r="0.8" fill="currentColor" />
-    </>
-  ),
-  garden: (
-    <>
-      <circle cx="16" cy="9" r="3" fill="currentColor" opacity="0.8" />
-      <circle cx="22" cy="14" r="3" fill="currentColor" opacity="0.8" />
-      <circle cx="20" cy="22" r="3" fill="currentColor" opacity="0.8" />
-      <circle cx="12" cy="22" r="3" fill="currentColor" opacity="0.8" />
-      <circle cx="10" cy="14" r="3" fill="currentColor" opacity="0.8" />
-      <circle cx="16" cy="16" r="1.5" fill="currentColor" />
     </>
   ),
   postal: (

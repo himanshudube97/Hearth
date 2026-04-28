@@ -28,12 +28,9 @@ interface LetterArrivedBannerProps {
 const themeStamps: Record<ThemeName, { icon: string; color: string }> = {
   rivendell: { icon: '🌲', color: '#5E8B5A' },
   hearth: { icon: '🔥', color: '#C8742C' },
-  paperSun: { icon: '☀️', color: '#B8612A' },
   rose: { icon: '🌸', color: '#9A4555' },
   sage: { icon: '🌿', color: '#6B7A4B' },
   ocean: { icon: '🌊', color: '#2C5260' },
-  saffron: { icon: '🌼', color: '#283057' },
-  garden: { icon: '🌷', color: '#A04E2F' },
   postal: { icon: '✉️', color: '#1F2750' },
   linen: { icon: '🕊️', color: '#A85530' },
 }

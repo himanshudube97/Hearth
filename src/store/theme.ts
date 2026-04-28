@@ -13,8 +13,11 @@ const LEGACY_THEME_REMAP: Record<string, ThemeName> = {
   candlelight: 'hearth',
   oceanTwilight: 'ocean',
   quietSnow: 'linen',
-  warmPeaceful: 'paperSun',
+  warmPeaceful: 'linen',
   hobbiton: 'sage',
+  paperSun: 'linen',
+  saffron: 'rose',
+  garden: 'sage',
 }
 
 function resolveThemeName(name: string | undefined): ThemeName {

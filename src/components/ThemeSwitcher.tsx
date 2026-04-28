@@ -8,12 +8,9 @@ import { themes, ThemeName } from '@/lib/themes'
 const themeIcons: Record<ThemeName, string> = {
   rivendell: '🌲',
   hearth: '🔥',
-  paperSun: '☀️',
   rose: '🌸',
   sage: '🌿',
   ocean: '🌊',
-  saffron: '🌼',
-  garden: '🌷',
   postal: '✉️',
   linen: '🕊️',
 }

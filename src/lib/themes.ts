@@ -3,12 +3,9 @@
 export type ThemeName =
   | 'rivendell'
   | 'hearth'
-  | 'paperSun'
   | 'rose'
   | 'sage'
   | 'ocean'
-  | 'saffron'
-  | 'garden'
   | 'postal'
   | 'linen'
 
@@ -47,7 +44,7 @@ export interface Theme {
   moodEmojis: string[]
   moodLabels: string[]
   particles: 'fireflies' | 'embers' | 'goldFlecks' | 'leaves' | 'sakura' | 'sunbeam' | 'foam' | 'mist' | 'dust'
-  ambience: 'forest' | 'firelight' | 'sun' | 'rose' | 'sage' | 'ocean' | 'saffron' | 'garden' | 'postal' | 'linen'
+  ambience: 'forest' | 'firelight' | 'rose' | 'sage' | 'ocean' | 'postal' | 'linen'
   /** Optional per-theme override for the hardcover frame around the
    *  spread. When unset, the cover falls back to a darkened version
    *  of `accent.primary`. */
@@ -130,46 +127,6 @@ export const hearthTheme: Theme = {
   moodLabels: ['Embers', 'Flicker', 'Steady', 'Bright', 'Glowing'],
   particles: 'embers',
   ambience: 'firelight',
-}
-
-// Paper Sun — warm cream paper with rust accent
-export const paperSunTheme: Theme = {
-  name: 'Paper Sun',
-  description: 'Warm afternoon light on cream paper',
-  mode: 'light',
-  bg: {
-    primary: '#F5E8C8',
-    secondary: '#F0E0B5',
-    gradient: 'linear-gradient(180deg, #F8EDD0 0%, #F2E2B8 50%, #ECD8A8 100%)',
-  },
-  text: {
-    primary: '#3A2818',
-    secondary: '#6A4F30',
-    muted: '#9A7B58',
-  },
-  accent: {
-    primary: '#B8612A',
-    secondary: '#9A4F1F',
-    warm: '#D4823A',
-    highlight: '#E89A50',
-  },
-  glass: {
-    bg: 'rgba(248, 237, 208, 0.65)',
-    border: 'rgba(184, 97, 42, 0.2)',
-    blur: '24px',
-  },
-  moods: {
-    0: '#8A7050',
-    1: '#A88858',
-    2: '#C49060',
-    3: '#B8612A',
-    4: '#D4823A',
-  },
-  moodEmojis: ['☁️', '🌤️', '☀️', '🌻', '🌅'],
-  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
-  particles: 'sunbeam',
-  ambience: 'sun',
-  cover: '#9C5328',
 }
 
 // Rose — blush & cherry blossom paper
@@ -292,86 +249,6 @@ export const oceanTheme: Theme = {
   cover: '#2A4858',
 }
 
-// Saffron — marigold paper with indigo accent
-export const saffronTheme: Theme = {
-  name: 'Saffron',
-  description: 'Marigold petals and indigo evening',
-  mode: 'light',
-  bg: {
-    primary: '#F2DA9A',
-    secondary: '#ECCF80',
-    gradient: 'linear-gradient(180deg, #F5DFA0 0%, #EFD488 50%, #E8C870 100%)',
-  },
-  text: {
-    primary: '#2A2218',
-    secondary: '#54422A',
-    muted: '#8A6E48',
-  },
-  accent: {
-    primary: '#283057',
-    secondary: '#1F244A',
-    warm: '#B05028',
-    highlight: '#D87045',
-  },
-  glass: {
-    bg: 'rgba(242, 218, 154, 0.7)',
-    border: 'rgba(40, 48, 87, 0.2)',
-    blur: '24px',
-  },
-  moods: {
-    0: '#8A7848',
-    1: '#A88858',
-    2: '#B05028',
-    3: '#283057',
-    4: '#D87045',
-  },
-  moodEmojis: ['🌑', '🌒', '🌕', '🌟', '✨'],
-  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
-  particles: 'sakura',
-  ambience: 'saffron',
-  cover: '#7A4A28',
-}
-
-// Garden — pressed flora on sage paper
-export const gardenTheme: Theme = {
-  name: 'Garden',
-  description: 'Pressed flora between cream pages',
-  mode: 'light',
-  bg: {
-    primary: '#EBE9CD',
-    secondary: '#DDDABA',
-    gradient: 'linear-gradient(180deg, #EFEDD0 0%, #E1DEBE 50%, #D3CFAA 100%)',
-  },
-  text: {
-    primary: '#2D2A20',
-    secondary: '#5A5440',
-    muted: '#8A8260',
-  },
-  accent: {
-    primary: '#A04E2F',
-    secondary: '#8A4225',
-    warm: '#C26B45',
-    highlight: '#D88A65',
-  },
-  glass: {
-    bg: 'rgba(235, 233, 205, 0.7)',
-    border: 'rgba(160, 78, 47, 0.18)',
-    blur: '24px',
-  },
-  moods: {
-    0: '#7A7858',
-    1: '#8A8268',
-    2: '#A04E2F',
-    3: '#C26B45',
-    4: '#D88A65',
-  },
-  moodEmojis: ['🍂', '🌱', '🌿', '🌷', '🌻'],
-  moodLabels: ['Wilting', 'Budding', 'Blooming', 'Radiant', 'Full Bloom'],
-  particles: 'leaves',
-  ambience: 'garden',
-  cover: '#7E3D26',
-}
-
 // Postal — letter office parchment with indigo + rust
 export const postalTheme: Theme = {
   name: 'Postal',
@@ -454,12 +331,9 @@ export const linenTheme: Theme = {
 export const themes: Record<ThemeName, Theme> = {
   rivendell: rivendellTheme,
   hearth: hearthTheme,
-  paperSun: paperSunTheme,
   rose: roseTheme,
   sage: sageTheme,
   ocean: oceanTheme,
-  saffron: saffronTheme,
-  garden: gardenTheme,
   postal: postalTheme,
   linen: linenTheme,
 }

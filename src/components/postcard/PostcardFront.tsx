@@ -17,12 +17,9 @@ const POSTCARD_FADE_START = 50
 const themeStamps: Record<ThemeName, { icon: string }> = {
   rivendell: { icon: '🌲' },
   hearth: { icon: '🔥' },
-  paperSun: { icon: '☀️' },
   rose: { icon: '🌸' },
   sage: { icon: '🌿' },
   ocean: { icon: '🌊' },
-  saffron: { icon: '🌼' },
-  garden: { icon: '🌷' },
   postal: { icon: '✉️' },
   linen: { icon: '🕊️' },
 }

@@ -13,12 +13,9 @@ import { cursors, cursorIcons, CursorName } from '@/lib/cursors'
 const themeIcons: Record<ThemeName, string> = {
   rivendell: '🌲',
   hearth: '🔥',
-  paperSun: '☀️',
   rose: '🌸',
   sage: '🌿',
   ocean: '🌊',
-  saffron: '🌼',
-  garden: '🌷',
   postal: '✉️',
   linen: '🕊️',
 }

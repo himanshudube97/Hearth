@@ -8,12 +8,9 @@ import { themes, ThemeName } from '@/lib/themes'
 const themeList: { key: ThemeName; emoji: string }[] = [
   { key: 'rivendell', emoji: '🌲' },
   { key: 'hearth', emoji: '🔥' },
-  { key: 'paperSun', emoji: '☀️' },
   { key: 'rose', emoji: '🌸' },
   { key: 'sage', emoji: '🌿' },
   { key: 'ocean', emoji: '🌊' },
-  { key: 'saffron', emoji: '🌼' },
-  { key: 'garden', emoji: '🌷' },
   { key: 'postal', emoji: '✉️' },
   { key: 'linen', emoji: '🕊️' },
 ]

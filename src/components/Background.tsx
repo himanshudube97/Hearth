@@ -792,11 +792,10 @@ function BackgroundComponent() {
     if (theme.particles === 'embers') return getEmbersConfig()
     if (theme.particles === 'goldFlecks') return getGoldFlecksConfig()
     if (theme.particles === 'leaves') {
-      const count = themeName === 'garden' ? 12 : 18
-      return getLeavesConfig(theme.accent.primary, count)
+      return getLeavesConfig(theme.accent.primary, 18)
     }
     return getFirefliesConfig()
-  }, [theme.particles, theme.mode, themeName])
+  }, [theme.particles, theme.mode, theme.accent.primary])
 
   if (!mounted) return null
 
