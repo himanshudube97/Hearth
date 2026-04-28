@@ -62,7 +62,10 @@ const getFirefliesConfig = (): ISourceOptions => ({
 })
 
 // Sakura configuration - cherry blossom petals (very slow, dreamy falling)
-const getSakuraConfig = (): ISourceOptions => ({
+const getSakuraConfig = (mode: 'light' | 'dark' = 'dark'): ISourceOptions => {
+  const minOpacity = mode === 'light' ? 0.25 : 0.5
+  const maxOpacity = mode === 'light' ? 0.5 : 0.85
+  return {
   fullScreen: false,
   background: { color: { value: 'transparent' } },
   fpsLimit: 30,
@@ -82,7 +85,7 @@ const getSakuraConfig = (): ISourceOptions => ({
       },
     },
     opacity: {
-      value: { min: 0.5, max: 0.85 },
+      value: { min: minOpacity, max: maxOpacity },
     },
     size: {
       value: { min: 6, max: 12 },
@@ -118,7 +121,8 @@ const getSakuraConfig = (): ISourceOptions => ({
     },
   },
   detectRetina: true,
-})
+  }
+}
 
 // Mist particles configuration (smaller, subtle wisps)
 const getMistConfig = (): ISourceOptions => ({
@@ -151,7 +155,9 @@ const getMistConfig = (): ISourceOptions => ({
 })
 
 // Dust motes configuration - floating particles near candlelight
-const getDustConfig = (): ISourceOptions => ({
+const getDustConfig = (mode: 'light' | 'dark' = 'dark'): ISourceOptions => {
+  const maxOpacity = mode === 'light' ? 0.3 : 0.4
+  return {
   fullScreen: false,
   background: { color: { value: 'transparent' } },
   fpsLimit: 30,
@@ -160,7 +166,7 @@ const getDustConfig = (): ISourceOptions => ({
     color: { value: ['#FFE0B0', '#FFD090', '#FFC070'] },
     shape: { type: 'circle' },
     opacity: {
-      value: { min: 0.1, max: 0.4 },
+      value: { min: 0.1, max: maxOpacity },
       animation: {
         enable: true,
         speed: 0.2,
@@ -186,10 +192,13 @@ const getDustConfig = (): ISourceOptions => ({
     },
   },
   detectRetina: true,
-})
+  }
+}
 
 // Foam configuration - floating sea foam/bubbles
-const getFoamConfig = (): ISourceOptions => ({
+const getFoamConfig = (mode: 'light' | 'dark' = 'dark'): ISourceOptions => {
+  const maxOpacity = mode === 'light' ? 0.35 : 0.5
+  return {
   fullScreen: false,
   background: { color: { value: 'transparent' } },
   fpsLimit: 30,
@@ -198,7 +207,7 @@ const getFoamConfig = (): ISourceOptions => ({
     color: { value: ['#B0E0F0', '#C8E8F8', '#E0F4FF'] },
     shape: { type: 'circle' },
     opacity: {
-      value: { min: 0.2, max: 0.5 },
+      value: { min: 0.2, max: maxOpacity },
       animation: {
         enable: true,
         speed: 0.15,
@@ -223,10 +232,13 @@ const getFoamConfig = (): ISourceOptions => ({
     },
   },
   detectRetina: true,
-})
+  }
+}
 
 // Sunbeam configuration - warm pollen-like motes drifting in afternoon light
-const getSunbeamConfig = (): ISourceOptions => ({
+const getSunbeamConfig = (mode: 'light' | 'dark' = 'dark'): ISourceOptions => {
+  const maxOpacity = mode === 'light' ? 0.4 : 0.5
+  return {
   fullScreen: false,
   background: { color: { value: 'transparent' } },
   fpsLimit: 30,
@@ -235,7 +247,7 @@ const getSunbeamConfig = (): ISourceOptions => ({
     color: { value: ['#F5C078', '#E8945A', '#FFD4A8', '#F2A06B'] },
     shape: { type: 'circle' },
     opacity: {
-      value: { min: 0.15, max: 0.5 },
+      value: { min: 0.15, max: maxOpacity },
       animation: {
         enable: true,
         speed: 0.3,
@@ -268,7 +280,8 @@ const getSunbeamConfig = (): ISourceOptions => ({
     },
   },
   detectRetina: true,
-})
+  }
+}
 
 // Embers configuration - rising warm embers for Hearth theme
 const getEmbersConfig = (): ISourceOptions => ({
@@ -769,12 +782,13 @@ function BackgroundComponent() {
   const particlesLoaded = useCallback(async () => {}, [])
 
   const particleConfig = useMemo(() => {
+    const mode = theme.mode
     if (theme.particles === 'fireflies') return getFirefliesConfig()
-    if (theme.particles === 'sakura') return getSakuraConfig()
+    if (theme.particles === 'sakura') return getSakuraConfig(mode)
     if (theme.particles === 'mist') return getMistConfig()
-    if (theme.particles === 'dust') return getDustConfig()
-    if (theme.particles === 'foam') return getFoamConfig()
-    if (theme.particles === 'sunbeam') return getSunbeamConfig()
+    if (theme.particles === 'dust') return getDustConfig(mode)
+    if (theme.particles === 'foam') return getFoamConfig(mode)
+    if (theme.particles === 'sunbeam') return getSunbeamConfig(mode)
     if (theme.particles === 'embers') return getEmbersConfig()
     if (theme.particles === 'goldFlecks') return getGoldFlecksConfig()
     if (theme.particles === 'leaves') {
@@ -782,7 +796,7 @@ function BackgroundComponent() {
       return getLeavesConfig(theme.accent.primary, count)
     }
     return getFirefliesConfig()
-  }, [theme.particles, themeName])
+  }, [theme.particles, theme.mode, themeName])
 
   if (!mounted) return null
 
