@@ -14,7 +14,6 @@ interface EntrySelectorProps {
   entries: Entry[]
   currentEntryId: string | null
   onEntrySelect: (entryId: string | null) => void
-  onNewEntry?: () => void
   className?: string
 }
 
@@ -22,12 +21,10 @@ const EntrySelector = memo(function EntrySelector({
   entries,
   currentEntryId,
   onEntrySelect,
-  onNewEntry,
   className = '',
 }: EntrySelectorProps) {
   const { theme } = useThemeStore()
 
-  const accentColor = theme.accent.warm
   const textColor = theme.text.primary
   const mutedColor = theme.text.muted
   const bgColor = theme.glass.bg
@@ -37,10 +34,7 @@ const EntrySelector = memo(function EntrySelector({
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )
 
-  // Check if we're on a "new entry" (null currentEntryId)
-  const isNewEntry = currentEntryId === null
-
-  if (entries.length === 0 && !onNewEntry) {
+  if (entries.length === 0) {
     return null
   }
 
@@ -97,46 +91,6 @@ const EntrySelector = memo(function EntrySelector({
         )
       })}
 
-      {/* New entry button */}
-      {onNewEntry && (
-        <motion.button
-          onClick={() => {
-            onEntrySelect(null)
-            onNewEntry()
-          }}
-          className="relative group"
-          whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.9 }}
-          title="New entry"
-        >
-          <motion.div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-sm transition-all"
-            style={{
-              background: isNewEntry ? accentColor : 'transparent',
-              border: `2px ${isNewEntry ? 'solid' : 'dashed'} ${isNewEntry ? accentColor : mutedColor}`,
-              color: isNewEntry ? 'white' : mutedColor,
-              opacity: isNewEntry ? 1 : 0.6,
-            }}
-            animate={{
-              scale: isNewEntry ? 1.1 : 1,
-            }}
-          >
-            +
-          </motion.div>
-
-          {/* Hover tooltip */}
-          <motion.div
-            className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-[10px] whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10"
-            style={{
-              background: bgColor,
-              color: textColor,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            }}
-          >
-            New entry
-          </motion.div>
-        </motion.button>
-      )}
     </div>
   )
 })

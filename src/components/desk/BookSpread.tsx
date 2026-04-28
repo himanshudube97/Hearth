@@ -8,12 +8,12 @@ import { useDeskStore } from '@/store/desk'
 import { getGlassDiaryColors, GlassDiaryColors } from '@/lib/glassDiaryColors'
 import LeftPage from './LeftPage'
 import RightPage from './RightPage'
-import EntrySelector from './EntrySelector'
 import { RibbonBookmark } from './interactive/RibbonBookmark'
 import RibbonTag from './interactive/RibbonTag'
 import ThemeOrnament from './decorations/ThemeOrnament'
 import WhisperFooter from './WhisperFooter'
 import SpineOrnaments from './SpineOrnaments'
+import DateTabRail from './DateTabRail'
 import { StrokeData, useJournalStore } from '@/store/journal'
 import { useAutosaveEntry, AutosaveDraft } from '@/hooks/useAutosaveEntry'
 import { isEntryLocked } from '@/lib/entry-lock-client'
@@ -111,7 +111,6 @@ export default function BookSpread() {
   autosaveRef.current = autosave
 
   const [entries, setEntries] = useState<Entry[]>([])
-  const [todayEntries, setTodayEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
   // True once react-pageflip has finished its internal init (which positions
   // pages in 3D space via useEffect *after* HTMLFlipBook mounts). Until then
@@ -119,7 +118,6 @@ export default function BookSpread() {
   // visible on refresh as "cover, then diary on top". Gating the fade-in on
   // this prevents that.
   const [bookReady, setBookReady] = useState(false)
-  const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
   const [pendingPhotos, setPendingPhotos] = useState<Photo[]>([])
   const [rightTextareaFocusTrigger, setRightTextareaFocusTrigger] = useState(0)
   const [leftTextareaFocusTrigger, setLeftTextareaFocusTrigger] = useState(0)
@@ -170,9 +168,6 @@ export default function BookSpread() {
         setEntries(remainder)
         setTotalSpreads(remainder.length + 1)
 
-        const todays = fetched.filter(isToday)
-        setTodayEntries(todays)
-
         if (active) {
           // Hydrate active state from the entry.
           const plain = htmlToPlainText(active.text || '')
@@ -190,7 +185,6 @@ export default function BookSpread() {
             position: p.position,
           }))
           setPendingPhotos(activePhotos)
-          setCurrentEntryId(active.id)
           autosaveRef.current.reset(active.id)
         }
 
@@ -357,57 +351,6 @@ export default function BookSpread() {
     setLeftTextareaFocusTrigger(prev => prev + 1)
   }, [])
 
-  // Hydrate the new-entry spread with an existing entry's data so the user
-  // can keep editing it. Flushes any pending autosave for the previous
-  // active entry first, then re-targets autosave at the chosen entry.
-  const hydrateActive = useCallback(async (entry: Entry) => {
-    await autosaveRef.current.flush()
-    const plain = htmlToPlainText(entry.text || '')
-    const [leftPlain, rightPlain] = splitTextForSpread(plain)
-    useDeskStore.getState().setDrafts(leftPlain, rightPlain)
-    setCurrentSong(entry.song || '')
-    setCurrentMood(entry.mood ?? 2)
-    setDoodleStrokes(entry.doodles?.[0]?.strokes ?? [])
-    setPendingPhotos((entry.photos || []).map((p) => ({
-      id: p.id,
-      url: p.url,
-      rotation: p.rotation,
-      position: p.position,
-    })))
-    setCurrentEntryId(entry.id)
-    autosaveRef.current.reset(entry.id)
-  }, [setCurrentSong, setCurrentMood, setDoodleStrokes])
-
-  const handleEntrySelect = useCallback(async (entryId: string | null) => {
-    if (!entryId) return
-    const target = todayEntries.find((e) => e.id === entryId)
-      ?? entries.find((e) => e.id === entryId)
-    if (!target) return
-
-    if (!isEntryLocked(target.createdAt)) {
-      // Today entry, still editable → hydrate onto the new-entry spread.
-      await hydrateActive(target)
-      goToSpread(entries.length)
-      return
-    }
-    // Locked entry → just navigate to its read-only spread.
-    setCurrentEntryId(entryId)
-    const idx = entries.findIndex((e) => e.id === entryId)
-    if (idx >= 0) goToSpread(idx)
-  }, [todayEntries, entries, hydrateActive, goToSpread])
-
-  const handleNewEntry = useCallback(async () => {
-    await autosaveRef.current.flush()
-    autosaveRef.current.reset(null)
-    setCurrentEntryId(null)
-    useDeskStore.getState().clearDrafts()
-    setPendingPhotos([])
-    setCurrentSong('')
-    setCurrentMood(2)
-    setDoodleStrokes([])
-    goToSpread(entries.length)
-  }, [entries.length, goToSpread, setCurrentSong, setCurrentMood, setDoodleStrokes])
-
   const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
     const rotation = position === 1 ? -8 + Math.floor(Math.random() * 6) : 5 + Math.floor(Math.random() * 6)
     const newPhoto: Photo = {
@@ -436,35 +379,6 @@ export default function BookSpread() {
         overscrollBehaviorX: 'contain',
       }}
     >
-      {/* Top controls */}
-      <motion.div
-        className="absolute -top-14 left-0 z-20 flex items-center gap-3"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: loading ? 0 : 1 }}
-        transition={{ duration: 0.4, delay: loading ? 0 : 0.4 }}
-      >
-        <div
-          className="px-4 py-2 rounded-full text-xs"
-          style={{
-            background: theme.glass.bg,
-            color: theme.text.muted,
-            border: `1px solid ${theme.glass.border}`,
-          }}
-        >
-          {isNewEntrySpread
-            ? 'New Entry'
-            : `Entry ${entries.length - globalCurrentSpread} of ${entries.length}`}
-        </div>
-
-        {(todayEntries.length > 0 || isNewEntrySpread) && (
-          <EntrySelector
-            entries={todayEntries}
-            currentEntryId={currentEntryId}
-            onEntrySelect={handleEntrySelect}
-            onNewEntry={handleNewEntry}
-          />
-        )}
-      </motion.div>
 
       {/* Book frame: positions a decorative hardcover background behind the
           spread so the pages read as set inside an open hardback diary.
@@ -609,6 +523,16 @@ export default function BookSpread() {
             Rendered as a sibling of HTMLFlipBook so flip animation is untouched. */}
         <SpineOrnaments colors={colors} />
 
+        {/* Day-tab index rail on the right edge. Lets the user jump directly
+            to any day in the visible month without flipping. */}
+        <DateTabRail
+          entries={entries}
+          visibleSpread={globalCurrentSpread}
+          newEntrySpreadIdx={entries.length}
+          onJumpToSpread={goToSpread}
+          colors={colors}
+        />
+
         {/* Left edge clicker */}
         {globalCurrentSpread > 0 && (
           <motion.div
@@ -632,12 +556,13 @@ export default function BookSpread() {
           </motion.div>
         )}
 
-        {/* Right edge clicker */}
+        {/* Right edge clicker — offset inward to clear the day-tab rail */}
         {globalCurrentSpread < totalSpreads - 1 && (
           <motion.div
             onClick={handleNextPage}
-            className="absolute right-0 top-0 bottom-0 w-14 cursor-pointer z-30 flex items-center justify-center"
+            className="absolute top-0 bottom-0 w-14 cursor-pointer z-30 flex items-center justify-center"
             style={{
+              right: '26px',
               background: 'linear-gradient(270deg, rgba(0,0,0,0.03) 0%, transparent 100%)',
             }}
             whileHover={{

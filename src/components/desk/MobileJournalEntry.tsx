@@ -255,7 +255,7 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
           {todayEntries.length > 0 && (
             <div className="flex justify-center mb-4">
               <EntrySelector entries={todayEntries} currentEntryId={currentEntryId}
-                onEntrySelect={handleEntrySelect} onNewEntry={() => setCurrentEntryId(null)} />
+                onEntrySelect={handleEntrySelect} />
             </div>
           )}
           {currentEntry.song && (

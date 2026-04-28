@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
+import { isEntryLocked } from '@/lib/entry-lock'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string | null | undefined, maxLength = 150): string {
@@ -171,6 +172,35 @@ export async function POST(request: NextRequest) {
       // New fields
       photos, spreads,
     } = body
+
+    // Enforce one-normal-entry-per-day. Letters and other special types
+    // are not subject to this rule. We look at the user's recent normal
+    // entries and use isEntryLocked() to determine "created today in the
+    // user's timezone" (false = today). A 2-day window is more than enough
+    // to cover any TZ.
+    const effectiveType = entryType || 'normal'
+    if (effectiveType === 'normal') {
+      const userTz = request.headers.get('x-user-tz') ?? 'UTC'
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+      const recentNormal = await prisma.journalEntry.findMany({
+        where: {
+          userId: user.id,
+          entryType: 'normal',
+          isArchived: false,
+          createdAt: { gte: twoDaysAgo },
+        },
+        select: { id: true, createdAt: true },
+      })
+      const todayExists = recentNormal.some(
+        (e) => !isEntryLocked(e.createdAt, userTz, { entryType: 'normal' })
+      )
+      if (todayExists) {
+        return NextResponse.json(
+          { error: 'An entry already exists for today. Edit that one instead.' },
+          { status: 409 }
+        )
+      }
+    }
 
     // Check if this is an E2EE entry
     const isE2EE = encryptionType === 'e2ee'
