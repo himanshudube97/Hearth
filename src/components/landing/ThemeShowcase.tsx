@@ -16,7 +16,6 @@ const themeList: { key: ThemeName; emoji: string }[] = [
   { key: 'garden', emoji: '🌷' },
   { key: 'postal', emoji: '✉️' },
   { key: 'linen', emoji: '🕊️' },
-  { key: 'midnight', emoji: '✨' },
 ]
 
 export default function ThemeShowcase() {

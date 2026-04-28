@@ -24,6 +24,10 @@ export interface GlassDiaryColors {
   saveButton: string
   buttonBg: string
   buttonBorder: string
+  /** Darker theme-derived fill for the hardcover frame around the spread. */
+  cover: string
+  /** Even darker tone for the cover's inset border line. */
+  coverBorder: string
 }
 
 const stripAlpha = (rgba: string): string => {
@@ -48,6 +52,19 @@ const warm = (theme: Theme, alpha: number): string => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
+const darken = (hex: string, factor: number): string => {
+  // Multiply each channel by (1 - factor). factor=0 → unchanged, factor=1 → black.
+  const trimmed = hex.trim()
+  if (!trimmed.startsWith('#')) return trimmed
+  const cleaned = trimmed.length === 4
+    ? '#' + trimmed[1] + trimmed[1] + trimmed[2] + trimmed[2] + trimmed[3] + trimmed[3]
+    : trimmed
+  const r = Math.round(parseInt(cleaned.slice(1, 3), 16) * (1 - factor))
+  const g = Math.round(parseInt(cleaned.slice(3, 5), 16) * (1 - factor))
+  const b = Math.round(parseInt(cleaned.slice(5, 7), 16) * (1 - factor))
+  return `rgb(${r}, ${g}, ${b})`
+}
+
 export function getGlassDiaryColors(theme: Theme): GlassDiaryColors {
   return {
     pageBg: theme.glass.bg,
@@ -67,5 +84,7 @@ export function getGlassDiaryColors(theme: Theme): GlassDiaryColors {
     saveButton: theme.accent.warm,
     buttonBg: 'rgba(255, 255, 255, 0.06)',
     buttonBorder: warm(theme, 0.2),
+    cover: theme.cover ?? darken(theme.accent.primary, 0.35),
+    coverBorder: darken(theme.cover ?? darken(theme.accent.primary, 0.35), 0.4),
   }
 }

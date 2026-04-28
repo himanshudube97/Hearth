@@ -27,7 +27,6 @@ const themeStamps: Record<ThemeName, { icon: string; color: string }> = {
   garden: { icon: '🌷', color: '#A04E2F' },
   postal: { icon: '✉️', color: '#1F2750' },
   linen: { icon: '🕊️', color: '#A85530' },
-  midnight: { icon: '✨', color: '#C9A04A' },
 }
 
 // Used by the read-modal: stagger words in like ink hitting paper.

@@ -137,25 +137,6 @@ const ornaments: Record<ThemeName, React.ReactNode> = {
       <line x1="19" y1="24" x2="16" y2="21" stroke="currentColor" strokeWidth="0.7" />
     </>
   ),
-  midnight: (
-    <>
-      <path
-        d="M4 18 Q 10 10 16 14 T 28 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4 22 Q 10 16 16 19 T 28 20"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeLinecap="round"
-        opacity="0.6"
-      />
-    </>
-  ),
 }
 
 interface ThemeOrnamentProps {

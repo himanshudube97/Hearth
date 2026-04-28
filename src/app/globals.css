@@ -8,6 +8,9 @@
 html {
   /* Prevent layout shift - use overlay scrollbar */
   overflow-y: scroll;
+  /* Block the browser's two-finger horizontal swipe-back/forward gesture
+     so trackpad swipes only flip diary pages, never navigate history. */
+  overscroll-behavior-x: none;
 }
 
 body {
@@ -15,6 +18,7 @@ body {
   color: var(--foreground);
   font-family: var(--font-serif), 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
   overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 /* Auto-hiding scrollbar - hidden by default, shows on scroll */
@@ -132,4 +136,35 @@ textarea,
   box-shadow:
     inset 4px 0 12px rgba(255, 255, 255, 0.06),
     10px 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* Hardcover frame that sits behind the open spread. Negative inset extends
+   the cover past the page edges so the pages read as set inside the book.
+   Theme-tinted via --book-cover-bg / --book-cover-border (set per-theme on
+   the wrapping element). Texture is a CSS cross-hatch (no images). */
+.book-cover {
+  position: absolute;
+  inset: -28px -48px;
+  border-radius: 10px;
+  background-color: var(--book-cover-bg, #c9b186);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 5px);
+  box-shadow:
+    0 30px 60px -18px rgba(0, 0, 0, 0.45),
+    0 12px 24px -10px rgba(0, 0, 0, 0.25),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Thin inset decorative border to mimic the gilded line on a hardback diary. */
+.book-cover::before {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border: 1px solid var(--book-cover-border, rgba(0, 0, 0, 0.25));
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0.55;
 }

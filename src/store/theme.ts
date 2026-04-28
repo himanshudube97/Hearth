@@ -5,10 +5,11 @@ import { themes, Theme, ThemeName } from '@/lib/themes'
 const LEGACY_THEME_REMAP: Record<string, ThemeName> = {
   cherryBlossom: 'rose',
   winterSunset: 'hearth',
-  northernLights: 'midnight',
+  northernLights: 'rivendell',
   mistyMountains: 'linen',
   gentleRain: 'ocean',
-  cosmos: 'midnight',
+  cosmos: 'rivendell',
+  midnight: 'rivendell',
   candlelight: 'hearth',
   oceanTwilight: 'ocean',
   quietSnow: 'linen',

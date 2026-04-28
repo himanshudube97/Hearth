@@ -433,6 +433,19 @@ export default function BookSpread() {
         )}
       </motion.div>
 
+      {/* Book frame: positions a decorative hardcover background behind the
+          spread so the pages read as set inside an open hardback diary.
+          inline-block shrink-wraps to the inner motion.div's size so the
+          cover's negative-inset extension is anchored to the page edges,
+          not the outer page width. */}
+      <div
+        className="relative inline-block"
+        style={{
+          ['--book-cover-bg' as string]: colors.cover,
+          ['--book-cover-border' as string]: colors.coverBorder,
+        } as React.CSSProperties}
+      >
+        <div className="book-cover" />
       {/* Book wrapper. Sized for the spread (1300x820), relative so chrome
           can be positioned absolutely on top. The --page-bg CSS variable is
           inherited by the .diary-page children so each page tints to the
@@ -616,15 +629,7 @@ export default function BookSpread() {
         )}
 
       </motion.div>
-
-      {/* Book shadow */}
-      <div
-        className="absolute -bottom-10 left-16 right-16 h-16 rounded-[50%]"
-        style={{
-          background: 'rgba(0,0,0,0.3)',
-          filter: 'blur(24px)',
-        }}
-      />
+      </div>
     </div>
   )
 }

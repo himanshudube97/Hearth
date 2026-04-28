@@ -21,7 +21,6 @@ const themeIcons: Record<ThemeName, string> = {
   garden: '🌷',
   postal: '✉️',
   linen: '🕊️',
-  midnight: '✨',
 }
 
 export default function DeskSettingsPanel() {

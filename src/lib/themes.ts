@@ -11,7 +11,6 @@ export type ThemeName =
   | 'garden'
   | 'postal'
   | 'linen'
-  | 'midnight'
 
 export interface Theme {
   name: string
@@ -48,7 +47,11 @@ export interface Theme {
   moodEmojis: string[]
   moodLabels: string[]
   particles: 'fireflies' | 'embers' | 'goldFlecks' | 'leaves' | 'sakura' | 'sunbeam' | 'foam' | 'mist' | 'dust'
-  ambience: 'forest' | 'firelight' | 'midnight' | 'sun' | 'rose' | 'sage' | 'ocean' | 'saffron' | 'garden' | 'postal' | 'linen'
+  ambience: 'forest' | 'firelight' | 'sun' | 'rose' | 'sage' | 'ocean' | 'saffron' | 'garden' | 'postal' | 'linen'
+  /** Optional per-theme override for the hardcover frame around the
+   *  spread. When unset, the cover falls back to a darkened version
+   *  of `accent.primary`. */
+  cover?: string
 }
 
 // Rivendell Sunset - Forest greens with fireflies
@@ -166,6 +169,7 @@ export const paperSunTheme: Theme = {
   moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
   particles: 'sunbeam',
   ambience: 'sun',
+  cover: '#9C5328',
 }
 
 // Rose — blush & cherry blossom paper
@@ -205,6 +209,7 @@ export const roseTheme: Theme = {
   moodLabels: ['Wilting', 'Budding', 'Blooming', 'Radiant', 'Full Bloom'],
   particles: 'sakura',
   ambience: 'rose',
+  cover: '#B05878',
 }
 
 // Sage — matcha & cream
@@ -244,6 +249,7 @@ export const sageTheme: Theme = {
   moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
   particles: 'leaves',
   ambience: 'sage',
+  cover: '#5C6840',
 }
 
 // Ocean — misty seaside dawn
@@ -283,6 +289,7 @@ export const oceanTheme: Theme = {
   moodLabels: ['Misty', 'Drifting', 'Surfacing', 'Clear', 'Radiant'],
   particles: 'foam',
   ambience: 'ocean',
+  cover: '#2A4858',
 }
 
 // Saffron — marigold paper with indigo accent
@@ -322,6 +329,7 @@ export const saffronTheme: Theme = {
   moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
   particles: 'sakura',
   ambience: 'saffron',
+  cover: '#7A4A28',
 }
 
 // Garden — pressed flora on sage paper
@@ -361,6 +369,7 @@ export const gardenTheme: Theme = {
   moodLabels: ['Wilting', 'Budding', 'Blooming', 'Radiant', 'Full Bloom'],
   particles: 'leaves',
   ambience: 'garden',
+  cover: '#7E3D26',
 }
 
 // Postal — letter office parchment with indigo + rust
@@ -400,6 +409,7 @@ export const postalTheme: Theme = {
   moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
   particles: 'dust',
   ambience: 'postal',
+  cover: '#6E4A30',
 }
 
 // Linen — minimal off-white linen with soft rust
@@ -441,45 +451,6 @@ export const linenTheme: Theme = {
   ambience: 'linen',
 }
 
-// Midnight — gold leaf library
-export const midnightTheme: Theme = {
-  name: 'Midnight',
-  description: 'A library after hours, lit by gold leaf',
-  mode: 'dark',
-  bg: {
-    primary: '#0E1830',
-    secondary: '#142040',
-    gradient: 'linear-gradient(180deg, #142040 0%, #0E1830 50%, #0A1428 100%)',
-  },
-  text: {
-    primary: '#E8DCC0',
-    secondary: '#B8A88A',
-    muted: '#7A6A50',
-  },
-  accent: {
-    primary: '#C9A04A',
-    secondary: '#B08838',
-    warm: '#E0BC68',
-    highlight: '#F2D488',
-  },
-  glass: {
-    bg: 'rgba(20, 32, 64, 0.55)',
-    border: 'rgba(201, 160, 74, 0.18)',
-    blur: '32px',
-  },
-  moods: {
-    0: '#3A4055',
-    1: '#5A5070',
-    2: '#7A6A50',
-    3: '#C9A04A',
-    4: '#F2D488',
-  },
-  moodEmojis: ['🌑', '🌒', '🌓', '🌔', '🌕'],
-  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
-  particles: 'goldFlecks',
-  ambience: 'midnight',
-}
-
 export const themes: Record<ThemeName, Theme> = {
   rivendell: rivendellTheme,
   hearth: hearthTheme,
@@ -491,7 +462,6 @@ export const themes: Record<ThemeName, Theme> = {
   garden: gardenTheme,
   postal: postalTheme,
   linen: linenTheme,
-  midnight: midnightTheme,
 }
 
 // Time-based greetings

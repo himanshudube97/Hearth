@@ -25,7 +25,6 @@ const themeStamps: Record<ThemeName, { icon: string }> = {
   garden: { icon: '🌷' },
   postal: { icon: '✉️' },
   linen: { icon: '🕊️' },
-  midnight: { icon: '✨' },
 }
 
 interface PostcardFrontProps {
