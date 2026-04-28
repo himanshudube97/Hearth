@@ -47,7 +47,7 @@ export interface StickerItemData extends BaseItem {
 
 export interface PhotoItemData extends BaseItem {
   type: 'photo'
-  src: string // data URL or remote URL
+  src: string | null // null = placeholder, awaiting upload/capture
   caption?: string
   polaroid: boolean
 }
@@ -131,7 +131,10 @@ export function makeStickerItem(stickerId: string, items: ScrapbookItem[]): Stic
   }
 }
 
-export function makePhotoItem(src: string, items: ScrapbookItem[]): PhotoItemData {
+export function makePhotoItem(
+  src: string | null,
+  items: ScrapbookItem[],
+): PhotoItemData {
   return {
     id: makeId(),
     type: 'photo',

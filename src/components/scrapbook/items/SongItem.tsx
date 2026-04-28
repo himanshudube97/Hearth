@@ -25,6 +25,11 @@ const providerAccent: Record<SongItemData['provider'], string> = {
   unknown: '#8b6f47',
 }
 
+// Providers whose embed can play with the iframe hidden off-screen.
+// Spotify and Apple Music require a visible widget — user has to click
+// play inside their iframe per their TOS.
+const HIDDEN_AUDIO_PROVIDERS: SongItemData['provider'][] = ['youtube', 'soundcloud']
+
 export default function SongItem({ item, isEditing, onChange }: Props) {
   const titleRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -50,21 +55,20 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
     }
   }, [isEditing, editingUrl])
 
-  // Tapping into edit mode for the title shouldn't auto-open URL editor.
-  // Reset draft when item URL changes externally.
   useEffect(() => {
     setDraftUrl(item.url)
   }, [item.url])
 
   const embed = getSongEmbedUrl(item)
   const accent = providerAccent[item.provider]
+  const hiddenAudio = HIDDEN_AUDIO_PROVIDERS.includes(item.provider)
 
   function commitUrl() {
     const url = draftUrl.trim()
     if (url && url !== item.url) {
       const meta = deriveSongMeta(url)
       onChange({ ...item, url, title: meta.title, provider: meta.provider })
-      setIsPlaying(false) // reset player when URL changes
+      setIsPlaying(false)
     }
     setEditingUrl(false)
   }
@@ -78,46 +82,109 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
     <div
       className="w-full h-full relative"
       style={{
-        background: '#fefaf0',
-        border: '1px solid rgba(58, 52, 41, 0.18)',
-        borderLeft: `4px solid ${accent}`,
-        borderRadius: 10,
-        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.5)',
+        background: 'linear-gradient(135deg, #fefaf0 0%, #f4ecd8 100%)',
+        border: '1px solid rgba(58, 52, 41, 0.2)',
+        borderRadius: 12,
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)',
       }}
     >
-      {/* Compact card row */}
-      <div className="w-full h-full flex items-center gap-2 px-2.5">
-        {/* Play / pause button */}
-        <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation()
-            if (!embed) return
-            setIsPlaying((p) => !p)
-          }}
-          disabled={!embed}
-          className="flex items-center justify-center rounded-full flex-shrink-0 transition-transform"
-          style={{
-            width: 36,
-            height: 36,
-            background: accent,
-            color: '#fff',
-            fontSize: 16,
-            border: 'none',
-            cursor: embed ? 'pointer' : 'not-allowed',
-            opacity: embed ? 1 : 0.5,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-          }}
-          onMouseEnter={(e) => {
-            if (embed) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
-          }}
-          onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLElement).style.transform = ''
-          }}
-          title={embed ? (isPlaying ? 'pause' : 'play') : 'no embed available'}
+      <div className="w-full h-full flex items-center gap-3 px-3">
+        {/* Vinyl disc with overlay play button */}
+        <div
+          className="relative flex-shrink-0"
+          style={{ width: 56, height: 56 }}
         >
-          {isPlaying ? '❚❚' : '▶'}
-        </button>
+          {/* Spinning disc — only the disc itself rotates so the play
+              button stays a stable click target. */}
+          <div
+            className={isPlaying ? 'sb-vinyl-spin' : ''}
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              background: `radial-gradient(circle at center,
+                transparent 18%,
+                rgba(255,255,255,0.03) 19%,
+                transparent 22%,
+                rgba(255,255,255,0.03) 30%,
+                transparent 33%,
+                rgba(255,255,255,0.03) 42%,
+                transparent 45%
+              ), #1a1614`,
+              position: 'relative',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.35), inset 0 0 6px rgba(0,0,0,0.4)',
+            }}
+          >
+            {/* Center label */}
+            <div
+              className="absolute"
+              style={{
+                top: '50%',
+                left: '50%',
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                background: accent,
+                transform: 'translate(-50%, -50%)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)',
+              }}
+            />
+            {/* Spindle hole */}
+            <div
+              className="absolute"
+              style={{
+                top: '50%',
+                left: '50%',
+                width: 5,
+                height: 5,
+                borderRadius: '50%',
+                background: '#0a0a0a',
+                transform: 'translate(-50%, -50%)',
+              }}
+            />
+          </div>
+
+          {/* Play overlay — sits on top of the disc, doesn't spin */}
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (!embed) return
+              setIsPlaying((p) => !p)
+            }}
+            disabled={!embed}
+            className="absolute flex items-center justify-center transition-transform"
+            style={{
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 26,
+              height: 26,
+              borderRadius: '50%',
+              background: 'rgba(254, 250, 240, 0.96)',
+              color: '#1a1614',
+              border: 'none',
+              cursor: embed ? 'pointer' : 'not-allowed',
+              opacity: embed ? 1 : 0.5,
+              fontSize: 11,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.45)',
+              padding: 0,
+              lineHeight: 1,
+            }}
+            onMouseEnter={(e) => {
+              if (embed)
+                (e.currentTarget as HTMLElement).style.transform =
+                  'translate(-50%, -50%) scale(1.12)'
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLElement).style.transform =
+                'translate(-50%, -50%)'
+            }}
+            title={embed ? (isPlaying ? 'pause' : 'play') : 'no embed available'}
+          >
+            {isPlaying ? '❚❚' : '▶'}
+          </button>
+        </div>
 
         {/* Title + provider OR URL editor */}
         <div className="flex-1 min-w-0 overflow-hidden">
@@ -202,9 +269,15 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
                   opacity: 0.85,
                   lineHeight: 1.2,
                   marginTop: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
                 }}
               >
-                {providerLabel[item.provider]}
+                <span>{providerLabel[item.provider]}</span>
+                {isPlaying && hiddenAudio && (
+                  <span style={{ fontSize: 11, opacity: 0.7 }}>· playing</span>
+                )}
               </div>
             </>
           )}
@@ -244,10 +317,30 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
         )}
       </div>
 
-      {/* Embed iframe — appears below the card when playing.
-          Anchored to bottom so it overflows downward; the wrapper
-          rotation carries it visually. */}
-      {isPlaying && embed && (
+      {/* Hidden audio iframe — YouTube and SoundCloud autoplay reliably
+          while invisible because we mount it on a real user gesture. */}
+      {isPlaying && embed && hiddenAudio && (
+        <iframe
+          src={embed.src}
+          allow="autoplay; encrypted-media"
+          style={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            left: -9999,
+            top: 0,
+            border: 'none',
+            opacity: 0,
+            pointerEvents: 'none',
+          }}
+          title="audio playback"
+        />
+      )}
+
+      {/* Visible compact embed for Spotify / Apple Music — their players
+          require a visible widget to start audio. We make it as small as
+          possible so the CD card stays the hero. */}
+      {isPlaying && embed && !hiddenAudio && (
         <div
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}

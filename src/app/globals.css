@@ -193,6 +193,13 @@ textarea,
 }
 .sb-anim-flap { animation: sb-flap 0.85s ease-in-out infinite; }
 
+/* CD player vinyl spin — fast enough to read as a record but not jarring */
+@keyframes sb-vinyl-spin {
+  from { transform: rotate(0); }
+  to   { transform: rotate(360deg); }
+}
+.sb-vinyl-spin { animation: sb-vinyl-spin 3s linear infinite; }
+
 /* Butterfly wing flap — each wing pinches toward the body. */
 @keyframes sb-wing {
   0%, 100% { transform: scaleX(1); }

@@ -25,6 +25,7 @@ import PhotoItem from './items/PhotoItem'
 import SongItem from './items/SongItem'
 import DoodleItem from './items/DoodleItem'
 import DoodleCanvas from '@/components/DoodleCanvas'
+import CameraModal from './CameraModal'
 import type { StrokeData } from '@/store/journal'
 
 export default function ScrapbookCanvas() {
@@ -33,7 +34,10 @@ export default function ScrapbookCanvas() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [doodleEditingId, setDoodleEditingId] = useState<string | null>(null)
+  const [cameraTargetId, setCameraTargetId] = useState<string | null>(null)
+  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Pressing Esc exits edit mode (still selected) — feels expected from
   // any text editor, and avoids users feeling trapped in a note.
@@ -85,10 +89,48 @@ export default function ScrapbookCanvas() {
     setSelectedId(item.id)
   }
 
-  function addPhoto(dataUrl: string) {
-    const item = makePhotoItem(dataUrl, items)
+  function addPhoto() {
+    // Drop a placeholder polaroid; user fills it via the on-canvas
+    // "click" / "upload" buttons.
+    const item = makePhotoItem(null, items)
     setItems((prev) => [...prev, item])
     setSelectedId(item.id)
+  }
+
+  function fillPhoto(id: string, src: string) {
+    setItems((prev) =>
+      prev.map((it) =>
+        it.id === id && it.type === 'photo' ? { ...it, src } : it,
+      ),
+    )
+  }
+
+  function requestCameraFor(id: string) {
+    setCameraTargetId(id)
+  }
+
+  function requestUploadFor(id: string) {
+    setUploadTargetId(id)
+    fileInputRef.current?.click()
+  }
+
+  function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    const targetId = uploadTargetId
+    e.target.value = ''
+    if (!file || !targetId) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const result = ev.target?.result
+      if (typeof result === 'string') fillPhoto(targetId, result)
+    }
+    reader.readAsDataURL(file)
+    setUploadTargetId(null)
+  }
+
+  function onCameraCapture(dataUrl: string) {
+    if (cameraTargetId) fillPhoto(cameraTargetId, dataUrl)
+    setCameraTargetId(null)
   }
 
   function addSong(url: string) {
@@ -244,6 +286,8 @@ export default function ScrapbookCanvas() {
                     item={item as PhotoItemData}
                     isEditing={isItemEditing}
                     onChange={updateItem}
+                    onRequestCamera={() => requestCameraFor(item.id)}
+                    onRequestUpload={() => requestUploadFor(item.id)}
                   />
                 )}
                 {item.type === 'song' && (
@@ -273,6 +317,21 @@ export default function ScrapbookCanvas() {
           onClose={() => setDoodleEditingId(null)}
         />
       )}
+
+      {cameraTargetId && (
+        <CameraModal
+          onCapture={onCameraCapture}
+          onClose={() => setCameraTargetId(null)}
+        />
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={onFilePicked}
+        style={{ display: 'none' }}
+      />
     </div>
   )
 }
