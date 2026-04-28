@@ -7,12 +7,20 @@ export type StickerId =
   | 'star'
   | 'heart'
   | 'leaf'
+  | 'leaves'
+  | 'stem'
   | 'flower'
+  | 'tulip'
+  | 'daisy'
+  | 'sunflower'
   | 'moon'
   | 'sun'
   | 'sparkle'
   | 'washi-tape'
   | 'butterfly'
+  | 'butterfly-blue'
+  | 'butterfly-orange'
+  | 'butterfly-monarch'
   | 'mushroom'
   | 'cloud'
   | 'raindrop'
@@ -158,45 +166,238 @@ const WashiTape: React.FC<StickerProps> = () => (
   </svg>
 )
 
-const Butterfly: React.FC<StickerProps> = () => (
+function makeButterfly(
+  wingTop: string,
+  wingBottom: string,
+  wingStroke: string,
+  bodyFill: string = '#3a2a1a',
+  spotColor?: string,
+): React.FC<StickerProps> {
+  return () => (
+    <svg {...baseProps}>
+      {/* left wing — pinches toward body */}
+      <g className="sb-wing-left">
+        <path
+          d="M48 38 C 22 24, 14 36, 18 52 C 22 64, 36 60, 48 56 Z"
+          fill={wingTop}
+          stroke={wingStroke}
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M48 56 C 28 62, 22 70, 32 74 C 40 76, 46 70, 48 64 Z"
+          fill={wingBottom}
+          stroke={wingStroke}
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        {spotColor && <circle cx="28" cy="46" r="2.5" fill={spotColor} />}
+      </g>
+      {/* right wing — pinches toward body */}
+      <g className="sb-wing-right">
+        <path
+          d="M52 38 C 78 24, 86 36, 82 52 C 78 64, 64 60, 52 56 Z"
+          fill={wingTop}
+          stroke={wingStroke}
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M52 56 C 72 62, 78 70, 68 74 C 60 76, 54 70, 52 64 Z"
+          fill={wingBottom}
+          stroke={wingStroke}
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        {spotColor && <circle cx="72" cy="46" r="2.5" fill={spotColor} />}
+      </g>
+      {/* body — drawn last so it's on top of wings */}
+      <ellipse cx="50" cy="50" rx="2.5" ry="22" fill={bodyFill} />
+      <circle cx="50" cy="30" r="3" fill={bodyFill} />
+    </svg>
+  )
+}
+
+const Butterfly = makeButterfly('#c98ec4', '#a36ca0', '#5a2a4a')
+const ButterflyBlue = makeButterfly('#8ab8e8', '#5e90c8', '#1f3d6a', '#1a1614', '#fdfaf2')
+const ButterflyOrange = makeButterfly('#f5a865', '#e8843d', '#7a3a14')
+const ButterflyMonarch = makeButterfly('#e88a3a', '#3a1a0a', '#1a0a04', '#1a0a04', '#fdfaf2')
+
+const Stem: React.FC<StickerProps> = () => (
   <svg {...baseProps}>
-    {/* left wing — pinches toward body */}
-    <g className="sb-wing-left">
-      <path
-        d="M48 38 C 22 24, 14 36, 18 52 C 22 64, 36 60, 48 56 Z"
-        fill="#c98ec4"
-        stroke="#5a2a4a"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
+    <path
+      d="M50 8 C 56 26, 44 46, 50 64 C 56 80, 50 92, 50 92"
+      stroke="#4a7838"
+      strokeWidth="4.5"
+      strokeLinecap="round"
+      fill="none"
+    />
+    {/* tiny node bumps for character */}
+    <circle cx="51" cy="34" r="1.6" fill="#3d5a30" />
+    <circle cx="49" cy="64" r="1.6" fill="#3d5a30" />
+  </svg>
+)
+
+const Leaves: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    {/* central twig */}
+    <path
+      d="M50 12 C 50 30, 50 60, 50 88"
+      stroke="#3d5a30"
+      strokeWidth="2"
+      fill="none"
+      strokeLinecap="round"
+    />
+    {/* alternating leaves */}
+    <path
+      d="M50 24 C 32 20, 24 30, 40 38 Z"
+      fill="#7da668"
+      stroke="#3d5a30"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M32 26 C 36 30, 40 34, 40 38"
+      stroke="#3d5a30"
+      strokeWidth="0.8"
+      fill="none"
+    />
+    <path
+      d="M50 44 C 68 40, 76 50, 60 58 Z"
+      fill="#7da668"
+      stroke="#3d5a30"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M68 46 C 64 50, 60 54, 60 58"
+      stroke="#3d5a30"
+      strokeWidth="0.8"
+      fill="none"
+    />
+    <path
+      d="M50 64 C 32 60, 24 70, 40 78 Z"
+      fill="#7da668"
+      stroke="#3d5a30"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M32 66 C 36 70, 40 74, 40 78"
+      stroke="#3d5a30"
+      strokeWidth="0.8"
+      fill="none"
+    />
+  </svg>
+)
+
+const Tulip: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    {/* stem */}
+    <path
+      d="M50 50 L 50 92"
+      stroke="#4a7838"
+      strokeWidth="4"
+      strokeLinecap="round"
+    />
+    {/* leaf */}
+    <path
+      d="M50 70 C 32 66, 22 76, 40 84 Z"
+      fill="#7da668"
+      stroke="#3d5a30"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+    {/* tulip cup */}
+    <path
+      d="M50 16 C 28 22, 26 50, 50 56 C 74 50, 72 22, 50 16 Z"
+      fill="#e88aa6"
+      stroke="#7a2a4a"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+    {/* petal seams */}
+    <path d="M50 16 L 50 56" stroke="#7a2a4a" strokeWidth="1" opacity="0.45" fill="none" />
+    <path d="M44 22 C 38 36, 38 48, 44 54" stroke="#7a2a4a" strokeWidth="1" opacity="0.45" fill="none" />
+    <path d="M56 22 C 62 36, 62 48, 56 54" stroke="#7a2a4a" strokeWidth="1" opacity="0.45" fill="none" />
+  </svg>
+)
+
+const Daisy: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    {/* stem */}
+    <path
+      d="M50 38 L 50 92"
+      stroke="#4a7838"
+      strokeWidth="3"
+      strokeLinecap="round"
+    />
+    {/* leaf */}
+    <path
+      d="M50 60 C 36 56, 28 66, 42 72 Z"
+      fill="#7da668"
+      stroke="#3d5a30"
+      strokeWidth="1.4"
+      strokeLinejoin="round"
+    />
+    {/* petals */}
+    {[0, 60, 120, 180, 240, 300].map((angle) => (
+      <ellipse
+        key={angle}
+        cx="50"
+        cy="20"
+        rx="6"
+        ry="13"
+        fill="#fdfaf2"
+        stroke="#5a4a2a"
+        strokeWidth="1.5"
+        transform={`rotate(${angle} 50 30)`}
       />
-      <path
-        d="M48 56 C 28 62, 22 70, 32 74 C 40 76, 46 70, 48 64 Z"
-        fill="#a36ca0"
-        stroke="#5a2a4a"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
+    ))}
+    {/* center */}
+    <circle cx="50" cy="30" r="6.5" fill="#f5d76e" stroke="#7a4a1a" strokeWidth="1.6" />
+  </svg>
+)
+
+const Sunflower: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    {/* stem */}
+    <path
+      d="M50 40 L 50 92"
+      stroke="#4a7838"
+      strokeWidth="4"
+      strokeLinecap="round"
+    />
+    {/* leaf */}
+    <path
+      d="M50 64 C 30 58, 20 70, 38 80 Z"
+      fill="#7da668"
+      stroke="#3d5a30"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+    {/* outer petals */}
+    {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((angle) => (
+      <ellipse
+        key={angle}
+        cx="50"
+        cy="14"
+        rx="5"
+        ry="11"
+        fill="#f5b840"
+        stroke="#7a4a1a"
+        strokeWidth="1.4"
+        transform={`rotate(${angle} 50 28)`}
       />
-    </g>
-    {/* right wing — pinches toward body */}
-    <g className="sb-wing-right">
-      <path
-        d="M52 38 C 78 24, 86 36, 82 52 C 78 64, 64 60, 52 56 Z"
-        fill="#c98ec4"
-        stroke="#5a2a4a"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M52 56 C 72 62, 78 70, 68 74 C 60 76, 54 70, 52 64 Z"
-        fill="#a36ca0"
-        stroke="#5a2a4a"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </g>
-    {/* body — drawn last so it's on top of wings */}
-    <ellipse cx="50" cy="50" rx="2.5" ry="22" fill="#3a2a1a" />
-    <circle cx="50" cy="30" r="3" fill="#3a2a1a" />
+    ))}
+    {/* center */}
+    <circle cx="50" cy="28" r="9" fill="#5a3a1a" stroke="#3a1a0a" strokeWidth="1.5" />
+    {/* seed dots */}
+    <circle cx="46" cy="26" r="0.9" fill="#3a1a0a" />
+    <circle cx="54" cy="27" r="0.9" fill="#3a1a0a" />
+    <circle cx="50" cy="32" r="0.9" fill="#3a1a0a" />
+    <circle cx="48" cy="30" r="0.7" fill="#3a1a0a" />
+    <circle cx="52" cy="30" r="0.7" fill="#3a1a0a" />
   </svg>
 )
 
@@ -310,14 +511,22 @@ export const stickers: Record<StickerId, { label: string; component: React.FC<St
   star: { label: 'Star', component: Star, aspect: 1 },
   heart: { label: 'Heart', component: Heart, aspect: 1 },
   sparkle: { label: 'Sparkle', component: Sparkle, aspect: 1 },
-  moon: { label: 'Moon', component: Moon, aspect: 1 },
   sun: { label: 'Sun', component: Sun, aspect: 1 },
+  moon: { label: 'Moon', component: Moon, aspect: 1 },
   cloud: { label: 'Cloud', component: Cloud, aspect: 1 },
   raindrop: { label: 'Raindrop', component: Raindrop, aspect: 1 },
   leaf: { label: 'Leaf', component: Leaf, aspect: 1 },
-  flower: { label: 'Flower', component: Flower, aspect: 1 },
+  leaves: { label: 'Leafy branch', component: Leaves, aspect: 1 },
+  stem: { label: 'Stem', component: Stem, aspect: 1 },
+  flower: { label: 'Flower head', component: Flower, aspect: 1 },
+  tulip: { label: 'Tulip', component: Tulip, aspect: 1 },
+  daisy: { label: 'Daisy', component: Daisy, aspect: 1 },
+  sunflower: { label: 'Sunflower', component: Sunflower, aspect: 1 },
   mushroom: { label: 'Mushroom', component: Mushroom, aspect: 1 },
-  butterfly: { label: 'Butterfly', component: Butterfly, aspect: 1 },
+  butterfly: { label: 'Butterfly (pink)', component: Butterfly, aspect: 1 },
+  'butterfly-blue': { label: 'Butterfly (blue)', component: ButterflyBlue, aspect: 1 },
+  'butterfly-orange': { label: 'Butterfly (orange)', component: ButterflyOrange, aspect: 1 },
+  'butterfly-monarch': { label: 'Butterfly (monarch)', component: ButterflyMonarch, aspect: 1 },
   bookmark: { label: 'Bookmark', component: Bookmark, aspect: 1 },
   pencil: { label: 'Pencil', component: Pencil, aspect: 1 },
   'washi-tape': { label: 'Washi tape', component: WashiTape, aspect: 200 / 60 },

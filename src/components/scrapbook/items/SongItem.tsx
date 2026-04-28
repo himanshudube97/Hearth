@@ -25,9 +25,6 @@ const providerAccent: Record<SongItemData['provider'], string> = {
   unknown: '#8b6f47',
 }
 
-// Providers whose embed can play with the iframe hidden off-screen.
-// Spotify and Apple Music require a visible widget — user has to click
-// play inside their iframe per their TOS.
 const HIDDEN_AUDIO_PROVIDERS: SongItemData['provider'][] = ['youtube', 'soundcloud']
 
 export default function SongItem({ item, isEditing, onChange }: Props) {
@@ -80,71 +77,152 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
 
   return (
     <div
-      className="w-full h-full relative"
+      className="w-full h-full relative overflow-visible"
       style={{
-        background: 'linear-gradient(135deg, #fefaf0 0%, #f4ecd8 100%)',
-        border: '1px solid rgba(58, 52, 41, 0.2)',
-        borderRadius: 12,
-        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)',
+        background:
+          'linear-gradient(135deg, #2a1f18 0%, #1a130f 50%, #2a1f18 100%)',
+        border: '1px solid rgba(0, 0, 0, 0.4)',
+        borderRadius: 14,
+        boxShadow:
+          'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.6), 0 1px 4px rgba(0,0,0,0.3)',
       }}
     >
-      <div className="w-full h-full flex items-center gap-3 px-3">
-        {/* Vinyl disc with overlay play button */}
+      {/* Wood grain hint — subtle horizontal lines */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          inset: 1,
+          borderRadius: 13,
+          background:
+            'repeating-linear-gradient(180deg, transparent 0 6px, rgba(255,255,255,0.015) 6px 7px)',
+          opacity: 0.7,
+        }}
+      />
+
+      <div className="w-full h-full flex items-center gap-3 px-3 relative">
+        {/* === Vinyl + tonearm cluster === */}
         <div
           className="relative flex-shrink-0"
-          style={{ width: 56, height: 56 }}
+          style={{ width: 64, height: 64 }}
         >
-          {/* Spinning disc — only the disc itself rotates so the play
-              button stays a stable click target. */}
+          {/* Glow aura — only when playing */}
+          {isPlaying && (
+            <div
+              className="absolute pointer-events-none sb-glow-pulse"
+              style={{
+                inset: -12,
+                borderRadius: '50%',
+                background: `radial-gradient(circle, ${accent}88 0%, ${accent}33 35%, transparent 70%)`,
+                filter: 'blur(6px)',
+                zIndex: 0,
+              }}
+            />
+          )}
+
+          {/* Spinning disc */}
           <div
             className={isPlaying ? 'sb-vinyl-spin' : ''}
             style={{
-              width: '100%',
-              height: '100%',
+              position: 'absolute',
+              inset: 4,
               borderRadius: '50%',
               background: `radial-gradient(circle at center,
                 transparent 18%,
-                rgba(255,255,255,0.03) 19%,
+                rgba(255,255,255,0.04) 19%,
                 transparent 22%,
-                rgba(255,255,255,0.03) 30%,
-                transparent 33%,
-                rgba(255,255,255,0.03) 42%,
-                transparent 45%
-              ), #1a1614`,
-              position: 'relative',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.35), inset 0 0 6px rgba(0,0,0,0.4)',
+                rgba(255,255,255,0.04) 28%,
+                transparent 31%,
+                rgba(255,255,255,0.04) 38%,
+                transparent 41%,
+                rgba(255,255,255,0.04) 46%,
+                transparent 49%
+              ), radial-gradient(circle at 35% 35%, #2a2520 0%, #0a0807 60%)`,
+              boxShadow:
+                'inset 0 0 8px rgba(0,0,0,0.7), 0 2px 6px rgba(0,0,0,0.5)',
             }}
           >
+            {/* Shimmer overlay — sweeps slower than the disc, creates a
+                "light reflection" that catches the grooves */}
+            <div
+              className="sb-shimmer-spin"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '50%',
+                background:
+                  'conic-gradient(from 0deg at 50% 50%, transparent 0%, rgba(255,255,255,0.12) 18%, transparent 30%, transparent 70%, rgba(255,255,255,0.06) 85%, transparent 100%)',
+                mixBlendMode: 'screen',
+              }}
+            />
             {/* Center label */}
             <div
-              className="absolute"
               style={{
+                position: 'absolute',
                 top: '50%',
                 left: '50%',
                 width: 22,
                 height: 22,
                 borderRadius: '50%',
-                background: accent,
+                background: `radial-gradient(circle at 30% 30%, ${accent}ee 0%, ${accent} 60%, ${darken(accent)} 100%)`,
                 transform: 'translate(-50%, -50%)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)',
+                boxShadow:
+                  'inset 0 1px 0 rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.3)',
               }}
             />
             {/* Spindle hole */}
             <div
-              className="absolute"
               style={{
+                position: 'absolute',
                 top: '50%',
                 left: '50%',
                 width: 5,
                 height: 5,
                 borderRadius: '50%',
-                background: '#0a0a0a',
+                background: '#000',
                 transform: 'translate(-50%, -50%)',
+                boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.2)',
               }}
             />
           </div>
 
-          {/* Play overlay — sits on top of the disc, doesn't spin */}
+          {/* Tonearm — pivots from upper-right, swings in to touch disc when playing */}
+          <svg
+            className="absolute pointer-events-none"
+            style={{
+              top: -6,
+              right: -10,
+              width: 60,
+              height: 60,
+              transformOrigin: '85% 15%',
+              transform: isPlaying ? 'rotate(28deg)' : 'rotate(-12deg)',
+              transition: 'transform 700ms cubic-bezier(0.65, 0, 0.35, 1)',
+              zIndex: 2,
+            }}
+            viewBox="0 0 60 60"
+          >
+            {/* base/pivot */}
+            <circle cx="51" cy="9" r="5" fill="#bfa382" stroke="#3a2a1a" strokeWidth="1.4" />
+            <circle cx="51" cy="9" r="2" fill="#3a2a1a" />
+            {/* arm shaft */}
+            <line x1="51" y1="9" x2="22" y2="40" stroke="#cdb892" strokeWidth="3" strokeLinecap="round" />
+            <line x1="51" y1="9" x2="22" y2="40" stroke="#7a5e3a" strokeWidth="0.6" strokeLinecap="round" opacity="0.5" />
+            {/* cartridge head */}
+            <rect
+              x="13"
+              y="36"
+              width="14"
+              height="6"
+              rx="1.5"
+              fill="#2a1f18"
+              stroke="#0a0805"
+              strokeWidth="0.8"
+              transform="rotate(-45 20 39)"
+            />
+            {/* needle tip */}
+            <circle cx="14" cy="42" r="1.2" fill={isPlaying ? accent : '#9a8a78'} />
+          </svg>
+
+          {/* Play overlay button — sits on top, doesn't spin */}
           <button
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
@@ -153,23 +231,26 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
               setIsPlaying((p) => !p)
             }}
             disabled={!embed}
-            className="absolute flex items-center justify-center transition-transform"
+            className="absolute flex items-center justify-center transition-all"
             style={{
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: 26,
-              height: 26,
+              width: 28,
+              height: 28,
               borderRadius: '50%',
-              background: 'rgba(254, 250, 240, 0.96)',
+              background:
+                'radial-gradient(circle at 30% 30%, #fefaf0 0%, #d8cdb4 100%)',
               color: '#1a1614',
-              border: 'none',
+              border: '1px solid rgba(0,0,0,0.3)',
               cursor: embed ? 'pointer' : 'not-allowed',
               opacity: embed ? 1 : 0.5,
               fontSize: 11,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.45)',
+              boxShadow:
+                '0 2px 6px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.6)',
               padding: 0,
               lineHeight: 1,
+              zIndex: 3,
             }}
             onMouseEnter={(e) => {
               if (embed)
@@ -186,7 +267,7 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
           </button>
         </div>
 
-        {/* Title + provider OR URL editor */}
+        {/* === Title + provider + equalizer === */}
         <div className="flex-1 min-w-0 overflow-hidden">
           {editingUrl ? (
             <div className="flex items-center gap-1.5">
@@ -210,8 +291,8 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
                   borderRadius: 6,
                   fontSize: 13,
                   fontFamily: 'system-ui, sans-serif',
-                  color: '#3a3429',
-                  background: '#fff',
+                  color: '#fefaf0',
+                  background: '#0d0a08',
                   outline: 'none',
                 }}
               />
@@ -253,37 +334,42 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
                 className="outline-none truncate"
                 style={{
                   fontFamily: 'var(--font-caveat), cursive',
-                  fontSize: 19,
-                  color: '#3a3429',
+                  fontSize: 20,
+                  color: '#fefaf0',
                   lineHeight: 1.1,
                   cursor: isEditing ? 'text' : 'inherit',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                 }}
               >
                 {item.title}
               </div>
               <div
                 style={{
-                  fontFamily: 'var(--font-caveat), cursive',
-                  fontSize: 13,
-                  color: accent,
-                  opacity: 0.85,
-                  lineHeight: 1.2,
-                  marginTop: 1,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4,
+                  gap: 8,
+                  marginTop: 2,
+                  lineHeight: 1.2,
                 }}
               >
-                <span>{providerLabel[item.provider]}</span>
-                {isPlaying && hiddenAudio && (
-                  <span style={{ fontSize: 11, opacity: 0.7 }}>· playing</span>
-                )}
+                <span
+                  style={{
+                    fontFamily: 'var(--font-caveat), cursive',
+                    fontSize: 13,
+                    color: accent,
+                    opacity: 0.95,
+                    textShadow: '0 1px 1px rgba(0,0,0,0.4)',
+                  }}
+                >
+                  {providerLabel[item.provider]}
+                </span>
+                {isPlaying && <Equalizer color={accent} />}
               </div>
             </>
           )}
         </div>
 
-        {/* Edit URL pencil */}
+        {/* === Edit URL pencil === */}
         {!editingUrl && (
           <button
             onPointerDown={(e) => e.stopPropagation()}
@@ -294,21 +380,21 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
             }}
             className="flex items-center justify-center rounded-md flex-shrink-0 transition-colors"
             style={{
-              width: 26,
-              height: 26,
-              background: 'transparent',
-              color: 'rgba(58, 52, 41, 0.55)',
-              border: '1px solid rgba(58, 52, 41, 0.15)',
-              fontSize: 13,
+              width: 24,
+              height: 24,
+              background: 'rgba(255,255,255,0.04)',
+              color: 'rgba(254, 250, 240, 0.6)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              fontSize: 12,
               cursor: 'pointer',
             }}
             onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLElement).style.background = 'rgba(58, 52, 41, 0.06)'
-              ;(e.currentTarget as HTMLElement).style.color = '#3a3429'
+              ;(e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.12)'
+              ;(e.currentTarget as HTMLElement).style.color = '#fefaf0'
             }}
             onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-              ;(e.currentTarget as HTMLElement).style.color = 'rgba(58, 52, 41, 0.55)'
+              ;(e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'
+              ;(e.currentTarget as HTMLElement).style.color = 'rgba(254, 250, 240, 0.6)'
             }}
             title="change link"
           >
@@ -317,8 +403,10 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
         )}
       </div>
 
-      {/* Hidden audio iframe — YouTube and SoundCloud autoplay reliably
-          while invisible because we mount it on a real user gesture. */}
+      {/* Floating music notes — only when playing */}
+      {isPlaying && <FloatingNotes color={accent} />}
+
+      {/* Hidden audio iframe (YouTube / SoundCloud) */}
       {isPlaying && embed && hiddenAudio && (
         <iframe
           src={embed.src}
@@ -337,9 +425,7 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
         />
       )}
 
-      {/* Visible compact embed for Spotify / Apple Music — their players
-          require a visible widget to start audio. We make it as small as
-          possible so the CD card stays the hero. */}
+      {/* Visible compact embed (Spotify / Apple Music) */}
       {isPlaying && embed && !hiddenAudio && (
         <div
           onPointerDown={(e) => e.stopPropagation()}
@@ -371,4 +457,75 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
       )}
     </div>
   )
+}
+
+function Equalizer({ color }: { color: string }) {
+  // 4 bars with staggered animation delays for a natural look
+  const bars = [
+    { delay: 0, base: 0.7 },
+    { delay: 0.18, base: 0.5 },
+    { delay: 0.07, base: 0.85 },
+    { delay: 0.24, base: 0.6 },
+  ]
+  return (
+    <div className="flex items-end gap-0.5" style={{ height: 12 }}>
+      {bars.map((b, i) => (
+        <div
+          key={i}
+          className="sb-eq-bar"
+          style={{
+            width: 2.5,
+            height: '100%',
+            background: color,
+            borderRadius: 1,
+            animationDelay: `${b.delay}s`,
+            animationDuration: `${0.7 + b.base * 0.4}s`,
+            boxShadow: `0 0 4px ${color}88`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+function FloatingNotes({ color }: { color: string }) {
+  // Three notes drifting up, staggered, looped
+  const notes = [
+    { left: '12%', delay: 0, glyph: '♪' },
+    { left: '24%', delay: 1.1, glyph: '♫' },
+    { left: '8%', delay: 2.2, glyph: '♩' },
+  ]
+  return (
+    <>
+      {notes.map((n, i) => (
+        <div
+          key={i}
+          className="sb-note-float absolute pointer-events-none"
+          style={{
+            left: n.left,
+            bottom: 4,
+            color: color,
+            fontSize: 16,
+            textShadow: `0 0 6px ${color}aa, 0 1px 2px rgba(0,0,0,0.4)`,
+            animationDelay: `${n.delay}s`,
+            opacity: 0,
+          }}
+        >
+          {n.glyph}
+        </div>
+      ))}
+    </>
+  )
+}
+
+// Darken a hex color by ~25% — used to give the vinyl center label a
+// subtle inner-shadow gradient.
+function darken(hex: string): string {
+  const m = hex.replace('#', '')
+  const full = m.length === 3 ? m.split('').map((c) => c + c).join('') : m
+  const r = Math.max(0, Math.round(parseInt(full.slice(0, 2), 16) * 0.7))
+  const g = Math.max(0, Math.round(parseInt(full.slice(2, 4), 16) * 0.7))
+  const b = Math.max(0, Math.round(parseInt(full.slice(4, 6), 16) * 0.7))
+  const toHex = (n: number) => n.toString(16).padStart(2, '0')
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }

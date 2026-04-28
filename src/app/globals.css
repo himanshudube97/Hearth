@@ -200,6 +200,45 @@ textarea,
 }
 .sb-vinyl-spin { animation: sb-vinyl-spin 3s linear infinite; }
 
+/* Vinyl shimmer — a conic gradient highlight that sweeps slower than the
+   disc itself, creating a "light reflection" feel */
+@keyframes sb-shimmer-spin {
+  from { transform: rotate(0); }
+  to   { transform: rotate(360deg); }
+}
+.sb-shimmer-spin { animation: sb-shimmer-spin 6s linear infinite; }
+
+/* Pulsing aura behind the vinyl when playing */
+@keyframes sb-glow-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50%      { opacity: 0.9;  transform: scale(1.12); }
+}
+.sb-glow-pulse { animation: sb-glow-pulse 2.2s ease-in-out infinite; }
+
+/* Equalizer bars — staggered animation per bar via inline animation-delay */
+@keyframes sb-eq-bar {
+  0%, 100% { transform: scaleY(0.3); }
+  20%      { transform: scaleY(0.95); }
+  40%      { transform: scaleY(0.55); }
+  60%      { transform: scaleY(0.85); }
+  80%      { transform: scaleY(0.4); }
+}
+.sb-eq-bar {
+  transform-origin: bottom center;
+  animation: sb-eq-bar 0.85s ease-in-out infinite;
+}
+
+/* Floating music notes that drift up and fade — looped, staggered via delay */
+@keyframes sb-note-float {
+  0%   { transform: translateY(4px) translateX(0) scale(0.7); opacity: 0; }
+  15%  { opacity: 1; transform: translateY(-2px) translateX(0) scale(1); }
+  70%  { opacity: 0.7; }
+  100% { transform: translateY(-32px) translateX(8px) scale(0.85); opacity: 0; }
+}
+.sb-note-float { animation: sb-note-float 3.2s ease-out infinite; }
+
+/* Butterfly wing flap — each wing pinches toward the body. */
+
 /* Butterfly wing flap — each wing pinches toward the body. */
 @keyframes sb-wing {
   0%, 100% { transform: scaleX(1); }
