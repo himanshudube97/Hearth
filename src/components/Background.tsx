@@ -310,6 +310,54 @@ const getEmbersConfig = (): ISourceOptions => ({
   detectRetina: true,
 })
 
+// Gold flecks configuration - drifting gold leaf flakes for Midnight theme
+const getGoldFlecksConfig = (): ISourceOptions => ({
+  fullScreen: false,
+  background: { color: { value: 'transparent' } },
+  fpsLimit: 30,
+  particles: {
+    number: { value: 25, density: { enable: true } },
+    color: { value: ['#C9A04A', '#F2D488', '#E0BC68'] },
+    shape: { type: 'square' },
+    opacity: {
+      value: { min: 0.15, max: 0.5 },
+      animation: {
+        enable: true,
+        speed: 0.2,
+        sync: false,
+        mode: 'random' as const,
+      },
+    },
+    size: {
+      value: { min: 2, max: 5 },
+    },
+    move: {
+      enable: true,
+      speed: { min: 0.08, max: 0.2 },
+      direction: 'bottom' as const,
+      random: true,
+      straight: false,
+      outModes: { default: 'out' as const },
+      drift: { min: -0.1, max: 0.1 },
+    },
+    rotate: {
+      value: { min: 0, max: 360 },
+      animation: {
+        enable: true,
+        speed: 4,
+        sync: false,
+      },
+    },
+    shadow: {
+      enable: true,
+      color: '#C9A04A',
+      blur: 4,
+      offset: { x: 0, y: 0 },
+    },
+  },
+  detectRetina: true,
+})
+
 // ========== CSS AURORA COMPONENT (simple, elegant) ==========
 
 const CssAurora = React.memo(function CssAurora() {
@@ -683,6 +731,7 @@ function BackgroundComponent() {
     if (theme.particles === 'foam') return getFoamConfig()
     if (theme.particles === 'sunbeam') return getSunbeamConfig()
     if (theme.particles === 'embers') return getEmbersConfig()
+    if (theme.particles === 'goldFlecks') return getGoldFlecksConfig()
     return getFirefliesConfig()
   }, [theme.particles, themeName])
 
