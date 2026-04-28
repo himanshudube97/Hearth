@@ -3,6 +3,7 @@
 import React, { memo, useRef, useCallback, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
+import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 
 interface PhotoSlotProps {
   photo?: {
@@ -104,12 +105,12 @@ const PhotoSlot = memo(function PhotoSlot({
 }: PhotoSlotProps) {
   void _spread // Acknowledge unused parameter
   const { theme } = useThemeStore()
+  const colors = getGlassDiaryColors(theme)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isHovering, setIsHovering] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const mutedColor = theme.text.muted
-  const borderColor = 'rgba(255,255,255,0.2)'
+  const borderColor = colors.photoBorder
 
   // Random tilt per mount so empty polaroids feel as natural as freshly-clicked ones
   const defaultRotation = useMemo(() => {
@@ -242,10 +243,10 @@ const PhotoSlot = memo(function PhotoSlot({
           aspectRatio: '4/5',
           border: `2px dashed ${borderColor}`,
           borderRadius: '4px',
-          opacity: 0.3,
+          opacity: 0.7,
         }}
       >
-        <span style={{ color: mutedColor, fontSize: '12px' }}>Photo</span>
+        <span style={{ color: colors.sectionLabel, fontSize: '12px' }}>Photo</span>
       </div>
     )
   }

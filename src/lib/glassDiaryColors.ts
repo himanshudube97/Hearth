@@ -38,19 +38,21 @@ const stripAlpha = (rgba: string): string => {
   return `rgb(${r}, ${g}, ${b})`
 }
 
-const warm = (theme: Theme, alpha: number): string => {
-  // Convert hex `theme.accent.warm` to rgba with the given alpha.
-  // Accepts #RGB, #RRGGBB. Falls back to passing the original color through.
-  const hex = theme.accent.warm.trim()
-  if (!hex.startsWith('#')) return hex
-  const cleaned = hex.length === 4
-    ? '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3]
-    : hex
+const withAlpha = (hex: string, alpha: number): string => {
+  // Convert a #RGB or #RRGGBB hex to rgba(...). Falls back to passing through.
+  const trimmed = hex.trim()
+  if (!trimmed.startsWith('#')) return trimmed
+  const cleaned = trimmed.length === 4
+    ? '#' + trimmed[1] + trimmed[1] + trimmed[2] + trimmed[2] + trimmed[3] + trimmed[3]
+    : trimmed
   const r = parseInt(cleaned.slice(1, 3), 16)
   const g = parseInt(cleaned.slice(3, 5), 16)
   const b = parseInt(cleaned.slice(5, 7), 16)
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
+
+const warm = (theme: Theme, alpha: number): string =>
+  withAlpha(theme.accent.warm, alpha)
 
 const darken = (hex: string, factor: number): string => {
   // Multiply each channel by (1 - factor). factor=0 → unchanged, factor=1 → black.
@@ -71,9 +73,9 @@ export function getGlassDiaryColors(theme: Theme): GlassDiaryColors {
     pageBgSolid: stripAlpha(theme.glass.bg),
     pageBlur: theme.glass.blur,
     pageBorder: warm(theme, 0.18),
-    ruledLine: warm(theme, 0.1),
-    sectionLabel: warm(theme, 0.7),
-    prompt: warm(theme, 0.6),
+    ruledLine: warm(theme, 0.28),
+    sectionLabel: withAlpha(theme.text.primary, 0.95),
+    prompt: withAlpha(theme.text.primary, 0.7),
     date: warm(theme, 0.85),
     bodyText: theme.text.primary,
     photoBorder: warm(theme, 0.3),

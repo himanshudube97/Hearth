@@ -242,7 +242,7 @@ const RightPage = memo(function RightPage({
         <div className="mb-3 flex-shrink-0">
           <div
             className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
-            style={{ color: mutedColor }}
+            style={{ color: colors.sectionLabel }}
           >
             Add Photos
           </div>
@@ -258,7 +258,7 @@ const RightPage = memo(function RightPage({
           <div className="flex items-start gap-2 mb-1 flex-shrink-0">
             <div
               className="text-xs italic flex-1 leading-relaxed"
-              style={{ color: mutedColor }}
+              style={{ color: colors.prompt }}
             >
               {prompt}
             </div>
@@ -296,7 +296,7 @@ const RightPage = memo(function RightPage({
         <div className="mt-2 flex-shrink-0" style={{ height: '140px' }}>
           <div
             className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium"
-            style={{ color: mutedColor }}
+            style={{ color: colors.sectionLabel }}
           >
             Draw
           </div>
@@ -370,7 +370,7 @@ const RightPage = memo(function RightPage({
       <div className="flex-1 min-h-0 flex flex-col">
         <div
           className="text-xs italic mb-1 flex-shrink-0 leading-relaxed"
-          style={{ color: mutedColor }}
+          style={{ color: colors.prompt }}
         >
           {prompt}
         </div>
@@ -414,7 +414,7 @@ const RightPage = memo(function RightPage({
                 border: `1px solid ${colors.doodleBorder}`,
               }}
             >
-              <span className="text-[10px]" style={{ color: mutedColor, opacity: 0.5 }}>Draw here</span>
+              <span className="text-[10px]" style={{ color: colors.sectionLabel }}>Draw here</span>
             </div>
           )}
         </div>

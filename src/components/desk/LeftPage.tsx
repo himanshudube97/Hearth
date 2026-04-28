@@ -261,7 +261,7 @@ const LeftPage = memo(function LeftPage({
           <>
             <div
               className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
-              style={{ color: mutedColor }}
+              style={{ color: colors.sectionLabel }}
             >
               Listening to
             </div>
@@ -271,7 +271,7 @@ const LeftPage = memo(function LeftPage({
           <>
             <div
               className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
-              style={{ color: mutedColor }}
+              style={{ color: colors.sectionLabel }}
             >
               Add a Song
             </div>
@@ -295,7 +295,7 @@ const LeftPage = memo(function LeftPage({
       <div className="flex-1 min-h-0 flex flex-col">
         <div
           className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium flex-shrink-0"
-          style={{ color: mutedColor }}
+          style={{ color: colors.sectionLabel }}
         >
           Write your thoughts
         </div>
