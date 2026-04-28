@@ -9,6 +9,7 @@ import {
   minSizeFor,
   isEditableType,
 } from '@/lib/scrapbook'
+import Attachments from './Attachments'
 
 interface Props {
   item: ScrapbookItem
@@ -355,6 +356,9 @@ export default function CanvasItemWrapper({
           ×
         </button>
       )}
+
+      {/* attachment overlay — pin / tape / corners / grommets / clip */}
+      <Attachments item={item} />
 
       {/* body — drags by hold-and-move, taps to enter edit (if editable) */}
       <div

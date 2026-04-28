@@ -21,6 +21,11 @@ export type StickerId =
   | 'butterfly-blue'
   | 'butterfly-orange'
   | 'butterfly-monarch'
+  | 'bee'
+  | 'bumblebee'
+  | 'dragonfly'
+  | 'ladybug'
+  | 'firefly'
   | 'mushroom'
   | 'cloud'
   | 'raindrop'
@@ -217,6 +222,140 @@ function makeButterfly(
     </svg>
   )
 }
+
+const Bee: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    {/* wings — translucent, flap together */}
+    <g className="sb-anim sb-anim-flap">
+      <ellipse cx="40" cy="32" rx="14" ry="9" fill="#fdfaf2" stroke="#5a4a2a" strokeWidth="1.4" opacity="0.85" />
+      <ellipse cx="60" cy="32" rx="14" ry="9" fill="#fdfaf2" stroke="#5a4a2a" strokeWidth="1.4" opacity="0.85" />
+    </g>
+    {/* body */}
+    <ellipse cx="50" cy="58" rx="22" ry="16" fill="#f5c842" stroke="#3a2a0a" strokeWidth="2.5" />
+    {/* stripes */}
+    <path d="M40 44 C 40 54, 40 66, 40 72" stroke="#3a2a0a" strokeWidth="3.6" fill="none" strokeLinecap="round" />
+    <path d="M52 43 C 52 54, 52 66, 52 73" stroke="#3a2a0a" strokeWidth="3.6" fill="none" strokeLinecap="round" />
+    {/* head */}
+    <circle cx="74" cy="54" r="9" fill="#3a2a0a" stroke="#1a0e02" strokeWidth="1.2" />
+    {/* eye */}
+    <circle cx="76" cy="52" r="1.6" fill="#fdfaf2" />
+    {/* antennae */}
+    <path d="M78 46 C 80 40, 82 34, 82 30" stroke="#3a2a0a" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <path d="M70 46 C 68 40, 68 34, 70 30" stroke="#3a2a0a" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <circle cx="82" cy="30" r="1.4" fill="#3a2a0a" />
+    <circle cx="70" cy="30" r="1.4" fill="#3a2a0a" />
+    {/* stinger */}
+    <path d="M28 60 L 18 58 L 28 64 Z" fill="#3a2a0a" />
+  </svg>
+)
+
+const Bumblebee: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    {/* wings — fluttery, slightly tilted out */}
+    <g className="sb-anim sb-anim-flap">
+      <ellipse cx="30" cy="38" rx="14" ry="20" fill="#fdfaf2" stroke="#7a7060" strokeWidth="1.4" opacity="0.7" transform="rotate(-22 30 38)" />
+      <ellipse cx="70" cy="38" rx="14" ry="20" fill="#fdfaf2" stroke="#7a7060" strokeWidth="1.4" opacity="0.7" transform="rotate(22 70 38)" />
+    </g>
+    {/* round body */}
+    <ellipse cx="50" cy="58" rx="24" ry="22" fill="#f5c842" stroke="#3a2a0a" strokeWidth="2.5" />
+    {/* curved stripes */}
+    <path d="M30 50 C 40 44, 60 44, 70 50" stroke="#3a2a0a" strokeWidth="4" fill="none" strokeLinecap="round" />
+    <path d="M28 62 C 40 58, 60 58, 72 62" stroke="#3a2a0a" strokeWidth="4" fill="none" strokeLinecap="round" />
+    <path d="M30 74 C 40 78, 60 78, 70 74" stroke="#3a2a0a" strokeWidth="4" fill="none" strokeLinecap="round" />
+    {/* head */}
+    <circle cx="50" cy="34" r="11" fill="#3a2a0a" stroke="#1a0e02" strokeWidth="1.2" />
+    {/* eyes */}
+    <circle cx="46" cy="32" r="1.8" fill="#fdfaf2" />
+    <circle cx="54" cy="32" r="1.8" fill="#fdfaf2" />
+    {/* antennae */}
+    <path d="M44 24 C 40 18, 38 12, 36 8" stroke="#3a2a0a" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    <path d="M56 24 C 60 18, 62 12, 64 8" stroke="#3a2a0a" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    <circle cx="36" cy="8" r="1.6" fill="#3a2a0a" />
+    <circle cx="64" cy="8" r="1.6" fill="#3a2a0a" />
+  </svg>
+)
+
+const Dragonfly: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    {/* upper wings — translucent blue */}
+    <g className="sb-anim sb-anim-flap">
+      <ellipse cx="26" cy="32" rx="22" ry="6" fill="#bfdfe8" stroke="#3a5a6a" strokeWidth="1.2" opacity="0.65" transform="rotate(-12 26 32)" />
+      <ellipse cx="74" cy="32" rx="22" ry="6" fill="#bfdfe8" stroke="#3a5a6a" strokeWidth="1.2" opacity="0.65" transform="rotate(12 74 32)" />
+    </g>
+    {/* lower wings — slightly smaller */}
+    <g className="sb-anim sb-anim-flap">
+      <ellipse cx="28" cy="56" rx="18" ry="5" fill="#bfdfe8" stroke="#3a5a6a" strokeWidth="1.2" opacity="0.65" transform="rotate(12 28 56)" />
+      <ellipse cx="72" cy="56" rx="18" ry="5" fill="#bfdfe8" stroke="#3a5a6a" strokeWidth="1.2" opacity="0.65" transform="rotate(-12 72 56)" />
+    </g>
+    {/* long thin body */}
+    <ellipse cx="50" cy="52" rx="3.6" ry="38" fill="#3a6a78" stroke="#1a3040" strokeWidth="1.8" />
+    {/* segment marks */}
+    <line x1="46" y1="62" x2="54" y2="62" stroke="#1a3040" strokeWidth="1.2" />
+    <line x1="46" y1="72" x2="54" y2="72" stroke="#1a3040" strokeWidth="1.2" />
+    <line x1="46" y1="82" x2="54" y2="82" stroke="#1a3040" strokeWidth="1.2" />
+    {/* head */}
+    <circle cx="50" cy="14" r="6.5" fill="#3a6a78" stroke="#1a3040" strokeWidth="1.8" />
+    {/* big eyes */}
+    <circle cx="46" cy="13" r="2.2" fill="#1a3040" />
+    <circle cx="54" cy="13" r="2.2" fill="#1a3040" />
+    <circle cx="46.5" cy="12.5" r="0.7" fill="#fdfaf2" />
+    <circle cx="54.5" cy="12.5" r="0.7" fill="#fdfaf2" />
+  </svg>
+)
+
+const Ladybug: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <g className="sb-anim sb-anim-wobble">
+      {/* shell */}
+      <path
+        d="M14 52 C 14 30, 30 14, 50 14 C 70 14, 86 30, 86 52 C 86 72, 70 88, 50 88 C 30 88, 14 72, 14 52 Z"
+        fill="#e63d2a"
+        stroke="#3a0a08"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      {/* center seam */}
+      <line x1="50" y1="16" x2="50" y2="86" stroke="#3a0a08" strokeWidth="2" />
+      {/* spots */}
+      <circle cx="30" cy="34" r="5.5" fill="#3a0a08" />
+      <circle cx="70" cy="34" r="5.5" fill="#3a0a08" />
+      <circle cx="26" cy="58" r="5" fill="#3a0a08" />
+      <circle cx="74" cy="58" r="5" fill="#3a0a08" />
+      <circle cx="38" cy="76" r="4" fill="#3a0a08" />
+      <circle cx="62" cy="76" r="4" fill="#3a0a08" />
+      {/* head */}
+      <path d="M28 18 C 32 10, 68 10, 72 18 C 64 24, 36 24, 28 18 Z" fill="#1a0604" stroke="#0a0202" strokeWidth="1.8" strokeLinejoin="round" />
+      {/* eyes */}
+      <circle cx="40" cy="16" r="1.6" fill="#fdfaf2" />
+      <circle cx="60" cy="16" r="1.6" fill="#fdfaf2" />
+    </g>
+  </svg>
+)
+
+const Firefly: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    {/* glow aura — pulses */}
+    <circle cx="50" cy="64" r="28" fill="#f5e87a" opacity="0.35" className="sb-anim sb-glow-pulse" />
+    <circle cx="50" cy="64" r="16" fill="#fdfaa0" opacity="0.55" className="sb-anim sb-glow-pulse" />
+    {/* wings */}
+    <g className="sb-anim sb-anim-flap">
+      <ellipse cx="36" cy="40" rx="12" ry="7" fill="#fdfaf2" stroke="#7a7060" strokeWidth="1.2" opacity="0.7" />
+      <ellipse cx="64" cy="40" rx="12" ry="7" fill="#fdfaf2" stroke="#7a7060" strokeWidth="1.2" opacity="0.7" />
+    </g>
+    {/* body */}
+    <ellipse cx="50" cy="46" rx="9" ry="14" fill="#3a2a1a" stroke="#1a0a04" strokeWidth="1.6" />
+    {/* glowing tail */}
+    <ellipse cx="50" cy="64" rx="7" ry="11" fill="#f5e87a" stroke="#a08a30" strokeWidth="1.2" />
+    {/* head */}
+    <circle cx="50" cy="30" r="6" fill="#3a2a1a" stroke="#1a0a04" strokeWidth="1.4" />
+    {/* eyes */}
+    <circle cx="47" cy="29" r="1.3" fill="#fdfaf2" />
+    <circle cx="53" cy="29" r="1.3" fill="#fdfaf2" />
+    {/* antennae */}
+    <path d="M46 24 C 44 20, 42 16, 40 14" stroke="#3a2a1a" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+    <path d="M54 24 C 56 20, 58 16, 60 14" stroke="#3a2a1a" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+  </svg>
+)
 
 const Butterfly = makeButterfly('#c98ec4', '#a36ca0', '#5a2a4a')
 const ButterflyBlue = makeButterfly('#8ab8e8', '#5e90c8', '#1f3d6a', '#1a1614', '#fdfaf2')
@@ -527,6 +666,11 @@ export const stickers: Record<StickerId, { label: string; component: React.FC<St
   'butterfly-blue': { label: 'Butterfly (blue)', component: ButterflyBlue, aspect: 1 },
   'butterfly-orange': { label: 'Butterfly (orange)', component: ButterflyOrange, aspect: 1 },
   'butterfly-monarch': { label: 'Butterfly (monarch)', component: ButterflyMonarch, aspect: 1 },
+  bee: { label: 'Bee', component: Bee, aspect: 1 },
+  bumblebee: { label: 'Bumblebee', component: Bumblebee, aspect: 1 },
+  dragonfly: { label: 'Dragonfly', component: Dragonfly, aspect: 1 },
+  ladybug: { label: 'Ladybug', component: Ladybug, aspect: 1 },
+  firefly: { label: 'Firefly', component: Firefly, aspect: 1 },
   bookmark: { label: 'Bookmark', component: Bookmark, aspect: 1 },
   pencil: { label: 'Pencil', component: Pencil, aspect: 1 },
   'washi-tape': { label: 'Washi tape', component: WashiTape, aspect: 200 / 60 },

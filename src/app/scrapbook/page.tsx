@@ -1,7 +1,7 @@
 'use client'
 
-import ScrapbookCanvas from '@/components/scrapbook/ScrapbookCanvas'
+import ScrapbookGrid from '@/components/scrapbook/ScrapbookGrid'
 
 export default function ScrapbookPage() {
-  return <ScrapbookCanvas />
+  return <ScrapbookGrid />
 }

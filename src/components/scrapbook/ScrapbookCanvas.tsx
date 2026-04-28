@@ -9,12 +9,19 @@ import {
   PhotoItemData,
   SongItemData,
   DoodleItemData,
+  ClipItemData,
+  MoodItemData,
+  StampItemData,
+  DateItemData,
   makeStickerItem,
   makeTextItem,
   makePhotoItem,
   makeSongItem,
   makeDoodleItem,
-  paperForTheme,
+  makeClipItem,
+  makeMoodItem,
+  makeStampItem,
+  ClipVariant,
 } from '@/lib/scrapbook'
 import CanvasItemWrapper from './CanvasItemWrapper'
 import CanvasToolbar from './CanvasToolbar'
@@ -24,10 +31,59 @@ import PhotoItem from './items/PhotoItem'
 import SongItem from './items/SongItem'
 import DoodleItem from './items/DoodleItem'
 import CameraModal from './CameraModal'
+import ClipItem from './items/ClipItem'
+import MoodItem from './items/MoodItem'
+import StampItem from './items/StampItem'
+import DateItem from './items/DateItem'
+import PageSurface from './PageSurface'
+import { useAutosaveScrapbook } from '@/hooks/useAutosaveScrapbook'
 
-export default function ScrapbookCanvas() {
-  const { theme, themeName } = useThemeStore()
-  const [items, setItems] = useState<ScrapbookItem[]>([])
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024
+const PHOTO_MAX_WIDTH = 1600
+
+async function compressPhoto(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const reader = new FileReader()
+    reader.onload = (e) => { img.src = e.target?.result as string }
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return reject(new Error('Canvas context unavailable'))
+
+      let width = img.width
+      let height = img.height
+      if (width > PHOTO_MAX_WIDTH) {
+        height = Math.round((height * PHOTO_MAX_WIDTH) / width)
+        width = PHOTO_MAX_WIDTH
+      }
+      canvas.width = width
+      canvas.height = height
+      ctx.drawImage(img, 0, 0, width, height)
+
+      let quality = 0.85
+      let dataUrl = canvas.toDataURL('image/jpeg', quality)
+      while (dataUrl.length > PHOTO_MAX_BYTES * 1.37 && quality > 0.3) {
+        quality -= 0.1
+        dataUrl = canvas.toDataURL('image/jpeg', quality)
+      }
+      resolve(dataUrl)
+    }
+    img.onerror = () => reject(new Error('Image load failed'))
+    reader.onerror = () => reject(new Error('File read failed'))
+    reader.readAsDataURL(file)
+  })
+}
+
+interface Props {
+  boardId: string
+  initialItems: ScrapbookItem[]
+}
+
+export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
+  const { theme } = useThemeStore()
+  const [items, setItems] = useState<ScrapbookItem[]>(initialItems)
+  const { status: saveStatus, trigger: triggerSave, flush: flushSave } = useAutosaveScrapbook({ boardId })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [cameraTargetId, setCameraTargetId] = useState<string | null>(null)
@@ -48,6 +104,16 @@ export default function ScrapbookCanvas() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [editingId])
+
+  useEffect(() => {
+    triggerSave(items)
+  }, [items, triggerSave])
+
+  useEffect(() => {
+    const onBeforeUnload = () => { flushSave() }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [flushSave])
 
   function updateItem(updated: ScrapbookItem) {
     setItems((prev) => prev.map((it) => (it.id === updated.id ? updated : it)))
@@ -111,17 +177,17 @@ export default function ScrapbookCanvas() {
     fileInputRef.current?.click()
   }
 
-  function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     const targetId = uploadTargetId
     e.target.value = ''
     if (!file || !targetId) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const result = ev.target?.result
-      if (typeof result === 'string') fillPhoto(targetId, result)
+    try {
+      const dataUrl = await compressPhoto(file)
+      fillPhoto(targetId, dataUrl)
+    } catch (err) {
+      console.error('Failed to compress photo:', err)
     }
-    reader.readAsDataURL(file)
     setUploadTargetId(null)
   }
 
@@ -146,13 +212,40 @@ export default function ScrapbookCanvas() {
     setEditingId(item.id)
   }
 
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  })
+  function addClip(variant: ClipVariant) {
+    const defaults: Record<ClipVariant, string[]> = {
+      'index-card': ['a small note'],
+      'ticket-stub': ['L TRAIN · 04·28·26', 'Bedford → 1st'],
+      'receipt': ['café', '$ 4.50'],
+    }
+    const item = makeClipItem(variant, defaults[variant], items)
+    setItems((prev) => [...prev, item])
+    setSelectedId(item.id)
+    setEditingId(item.id)
+  }
 
-  const paper = paperForTheme(themeName)
+  function addMood() {
+    const item = makeMoodItem(2, items)
+    setItems((prev) => [...prev, item])
+    setSelectedId(item.id)
+  }
+
+  function addStamp() {
+    const { themeName } = useThemeStore.getState()
+    const today = new Date()
+    const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
+    const item = makeStampItem(`apr · ${today.getDate()}`, themeName, dateStr, items)
+    setItems((prev) => [...prev, item])
+    setSelectedId(item.id)
+    setEditingId(item.id)
+  }
+
+  function resetBoard() {
+    setItems([])
+    setSelectedId(null)
+    setEditingId(null)
+  }
+
   const tapeLeft = withAlpha(theme.accent.warm, 0.78)
   const tapeRight = withAlpha(theme.accent.secondary, 0.78)
 
@@ -165,53 +258,45 @@ export default function ScrapbookCanvas() {
           the viewport. */}
 
       <div
-        className="mb-3 flex items-center gap-3"
         style={{
-          color: theme.text.secondary,
+          fontSize: 12,
+          color: 'rgba(58, 52, 41, 0.55)',
           fontFamily: 'var(--font-caveat), cursive',
-          fontSize: 22,
-          letterSpacing: 0.3,
+          marginBottom: 8,
+          minHeight: 16,
         }}
       >
-        <span>scrapbook</span>
-        <span style={{ opacity: 0.5 }}>·</span>
-        <span style={{ opacity: 0.75 }}>{today.toLowerCase()}</span>
+        {saveStatus === 'saving' && 'saving…'}
+        {saveStatus === 'saved' && 'saved'}
+        {saveStatus === 'error' && 'save error — retrying'}
       </div>
 
-      <div className="mb-4 z-30">
-        <CanvasToolbar
-          onAddText={addText}
-          onAddSticker={addSticker}
-          onAddPhoto={addPhoto}
-          onAddSong={addSong}
-          onAddDoodle={addDoodle}
-        />
-      </div>
+      <div className="w-full flex justify-center items-start gap-5">
+        <div className="flex-shrink-0" style={{ position: 'sticky', top: 96, zIndex: 1000 }}>
+          <CanvasToolbar
+            onAddText={addText}
+            onAddSticker={addSticker}
+            onAddPhoto={addPhoto}
+            onAddSong={addSong}
+            onAddDoodle={addDoodle}
+            onAddClip={addClip}
+            onAddMood={addMood}
+            onAddStamp={addStamp}
+            onReset={resetBoard}
+          />
+        </div>
 
-      <div className="w-full flex justify-center">
         <div
           ref={canvasRef}
           onClick={deselectAll}
           className="relative"
           style={{
-            // Cap the canvas so the entire scrapbook page fits inside the
-            // viewport — no whole-page scrollbar. Width is the smaller of
-            // 720px (max paper size) or 80% of the available vertical room
-            // (height minus surrounding chrome ≈ 220px: nav + label +
-            // toolbar + main pt/pb gaps). Aspect-ratio derives the height.
-            width: 'min(720px, calc((100vh - 220px) * 0.8))',
-            aspectRatio: '4 / 5',
-            background: paper.base,
-            backgroundImage: `radial-gradient(circle at 20% 30%, ${paper.grain} 0%, transparent 40%),
-              radial-gradient(circle at 80% 70%, ${paper.grain} 0%, transparent 50%),
-              radial-gradient(circle at 60% 20%, ${paper.grain} 0%, transparent 45%)`,
-            borderRadius: 4,
-            boxShadow:
-              '0 14px 40px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.4)',
-            overflow: 'hidden',
+            width: 'min(1102px, calc((100vh - 220px) * 1.45))',
+            height: 'min(760px, calc(100vh - 220px))',
             cursor: selectedId ? 'default' : 'auto',
           }}
         >
+          <PageSurface>
           <div
             className="absolute pointer-events-none"
             style={{
@@ -294,9 +379,34 @@ export default function ScrapbookCanvas() {
                     onChange={updateItem}
                   />
                 )}
+                {item.type === 'clip' && (
+                  <ClipItem
+                    item={item as ClipItemData}
+                    isEditing={isItemEditing}
+                    onChange={updateItem}
+                  />
+                )}
+                {item.type === 'mood' && (
+                  <MoodItem item={item as MoodItemData} onChange={updateItem} />
+                )}
+                {item.type === 'stamp' && (
+                  <StampItem
+                    item={item as StampItemData}
+                    isEditing={isItemEditing}
+                    onChange={updateItem}
+                  />
+                )}
+                {item.type === 'date' && (
+                  <DateItem
+                    item={item as DateItemData}
+                    isEditing={isItemEditing}
+                    onChange={updateItem}
+                  />
+                )}
               </CanvasItemWrapper>
             )
           })}
+          </PageSurface>
         </div>
       </div>
 

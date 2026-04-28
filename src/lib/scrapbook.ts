@@ -2,7 +2,9 @@
 
 import type { ThemeName } from '@/lib/themes'
 
-export type ScrapbookItemType = 'text' | 'sticker' | 'photo' | 'song' | 'doodle'
+export type ScrapbookItemType =
+  | 'text' | 'sticker' | 'photo' | 'song' | 'doodle'
+  | 'clip' | 'mood' | 'stamp' | 'date'
 
 export interface BaseItem {
   id: string
@@ -41,7 +43,10 @@ export function isEditableType(type: ScrapbookItemType): boolean {
     type === 'text' ||
     type === 'photo' ||
     type === 'song' ||
-    type === 'doodle'
+    type === 'doodle' ||
+    type === 'clip' ||
+    type === 'stamp' ||
+    type === 'date'
   )
 }
 
@@ -75,12 +80,43 @@ export interface DoodleItemData extends BaseItem {
   strokes: DoodleStroke[]
 }
 
+export type ClipVariant = 'index-card' | 'ticket-stub' | 'receipt'
+
+export interface ClipItemData extends BaseItem {
+  type: 'clip'
+  variant: ClipVariant
+  lines: string[] // e.g. ['L TRAIN · 04·28·26', 'Bedford → 1st']
+}
+
+export interface MoodItemData extends BaseItem {
+  type: 'mood'
+  level: 0 | 1 | 2 | 3 | 4
+}
+
+export interface StampItemData extends BaseItem {
+  type: 'stamp'
+  topLine: string
+  midLine: string
+  bottomLine: string
+  ink: 'red' | 'blue' | 'black'
+}
+
+export interface DateItemData extends BaseItem {
+  type: 'date'
+  isoDate: string         // 'YYYY-MM-DD'
+  displayText?: string    // user override; falls back to formatted isoDate
+}
+
 export type ScrapbookItem =
   | TextItemData
   | StickerItemData
   | PhotoItemData
   | SongItemData
   | DoodleItemData
+  | ClipItemData
+  | MoodItemData
+  | StampItemData
+  | DateItemData
 
 export function makeId(): string {
   return Math.random().toString(36).slice(2, 11)
@@ -279,28 +315,218 @@ export function lockAspectFor(type: ScrapbookItemType): boolean {
 
 export function minSizeFor(type: ScrapbookItemType): { w: number; h: number } {
   switch (type) {
-    case 'sticker':
-      return { w: 4, h: 4 }
-    case 'text':
-      return { w: 12, h: 4 }
-    case 'photo':
-      return { w: 12, h: 12 }
-    case 'song':
-      return { w: 22, h: 6 }
-    case 'doodle':
-      return { w: 12, h: 12 }
+    case 'sticker': return { w: 4, h: 4 }
+    case 'text':    return { w: 12, h: 4 }
+    case 'photo':   return { w: 12, h: 12 }
+    case 'song':    return { w: 22, h: 6 }
+    case 'doodle':  return { w: 12, h: 12 }
+    case 'clip':    return { w: 16, h: 6 }
+    case 'mood':    return { w: 6, h: 6 }
+    case 'stamp':   return { w: 10, h: 10 }
+    case 'date':    return { w: 14, h: 4 }
   }
 }
 
-// Theme-aware paper colors. For now: cream paper for all themes (works
-// well on the existing dark-leaning palette). Theme-specific paper packs
-// can replace this map later without changing call sites.
-export function paperForTheme(_themeName: ThemeName): {
+export function makeClipItem(
+  variant: ClipVariant,
+  lines: string[],
+  items: ScrapbookItem[],
+): ClipItemData {
+  const sizeByVariant: Record<ClipVariant, { width: number; height: number }> = {
+    'index-card': { width: 26, height: 14 },
+    'ticket-stub': { width: 24, height: 8 },
+    'receipt': { width: 16, height: 14 },
+  }
+  const { width, height } = sizeByVariant[variant]
+  return {
+    id: makeId(),
+    type: 'clip',
+    x: 35,
+    y: 50,
+    width,
+    height,
+    rotation: randomTilt(),
+    z: nextZ(items),
+    variant,
+    lines,
+  }
+}
+
+export function makeMoodItem(level: 0 | 1 | 2 | 3 | 4, items: ScrapbookItem[]): MoodItemData {
+  return {
+    id: makeId(),
+    type: 'mood',
+    x: 50,
+    y: 55,
+    width: 8,
+    height: 8,
+    rotation: randomTilt(),
+    z: nextZ(items),
+    level,
+  }
+}
+
+export function makeStampItem(
+  topLine: string,
+  midLine: string,
+  bottomLine: string,
+  items: ScrapbookItem[],
+): StampItemData {
+  return {
+    id: makeId(),
+    type: 'stamp',
+    x: 70,
+    y: 30,
+    width: 14,
+    height: 14,
+    rotation: randomTilt() * 1.5,
+    z: nextZ(items),
+    topLine,
+    midLine,
+    bottomLine,
+    ink: 'red',
+  }
+}
+
+export function makeDateItem(date: Date, items: ScrapbookItem[]): DateItemData {
+  const iso = date.toISOString().slice(0, 10)
+  return {
+    id: makeId(),
+    type: 'date',
+    x: 42,
+    y: 6,
+    width: 18,
+    height: 5,
+    rotation: 0,
+    z: nextZ(items),
+    isoDate: iso,
+  }
+}
+
+// Default mood color palette — reused by MoodItem and any other surface
+// that wants to render the 0-4 mood scale.
+export const MOOD_COLORS: Record<number, string> = {
+  0: '#5b6b7a', // Heavy — slate
+  1: '#5e80a8', // Low — blue
+  2: '#c97da3', // Tender — pink
+  3: '#d39a4f', // Warm — amber
+  4: '#d3a84f', // Radiant — gold
+}
+
+export type AttachmentKind =
+  | 'pin'           // push-pin top-center
+  | 'tape'          // washi tape top edge
+  | 'corners'       // photo corners (four corners)
+  | 'grommets'      // two grommets on left edge
+  | 'paper-clip'    // tiny clip top-left
+  | 'none'          // no attachment
+
+export function attachmentForItem(item: ScrapbookItem): AttachmentKind {
+  switch (item.type) {
+    case 'text':    return 'pin'
+    case 'photo':   return hashId(item.id) % 2 === 0 ? 'tape' : 'pin'
+    case 'song':    return 'tape'
+    case 'doodle':  return 'corners'
+    case 'sticker': return 'none'
+    case 'mood':    return 'none'
+    case 'stamp':   return 'none'
+    case 'date':    return 'pin'
+    case 'clip':
+      if (item.variant === 'ticket-stub') return 'grommets'
+      if (item.variant === 'receipt')     return 'paper-clip'
+      return 'pin'
+  }
+}
+
+function hashId(id: string): number {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+
+// Theme-aware paper presets. Each is a hand-tuned "sheet" — the base color
+// is the paper itself (always muted / paper-like, never saturated), and the
+// highlight / shadow / grain values give the page its depth.
+export interface PaperPreset {
   base: string
   grain: string
-} {
-  return {
-    base: '#f3ead2',
-    grain: 'rgba(120, 90, 50, 0.04)',
-  }
+  highlight: string // soft warm glow (top-left radial)
+  shadow: string    // soft cool shade (bottom-right radial)
+}
+
+const PAPER_PRESETS: Record<ThemeName, PaperPreset> = {
+  // kraft cream — warm cozy brown undertones
+  hearth: {
+    base: '#e8d8b0',
+    grain: 'rgba(120, 80, 30, 0.06)',
+    highlight: 'rgba(255, 240, 200, 0.45)',
+    shadow: 'rgba(120, 80, 30, 0.10)',
+  },
+  // forest tan — slight olive undertone for sunset / woodland mood
+  rivendell: {
+    base: '#d8c8a0',
+    grain: 'rgba(80, 70, 30, 0.07)',
+    highlight: 'rgba(245, 230, 190, 0.40)',
+    shadow: 'rgba(70, 60, 25, 0.12)',
+  },
+  // pale honey paper — bright cream sheet
+  paperSun: {
+    base: '#f0e0b0',
+    grain: 'rgba(140, 100, 40, 0.05)',
+    highlight: 'rgba(255, 245, 210, 0.45)',
+    shadow: 'rgba(120, 80, 30, 0.10)',
+  },
+  // blush cream — dusty rose-tinted paper
+  rose: {
+    base: '#f0ddd0',
+    grain: 'rgba(140, 80, 80, 0.05)',
+    highlight: 'rgba(255, 235, 230, 0.45)',
+    shadow: 'rgba(140, 70, 80, 0.10)',
+  },
+  // sage linen — warm cream with green undertone
+  sage: {
+    base: '#e0dcba',
+    grain: 'rgba(90, 100, 50, 0.06)',
+    highlight: 'rgba(245, 240, 210, 0.42)',
+    shadow: 'rgba(80, 90, 45, 0.10)',
+  },
+  // cool cream — pale greyish paper for ocean palette
+  ocean: {
+    base: '#dcdcc8',
+    grain: 'rgba(60, 70, 80, 0.06)',
+    highlight: 'rgba(240, 240, 230, 0.42)',
+    shadow: 'rgba(40, 60, 70, 0.10)',
+  },
+  // honey paper — warm golden sheet
+  saffron: {
+    base: '#e8cc88',
+    grain: 'rgba(140, 90, 30, 0.07)',
+    highlight: 'rgba(250, 230, 180, 0.45)',
+    shadow: 'rgba(120, 70, 20, 0.12)',
+  },
+  // mint linen — cream with garden-green undertone
+  garden: {
+    base: '#dcdcb8',
+    grain: 'rgba(80, 110, 50, 0.06)',
+    highlight: 'rgba(240, 240, 210, 0.42)',
+    shadow: 'rgba(70, 100, 50, 0.10)',
+  },
+  // manila / buff — kraft envelope paper
+  postal: {
+    base: '#e0cfa8',
+    grain: 'rgba(110, 75, 30, 0.07)',
+    highlight: 'rgba(245, 230, 195, 0.42)',
+    shadow: 'rgba(95, 60, 25, 0.12)',
+  },
+  // soft linen — clean off-white sheet
+  linen: {
+    base: '#efe8d4',
+    grain: 'rgba(120, 95, 50, 0.05)',
+    highlight: 'rgba(255, 248, 230, 0.45)',
+    shadow: 'rgba(110, 85, 45, 0.09)',
+  },
+}
+
+export function paperForTheme(themeName: ThemeName): PaperPreset {
+  return PAPER_PRESETS[themeName] ?? PAPER_PRESETS.hearth
 }
