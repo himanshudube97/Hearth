@@ -113,6 +113,12 @@ export default function BookSpread() {
   const [entries, setEntries] = useState<Entry[]>([])
   const [todayEntries, setTodayEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
+  // True once react-pageflip has finished its internal init (which positions
+  // pages in 3D space via useEffect *after* HTMLFlipBook mounts). Until then
+  // the book frame would show the cover sitting on un-laid-out page divs —
+  // visible on refresh as "cover, then diary on top". Gating the fade-in on
+  // this prevents that.
+  const [bookReady, setBookReady] = useState(false)
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
   const [pendingPhotos, setPendingPhotos] = useState<Photo[]>([])
   const [rightTextareaFocusTrigger, setRightTextareaFocusTrigger] = useState(0)
@@ -131,8 +137,20 @@ export default function BookSpread() {
     let cancelled = false
     const run = async () => {
       try {
+        // Kick off the react-pageflip chunk load in parallel with the
+        // entries fetch. Without this, `loading` flips to false the
+        // instant the API resolves, but `dynamic(() => import(...))` is
+        // still streaming the flipbook chunk over the network — so the
+        // book frame (cover + ribbon + ornaments) fades in alone for a
+        // tick before pages mount. That's the "cover blip" users see on
+        // first load and refresh.
+        const flipbookPromise = import('react-pageflip')
+
         const res = await fetch('/api/entries?limit=50')
-        if (!res.ok) return
+        if (!res.ok) {
+          await flipbookPromise.catch(() => {})
+          return
+        }
         const data = await res.json()
         const fetched: Entry[] = data.entries || []
         if (cancelled) return
@@ -175,6 +193,11 @@ export default function BookSpread() {
           setCurrentEntryId(active.id)
           autosaveRef.current.reset(active.id)
         }
+
+        // Wait for the flipbook chunk too — only then flip `loading`,
+        // so motion.div mounts with the library already cached and pages
+        // render in the same frame as the cover.
+        await flipbookPromise.catch(() => {})
       } catch (error) {
         console.error('Failed to fetch entries:', error)
       } finally {
@@ -193,6 +216,14 @@ export default function BookSpread() {
       goToSpread(entries.length)
     }
   }, [loading, entries.length, goToSpread])
+
+  // Safety net: if react-pageflip's onInit somehow doesn't fire, reveal the
+  // book anyway after a short grace period so it never gets stuck invisible.
+  useEffect(() => {
+    if (loading) return
+    const timer = setTimeout(() => setBookReady(true), 800)
+    return () => clearTimeout(timer)
+  }, [loading])
 
   // Build the current draft from all the places its parts live.
   const buildDraft = useCallback((): AutosaveDraft => {
@@ -409,8 +440,8 @@ export default function BookSpread() {
       <motion.div
         className="absolute -top-14 left-0 z-20 flex items-center gap-3"
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
+        animate={{ opacity: loading ? 0 : 1 }}
+        transition={{ duration: 0.4, delay: loading ? 0 : 0.4 }}
       >
         <div
           className="px-4 py-2 rounded-full text-xs"
@@ -447,12 +478,19 @@ export default function BookSpread() {
           ['--book-cover-border' as string]: colors.coverBorder,
         } as React.CSSProperties}
       >
-        <div className="book-cover" />
       {/* Book wrapper. Sized for the spread (1300x820), relative so chrome
           can be positioned absolutely on top. The --page-bg CSS variable is
           inherited by the .diary-page children so each page tints to the
           current theme without setting it inline (the library would wipe
-          inline styles mid-flip). */}
+          inline styles mid-flip).
+
+          Conditionally rendered on `!loading` so the cover and pages mount
+          together once entries are fetched. Anything rendered during the
+          fetch (cover frame, ribbon, ornaments) would pop in without its
+          flipbook contents, producing a visible blip on navigation/refresh.
+          Mounting after loading guarantees framer-motion's `initial` state
+          is the very first paint — no FOUC. */}
+      {!loading && (
       <motion.div
         className="relative"
         style={{
@@ -463,9 +501,12 @@ export default function BookSpread() {
           ['--page-bg-solid' as string]: colors.pageBgSolid,
         } as React.CSSProperties}
         initial={{ rotateX: 5, opacity: 0 }}
-        animate={{ rotateX: 0, opacity: 1 }}
+        animate={bookReady ? { rotateX: 0, opacity: 1 } : { rotateX: 5, opacity: 0 }}
         transition={{ duration: 0.6 }}
       >
+        {/* Hardcover frame, rendered as the first child so it sits behind
+            the pages and shares the open-animation with them. */}
+        <div className="book-cover" />
         {/* Ribbon bookmark with brass swivel clasp + oval hangtag dangling beneath */}
         <RibbonBookmark color={colors.ribbon}>
           <RibbonTag date={spreadDate} colors={colors} />
@@ -510,6 +551,7 @@ export default function BookSpread() {
             showCover={false}
             startPage={entries.length * 2}
             onFlip={handleFlip}
+            onInit={() => setBookReady(true)}
             className=""
             style={{}}
             startZIndex={0}
@@ -614,6 +656,7 @@ export default function BookSpread() {
         )}
 
       </motion.div>
+      )}
       </div>
     </div>
   )
