@@ -1,6 +1,12 @@
 // Theme definitions for Hearth
 
-export type ThemeName = 'rivendell'
+export type ThemeName =
+  | 'rivendell'
+  | 'hearth'
+  | 'paperSun'
+  | 'rose'
+  | 'sage'
+  | 'ocean'
 
 export interface Theme {
   name: string
@@ -79,8 +85,208 @@ export const rivendellTheme: Theme = {
   ambience: 'forest',
 }
 
+// Hearth — firelight night (deep brown + amber + cream)
+export const hearthTheme: Theme = {
+  name: 'Hearth',
+  description: 'Firelight at the close of the day',
+  mode: 'dark',
+  bg: {
+    primary: '#1A140E',
+    secondary: '#221A12',
+    gradient: 'linear-gradient(180deg, #221A12 0%, #1A140E 50%, #14100A 100%)',
+  },
+  text: {
+    primary: '#E8DCC8',
+    secondary: '#C8B898',
+    muted: '#8A7858',
+  },
+  accent: {
+    primary: '#C8742C',
+    secondary: '#B0651F',
+    warm: '#E8A050',
+    highlight: '#FFD090',
+  },
+  glass: {
+    bg: 'rgba(34, 26, 18, 0.55)',
+    border: 'rgba(200, 116, 44, 0.15)',
+    blur: '28px',
+  },
+  moods: {
+    0: '#5A4A3A',
+    1: '#7A6A50',
+    2: '#A08050',
+    3: '#C8742C',
+    4: '#E8A050',
+  },
+  moodEmojis: ['🔥', '🕯️', '✨', '🌟', '💫'],
+  moodLabels: ['Embers', 'Flicker', 'Steady', 'Bright', 'Glowing'],
+  particles: 'embers',
+  ambience: 'firelight',
+}
+
+// Paper Sun — warm cream paper with rust accent
+export const paperSunTheme: Theme = {
+  name: 'Paper Sun',
+  description: 'Warm afternoon light on cream paper',
+  mode: 'light',
+  bg: {
+    primary: '#F5E8C8',
+    secondary: '#F0E0B5',
+    gradient: 'linear-gradient(180deg, #F8EDD0 0%, #F2E2B8 50%, #ECD8A8 100%)',
+  },
+  text: {
+    primary: '#3A2818',
+    secondary: '#6A4F30',
+    muted: '#9A7B58',
+  },
+  accent: {
+    primary: '#B8612A',
+    secondary: '#9A4F1F',
+    warm: '#D4823A',
+    highlight: '#E89A50',
+  },
+  glass: {
+    bg: 'rgba(248, 237, 208, 0.65)',
+    border: 'rgba(184, 97, 42, 0.2)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#8A7050',
+    1: '#A88858',
+    2: '#C49060',
+    3: '#B8612A',
+    4: '#D4823A',
+  },
+  moodEmojis: ['☁️', '🌤️', '☀️', '🌻', '🌅'],
+  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
+  particles: 'sunbeam',
+  ambience: 'sun',
+}
+
+// Rose — blush & cherry blossom paper
+export const roseTheme: Theme = {
+  name: 'Rose',
+  description: 'Blush paper and cherry blossom drift',
+  mode: 'light',
+  bg: {
+    primary: '#FFEAEA',
+    secondary: '#F8D8D0',
+    gradient: 'linear-gradient(180deg, #FFEEEC 0%, #F8DCD4 50%, #F2D0CC 100%)',
+  },
+  text: {
+    primary: '#3A2025',
+    secondary: '#6A4048',
+    muted: '#9A7078',
+  },
+  accent: {
+    primary: '#9A4555',
+    secondary: '#843E4F',
+    warm: '#C2667A',
+    highlight: '#D88898',
+  },
+  glass: {
+    bg: 'rgba(255, 234, 234, 0.7)',
+    border: 'rgba(154, 69, 85, 0.18)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#7A6068',
+    1: '#9A707A',
+    2: '#C2667A',
+    3: '#9A4555',
+    4: '#D88898',
+  },
+  moodEmojis: ['🥀', '🌸', '💮', '🌷', '🏵️'],
+  moodLabels: ['Wilting', 'Budding', 'Blooming', 'Radiant', 'Full Bloom'],
+  particles: 'sakura',
+  ambience: 'rose',
+}
+
+// Sage — matcha & cream
+export const sageTheme: Theme = {
+  name: 'Sage',
+  description: 'Matcha morning, cream paper',
+  mode: 'light',
+  bg: {
+    primary: '#E8E8CC',
+    secondary: '#D8DDB8',
+    gradient: 'linear-gradient(180deg, #ECECCE 0%, #DCE0BC 50%, #CED4AC 100%)',
+  },
+  text: {
+    primary: '#2F2D1F',
+    secondary: '#5A5A40',
+    muted: '#8A8868',
+  },
+  accent: {
+    primary: '#6B7A4B',
+    secondary: '#5A6840',
+    warm: '#8A9A65',
+    highlight: '#A8B888',
+  },
+  glass: {
+    bg: 'rgba(232, 232, 204, 0.7)',
+    border: 'rgba(107, 122, 75, 0.2)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#7A7858',
+    1: '#8A8868',
+    2: '#6B7A4B',
+    3: '#8A9A65',
+    4: '#A8B888',
+  },
+  moodEmojis: ['🍂', '🌱', '🌿', '🌾', '🍃'],
+  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
+  particles: 'leaves',
+  ambience: 'sage',
+}
+
+// Ocean — misty seaside dawn
+export const oceanTheme: Theme = {
+  name: 'Ocean',
+  description: 'Pale dawn light on the harbour',
+  mode: 'light',
+  bg: {
+    primary: '#E8E8E0',
+    secondary: '#D8D8D0',
+    gradient: 'linear-gradient(180deg, #ECECE4 0%, #DCDCD4 50%, #CCCCCC 100%)',
+  },
+  text: {
+    primary: '#2A2820',
+    secondary: '#54584C',
+    muted: '#8A8A78',
+  },
+  accent: {
+    primary: '#2C5260',
+    secondary: '#1F4250',
+    warm: '#4A7080',
+    highlight: '#7090A0',
+  },
+  glass: {
+    bg: 'rgba(232, 232, 224, 0.7)',
+    border: 'rgba(44, 82, 96, 0.18)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#5A6868',
+    1: '#7A8888',
+    2: '#2C5260',
+    3: '#4A7080',
+    4: '#7090A0',
+  },
+  moodEmojis: ['🌫️', '🌊', '🐚', '🌅', '✨'],
+  moodLabels: ['Misty', 'Drifting', 'Surfacing', 'Clear', 'Radiant'],
+  particles: 'foam',
+  ambience: 'ocean',
+}
+
 export const themes: Record<ThemeName, Theme> = {
   rivendell: rivendellTheme,
+  hearth: hearthTheme,
+  paperSun: paperSunTheme,
+  rose: roseTheme,
+  sage: sageTheme,
+  ocean: oceanTheme,
 }
 
 // Time-based greetings

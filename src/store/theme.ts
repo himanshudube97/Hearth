@@ -11,8 +11,8 @@ interface ThemeStore {
 export const useThemeStore = create<ThemeStore>()(
   persist(
     (set) => ({
-      themeName: 'winterSunset',
-      theme: themes.winterSunset,
+      themeName: 'rivendell',
+      theme: themes.rivendell,
       setTheme: (name: ThemeName) => set({
         themeName: name,
         theme: themes[name]
