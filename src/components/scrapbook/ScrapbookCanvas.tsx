@@ -6,18 +6,32 @@ import {
   ScrapbookItem,
   TextItemData,
   StickerItemData,
+  PhotoItemData,
+  SongItemData,
+  DoodleItemData,
+  DoodleStroke,
   makeStickerItem,
   makeTextItem,
+  makePhotoItem,
+  makeSongItem,
+  makeDoodleItem,
+  paperForTheme,
 } from '@/lib/scrapbook'
 import CanvasItemWrapper from './CanvasItemWrapper'
 import CanvasToolbar from './CanvasToolbar'
 import TextItem from './items/TextItem'
 import StickerItem from './items/StickerItem'
+import PhotoItem from './items/PhotoItem'
+import SongItem from './items/SongItem'
+import DoodleItem from './items/DoodleItem'
+import DoodleCanvas from '@/components/DoodleCanvas'
+import type { StrokeData } from '@/store/journal'
 
 export default function ScrapbookCanvas() {
-  const { theme } = useThemeStore()
+  const { theme, themeName } = useThemeStore()
   const [items, setItems] = useState<ScrapbookItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [doodleEditingId, setDoodleEditingId] = useState<string | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
 
   function updateItem(updated: ScrapbookItem) {
@@ -41,12 +55,54 @@ export default function ScrapbookCanvas() {
     setSelectedId(item.id)
   }
 
-  // Today's date label, rendered as a built-in canvas decoration (not an item)
+  function addPhoto(dataUrl: string) {
+    const item = makePhotoItem(dataUrl, items)
+    setItems((prev) => [...prev, item])
+    setSelectedId(item.id)
+  }
+
+  function addSong(url: string) {
+    const item = makeSongItem(url, items)
+    setItems((prev) => [...prev, item])
+    setSelectedId(item.id)
+  }
+
+  function addDoodle() {
+    const item = makeDoodleItem(items)
+    setItems((prev) => [...prev, item])
+    setSelectedId(item.id)
+    // open doodle modal immediately for a fresh item
+    setDoodleEditingId(item.id)
+  }
+
+  const editingDoodle =
+    doodleEditingId
+      ? (items.find((it) => it.id === doodleEditingId) as DoodleItemData | undefined)
+      : undefined
+
+  function saveDoodle(strokes: StrokeData[]) {
+    if (!editingDoodle) {
+      setDoodleEditingId(null)
+      return
+    }
+    const next: DoodleItemData = {
+      ...editingDoodle,
+      strokes: strokes as DoodleStroke[],
+    }
+    updateItem(next)
+    setDoodleEditingId(null)
+  }
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   })
+
+  const paper = paperForTheme(themeName)
+  // Theme-derived washi tape colors using accent palette
+  const tapeLeft = withAlpha(theme.accent.warm, 0.78)
+  const tapeRight = withAlpha(theme.accent.secondary, 0.78)
 
   return (
     <div
@@ -74,7 +130,13 @@ export default function ScrapbookCanvas() {
 
       {/* Toolbar */}
       <div className="mb-5 z-30">
-        <CanvasToolbar onAddText={addText} onAddSticker={addSticker} />
+        <CanvasToolbar
+          onAddText={addText}
+          onAddSticker={addSticker}
+          onAddPhoto={addPhoto}
+          onAddSong={addSong}
+          onAddDoodle={addDoodle}
+        />
       </div>
 
       {/* Canvas page */}
@@ -87,8 +149,10 @@ export default function ScrapbookCanvas() {
             width: '100%',
             maxWidth: 720,
             aspectRatio: '4 / 5',
-            background: PAPER_COLOR,
-            backgroundImage: PAPER_TEXTURE,
+            background: paper.base,
+            backgroundImage: `radial-gradient(circle at 20% 30%, ${paper.grain} 0%, transparent 40%),
+              radial-gradient(circle at 80% 70%, ${paper.grain} 0%, transparent 50%),
+              radial-gradient(circle at 60% 20%, ${paper.grain} 0%, transparent 45%)`,
             borderRadius: 4,
             boxShadow:
               '0 14px 40px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.4)',
@@ -96,19 +160,19 @@ export default function ScrapbookCanvas() {
             cursor: selectedId ? 'default' : 'auto',
           }}
         >
-          {/* dashed inner border (decorative) */}
+          {/* dashed inner border (decorative, theme-tinted) */}
           <div
             className="absolute pointer-events-none"
             style={{
               inset: 18,
-              border: '1.5px dashed rgba(58, 52, 41, 0.32)',
+              border: `1.5px dashed ${withAlpha(theme.accent.warm, 0.32)}`,
               borderRadius: 2,
             }}
           />
 
           {/* corner washi tape decorations */}
-          <CornerTape position="tl" color="#cdb38a" />
-          <CornerTape position="tr" color="#a8b8c8" />
+          <CornerTape position="tl" color={tapeLeft} />
+          <CornerTape position="tr" color={tapeRight} />
 
           {/* ghost hint when empty */}
           {items.length === 0 && (
@@ -125,7 +189,7 @@ export default function ScrapbookCanvas() {
             >
               <div style={{ fontSize: 28 }}>your blank page</div>
               <div style={{ fontSize: 18, opacity: 0.7 }}>
-                add text, stickers — drag, tilt, overlap.
+                add anything — drag, tilt, overlap.
                 <br />
                 nothing has to be tidy.
               </div>
@@ -152,20 +216,43 @@ export default function ScrapbookCanvas() {
                 />
               )}
               {item.type === 'sticker' && <StickerItem item={item as StickerItemData} />}
+              {item.type === 'photo' && (
+                <PhotoItem
+                  item={item as PhotoItemData}
+                  selected={selectedId === item.id}
+                  onChange={updateItem}
+                />
+              )}
+              {item.type === 'song' && (
+                <SongItem
+                  item={item as SongItemData}
+                  selected={selectedId === item.id}
+                  onChange={updateItem}
+                />
+              )}
+              {item.type === 'doodle' && (
+                <DoodleItem
+                  item={item as DoodleItemData}
+                  selected={selectedId === item.id}
+                  onRequestEdit={() => setDoodleEditingId(item.id)}
+                />
+              )}
             </CanvasItemWrapper>
           ))}
         </div>
       </div>
+
+      {/* Doodle editor modal */}
+      {editingDoodle && (
+        <DoodleCanvas
+          initialStrokes={editingDoodle.strokes as StrokeData[]}
+          onSave={saveDoodle}
+          onClose={() => setDoodleEditingId(null)}
+        />
+      )}
     </div>
   )
 }
-
-const PAPER_COLOR = '#f3ead2'
-const PAPER_TEXTURE =
-  // subtle paper grain — radial speckles
-  `radial-gradient(circle at 20% 30%, rgba(120, 90, 50, 0.04) 0%, transparent 40%),
-   radial-gradient(circle at 80% 70%, rgba(120, 90, 50, 0.05) 0%, transparent 50%),
-   radial-gradient(circle at 60% 20%, rgba(120, 90, 50, 0.03) 0%, transparent 45%)`
 
 function CornerTape({ position, color }: { position: 'tl' | 'tr'; color: string }) {
   const isLeft = position === 'tl'
@@ -185,4 +272,24 @@ function CornerTape({ position, color }: { position: 'tl' | 'tr'; color: string 
       }}
     />
   )
+}
+
+// Convert any color (hex or rgb) into rgba with the requested alpha.
+// Used for theme-derived tinted decorations on the canvas.
+function withAlpha(color: string, alpha: number): string {
+  const hex = color.trim()
+  if (hex.startsWith('#')) {
+    const h = hex.slice(1)
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
+    const r = parseInt(full.slice(0, 2), 16)
+    const g = parseInt(full.slice(2, 4), 16)
+    const b = parseInt(full.slice(4, 6), 16)
+    if (![r, g, b].some(isNaN)) {
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`
+    }
+  }
+  // rgb(...) or rgba(...) — best effort: replace alpha if rgba, append if rgb
+  if (color.startsWith('rgba')) return color.replace(/[\d.]+\)$/, `${alpha})`)
+  if (color.startsWith('rgb')) return color.replace('rgb', 'rgba').replace(')', `, ${alpha})`)
+  return color
 }

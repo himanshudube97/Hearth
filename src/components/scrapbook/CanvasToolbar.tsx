@@ -6,22 +6,61 @@ import { stickerIds, stickers } from './stickers'
 interface Props {
   onAddText: () => void
   onAddSticker: (stickerId: string) => void
+  onAddPhoto: (dataUrl: string) => void
+  onAddSong: (url: string) => void
+  onAddDoodle: () => void
 }
 
-export default function CanvasToolbar({ onAddText, onAddSticker }: Props) {
+export default function CanvasToolbar({
+  onAddText,
+  onAddSticker,
+  onAddPhoto,
+  onAddSong,
+  onAddDoodle,
+}: Props) {
   const [stickerOpen, setStickerOpen] = useState(false)
+  const [songPromptOpen, setSongPromptOpen] = useState(false)
+  const [songUrl, setSongUrl] = useState('')
   const stickerWrapRef = useRef<HTMLDivElement>(null)
+  const songWrapRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
-      if (!stickerWrapRef.current) return
-      if (!stickerWrapRef.current.contains(e.target as Node)) {
+      if (stickerWrapRef.current && !stickerWrapRef.current.contains(e.target as Node)) {
         setStickerOpen(false)
+      }
+      if (songWrapRef.current && !songWrapRef.current.contains(e.target as Node)) {
+        setSongPromptOpen(false)
       }
     }
     document.addEventListener('mousedown', onDocClick)
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [])
+
+  function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const result = ev.target?.result
+      if (typeof result === 'string') {
+        onAddPhoto(result)
+      }
+    }
+    reader.readAsDataURL(file)
+    // reset so same file can be picked again
+    e.target.value = ''
+  }
+
+  function submitSong() {
+    const trimmed = songUrl.trim()
+    if (trimmed) {
+      onAddSong(trimmed)
+      setSongUrl('')
+      setSongPromptOpen(false)
+    }
+  }
 
   return (
     <div
@@ -34,6 +73,87 @@ export default function CanvasToolbar({ onAddText, onAddSticker }: Props) {
       }}
     >
       <ToolbarButton onClick={onAddText} icon="✎" label="text" />
+
+      <ToolbarButton
+        onClick={() => fileInputRef.current?.click()}
+        icon="◰"
+        label="photo"
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handlePhotoFile}
+        style={{ display: 'none' }}
+      />
+
+      <div className="relative" ref={songWrapRef}>
+        <ToolbarButton
+          onClick={() => setSongPromptOpen((o) => !o)}
+          icon="♪"
+          label="song"
+          active={songPromptOpen}
+        />
+        {songPromptOpen && (
+          <div
+            className="absolute left-1/2 -translate-x-1/2 mt-2 p-3 rounded-2xl flex flex-col gap-2"
+            style={{
+              top: '100%',
+              background: '#fefaf0',
+              border: '1px solid rgba(58, 52, 41, 0.18)',
+              boxShadow: '0 8px 24px rgba(20, 14, 4, 0.22)',
+              zIndex: 50,
+              width: 280,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 13,
+                color: 'rgba(58, 52, 41, 0.7)',
+                fontFamily: 'var(--font-caveat), cursive',
+              }}
+            >
+              paste a spotify, youtube, or apple music link
+            </div>
+            <input
+              type="text"
+              value={songUrl}
+              onChange={(e) => setSongUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitSong()
+                if (e.key === 'Escape') setSongPromptOpen(false)
+              }}
+              placeholder="https://..."
+              autoFocus
+              style={{
+                padding: '6px 10px',
+                border: '1px solid rgba(58, 52, 41, 0.22)',
+                borderRadius: 8,
+                fontSize: 13,
+                fontFamily: 'system-ui, sans-serif',
+                color: '#3a3429',
+                background: '#fefdf8',
+                outline: 'none',
+              }}
+            />
+            <button
+              onClick={submitSong}
+              style={{
+                padding: '6px 12px',
+                border: 'none',
+                background: '#3a3429',
+                color: '#f4ecd8',
+                borderRadius: 8,
+                fontSize: 14,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-caveat), cursive',
+              }}
+            >
+              add song
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="relative" ref={stickerWrapRef}>
         <ToolbarButton
@@ -51,10 +171,10 @@ export default function CanvasToolbar({ onAddText, onAddSticker }: Props) {
               border: '1px solid rgba(58, 52, 41, 0.18)',
               boxShadow: '0 8px 24px rgba(20, 14, 4, 0.22)',
               zIndex: 50,
-              width: 240,
+              width: 280,
             }}
           >
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {stickerIds.map((id) => {
                 const entry = stickers[id]
                 const Sticker = entry.component
@@ -91,9 +211,7 @@ export default function CanvasToolbar({ onAddText, onAddSticker }: Props) {
         )}
       </div>
 
-      <ToolbarButton onClick={() => {}} icon="◰" label="photo" disabled />
-      <ToolbarButton onClick={() => {}} icon="♪" label="song" disabled />
-      <ToolbarButton onClick={() => {}} icon="✏" label="doodle" disabled />
+      <ToolbarButton onClick={onAddDoodle} icon="✏" label="doodle" />
     </div>
   )
 }
