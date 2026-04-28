@@ -1,17 +1,17 @@
 import type { Theme } from '@/lib/themes'
 
-export const ambientSources: Record<Theme['ambience'], string> = {
+export const ambientSources: Record<Theme['ambience'], string | null> = {
   forest: '/sounds/ambient/forest.mp3',
-  shire: '/sounds/ambient/shire.mp3',
-  sunset: '/sounds/ambient/sunset.mp3',
-  spring: '/sounds/ambient/spring.mp3',
-  arctic: '/sounds/ambient/arctic.mp3',
-  mountains: '/sounds/ambient/mountains.mp3',
-  rainy: '/sounds/ambient/rainy.mp3',
-  cosmos: '/sounds/ambient/cosmos.mp3',
-  candle: '/sounds/ambient/candle.mp3',
+  firelight: '/sounds/ambient/candle.mp3',
+  midnight: '/sounds/ambient/cosmos.mp3',
+  sun: null,
+  rose: '/sounds/ambient/spring.mp3',
+  sage: null,
   ocean: '/sounds/ambient/ocean.mp3',
-  snowy: '/sounds/ambient/snowy.mp3',
+  saffron: null,
+  garden: null,
+  postal: null,
+  linen: null,
 }
 
 export type SfxName = 'pageTurn'
