@@ -3,7 +3,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { Theme } from '@/lib/themes'
-import { JournalEntry } from '@/store/journal'
 import SongEmbed from '@/components/SongEmbed'
 import type { MemoryStar } from './ConstellationRenderer'
 

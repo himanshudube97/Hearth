@@ -25,7 +25,7 @@ export interface ConstellationRendererProps {
   theme: Theme
 }
 
-function ShootingStars({ theme }: { theme: Theme }) {
+function ShootingStars() {
   const [shootingStars, setShootingStars] = useState<{ id: number; x: number; y: number; angle: number; length: number }[]>([])
 
   useEffect(() => {
@@ -472,7 +472,7 @@ export function ConstellationRenderer({
       <CosmosBackground theme={theme} />
 
       {/* Shooting stars */}
-      <ShootingStars theme={theme} />
+      <ShootingStars />
 
       {/* Your memory stars */}
       <div className="absolute inset-0">
