@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useThemeStore } from '@/store/theme'
 import {
   ScrapbookItem,
@@ -31,8 +31,23 @@ export default function ScrapbookCanvas() {
   const { theme, themeName } = useThemeStore()
   const [items, setItems] = useState<ScrapbookItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [doodleEditingId, setDoodleEditingId] = useState<string | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
+
+  // Pressing Esc exits edit mode (still selected) — feels expected from
+  // any text editor, and avoids users feeling trapped in a note.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && editingId) {
+        setEditingId(null)
+        // also blur whatever element has focus
+        ;(document.activeElement as HTMLElement | null)?.blur?.()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [editingId])
 
   function updateItem(updated: ScrapbookItem) {
     setItems((prev) => prev.map((it) => (it.id === updated.id ? updated : it)))
@@ -41,12 +56,27 @@ export default function ScrapbookCanvas() {
   function deleteItem(id: string) {
     setItems((prev) => prev.filter((it) => it.id !== id))
     if (selectedId === id) setSelectedId(null)
+    if (editingId === id) setEditingId(null)
+  }
+
+  function selectItem(id: string) {
+    setSelectedId(id)
+  }
+
+  function requestEdit(id: string) {
+    setEditingId(id)
+  }
+
+  function deselectAll() {
+    setSelectedId(null)
+    setEditingId(null)
   }
 
   function addText() {
     const item = makeTextItem('a small good thing', items)
     setItems((prev) => [...prev, item])
     setSelectedId(item.id)
+    setEditingId(item.id)
   }
 
   function addSticker(stickerId: string) {
@@ -65,31 +95,26 @@ export default function ScrapbookCanvas() {
     const item = makeSongItem(url, items)
     setItems((prev) => [...prev, item])
     setSelectedId(item.id)
+    setEditingId(item.id)
   }
 
   function addDoodle() {
     const item = makeDoodleItem(items)
     setItems((prev) => [...prev, item])
     setSelectedId(item.id)
-    // open doodle modal immediately for a fresh item
     setDoodleEditingId(item.id)
   }
 
-  const editingDoodle =
-    doodleEditingId
-      ? (items.find((it) => it.id === doodleEditingId) as DoodleItemData | undefined)
-      : undefined
+  const editingDoodle = doodleEditingId
+    ? (items.find((it) => it.id === doodleEditingId) as DoodleItemData | undefined)
+    : undefined
 
   function saveDoodle(strokes: StrokeData[]) {
     if (!editingDoodle) {
       setDoodleEditingId(null)
       return
     }
-    const next: DoodleItemData = {
-      ...editingDoodle,
-      strokes: strokes as DoodleStroke[],
-    }
-    updateItem(next)
+    updateItem({ ...editingDoodle, strokes: strokes as DoodleStroke[] })
     setDoodleEditingId(null)
   }
 
@@ -100,7 +125,6 @@ export default function ScrapbookCanvas() {
   })
 
   const paper = paperForTheme(themeName)
-  // Theme-derived washi tape colors using accent palette
   const tapeLeft = withAlpha(theme.accent.warm, 0.78)
   const tapeRight = withAlpha(theme.accent.secondary, 0.78)
 
@@ -113,7 +137,6 @@ export default function ScrapbookCanvas() {
         paddingBottom: 40,
       }}
     >
-      {/* Top label */}
       <div
         className="mb-4 flex items-center gap-3"
         style={{
@@ -128,7 +151,6 @@ export default function ScrapbookCanvas() {
         <span style={{ opacity: 0.75 }}>{today.toLowerCase()}</span>
       </div>
 
-      {/* Toolbar */}
       <div className="mb-5 z-30">
         <CanvasToolbar
           onAddText={addText}
@@ -139,11 +161,10 @@ export default function ScrapbookCanvas() {
         />
       </div>
 
-      {/* Canvas page */}
       <div className="w-full flex justify-center px-6 pb-10">
         <div
           ref={canvasRef}
-          onClick={() => setSelectedId(null)}
+          onClick={deselectAll}
           className="relative"
           style={{
             width: '100%',
@@ -160,7 +181,6 @@ export default function ScrapbookCanvas() {
             cursor: selectedId ? 'default' : 'auto',
           }}
         >
-          {/* dashed inner border (decorative, theme-tinted) */}
           <div
             className="absolute pointer-events-none"
             style={{
@@ -170,11 +190,9 @@ export default function ScrapbookCanvas() {
             }}
           />
 
-          {/* corner washi tape decorations */}
           <CornerTape position="tl" color={tapeLeft} />
           <CornerTape position="tr" color={tapeRight} />
 
-          {/* ghost hint when empty */}
           {items.length === 0 && (
             <div
               className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
@@ -196,53 +214,58 @@ export default function ScrapbookCanvas() {
             </div>
           )}
 
-          {/* items */}
-          {items.map((item) => (
-            <CanvasItemWrapper
-              key={item.id}
-              item={item}
-              allItems={items}
-              canvasRef={canvasRef}
-              selected={selectedId === item.id}
-              onSelect={() => setSelectedId(item.id)}
-              onUpdate={updateItem}
-              onDelete={() => deleteItem(item.id)}
-            >
-              {item.type === 'text' && (
-                <TextItem
-                  item={item as TextItemData}
-                  selected={selectedId === item.id}
-                  onChange={updateItem}
-                />
-              )}
-              {item.type === 'sticker' && <StickerItem item={item as StickerItemData} />}
-              {item.type === 'photo' && (
-                <PhotoItem
-                  item={item as PhotoItemData}
-                  selected={selectedId === item.id}
-                  onChange={updateItem}
-                />
-              )}
-              {item.type === 'song' && (
-                <SongItem
-                  item={item as SongItemData}
-                  selected={selectedId === item.id}
-                  onChange={updateItem}
-                />
-              )}
-              {item.type === 'doodle' && (
-                <DoodleItem
-                  item={item as DoodleItemData}
-                  selected={selectedId === item.id}
-                  onRequestEdit={() => setDoodleEditingId(item.id)}
-                />
-              )}
-            </CanvasItemWrapper>
-          ))}
+          {items.map((item) => {
+            const isItemSelected = selectedId === item.id
+            const isItemEditing = editingId === item.id
+            return (
+              <CanvasItemWrapper
+                key={item.id}
+                item={item}
+                allItems={items}
+                canvasRef={canvasRef}
+                selected={isItemSelected}
+                isEditing={isItemEditing}
+                onSelect={() => selectItem(item.id)}
+                onRequestEdit={() => requestEdit(item.id)}
+                onUpdate={updateItem}
+                onDelete={() => deleteItem(item.id)}
+              >
+                {item.type === 'text' && (
+                  <TextItem
+                    item={item as TextItemData}
+                    selected={isItemSelected}
+                    isEditing={isItemEditing}
+                    onChange={updateItem}
+                  />
+                )}
+                {item.type === 'sticker' && <StickerItem item={item as StickerItemData} />}
+                {item.type === 'photo' && (
+                  <PhotoItem
+                    item={item as PhotoItemData}
+                    isEditing={isItemEditing}
+                    onChange={updateItem}
+                  />
+                )}
+                {item.type === 'song' && (
+                  <SongItem
+                    item={item as SongItemData}
+                    isEditing={isItemEditing}
+                    onChange={updateItem}
+                  />
+                )}
+                {item.type === 'doodle' && (
+                  <DoodleItem
+                    item={item as DoodleItemData}
+                    selected={isItemSelected}
+                    onRequestEdit={() => setDoodleEditingId(item.id)}
+                  />
+                )}
+              </CanvasItemWrapper>
+            )
+          })}
         </div>
       </div>
 
-      {/* Doodle editor modal */}
       {editingDoodle && (
         <DoodleCanvas
           initialStrokes={editingDoodle.strokes as StrokeData[]}
@@ -274,8 +297,6 @@ function CornerTape({ position, color }: { position: 'tl' | 'tr'; color: string 
   )
 }
 
-// Convert any color (hex or rgb) into rgba with the requested alpha.
-// Used for theme-derived tinted decorations on the canvas.
 function withAlpha(color: string, alpha: number): string {
   const hex = color.trim()
   if (hex.startsWith('#')) {
@@ -288,7 +309,6 @@ function withAlpha(color: string, alpha: number): string {
       return `rgba(${r}, ${g}, ${b}, ${alpha})`
     }
   }
-  // rgb(...) or rgba(...) — best effort: replace alpha if rgba, append if rgb
   if (color.startsWith('rgba')) return color.replace(/[\d.]+\)$/, `${alpha})`)
   if (color.startsWith('rgb')) return color.replace('rgb', 'rgba').replace(')', `, ${alpha})`)
   return color

@@ -5,11 +5,11 @@ import { PhotoItemData } from '@/lib/scrapbook'
 
 interface Props {
   item: PhotoItemData
-  selected: boolean
+  isEditing: boolean
   onChange: (next: PhotoItemData) => void
 }
 
-export default function PhotoItem({ item, selected, onChange }: Props) {
+export default function PhotoItem({ item, isEditing, onChange }: Props) {
   const captionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -39,13 +39,14 @@ export default function PhotoItem({ item, selected, onChange }: Props) {
         />
         <div
           ref={captionRef}
-          contentEditable={selected}
+          contentEditable={isEditing}
           suppressContentEditableWarning
           onInput={(e) =>
             onChange({ ...item, caption: (e.currentTarget as HTMLDivElement).innerText })
           }
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            if (isEditing) e.stopPropagation()
+          }}
           spellCheck={false}
           className="text-center outline-none"
           style={{
@@ -53,7 +54,7 @@ export default function PhotoItem({ item, selected, onChange }: Props) {
             fontFamily: 'var(--font-caveat), cursive',
             fontSize: 16,
             color: '#3a3429',
-            cursor: selected ? 'text' : 'inherit',
+            cursor: isEditing ? 'text' : 'inherit',
             minHeight: 18,
           }}
         >

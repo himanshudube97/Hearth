@@ -18,9 +18,26 @@ export interface BaseItem {
 export interface TextItemData extends BaseItem {
   type: 'text'
   text: string
-  color: string
+  color: string // ink color
+  bg: string // sticky note background
+  tape: string // little tape strip color at top
   fontFamily: 'caveat' | 'playfair'
   fontSize: number // px at canvas's reference width
+}
+
+// Colorful sticky-note palettes — cycled when adding text items so a
+// page naturally builds up a varied palette without choice paralysis.
+export const NOTE_PALETTE = [
+  { bg: '#fde68a', color: '#5a4020', tape: '#f3c74a' }, // sunny
+  { bg: '#fbcfe8', color: '#5a2046', tape: '#e58cb4' }, // pink
+  { bg: '#bae6fd', color: '#1a3a5a', tape: '#6fb6d8' }, // sky
+  { bg: '#bbf7d0', color: '#1a4a2a', tape: '#7fc991' }, // mint
+  { bg: '#fed7aa', color: '#5a2a1a', tape: '#ee9a66' }, // peach
+  { bg: '#ddd6fe', color: '#3a2a5a', tape: '#a392e0' }, // lavender
+]
+
+export function isEditableType(type: ScrapbookItemType): boolean {
+  return type === 'text' || type === 'photo' || type === 'song'
 }
 
 export interface StickerItemData extends BaseItem {
@@ -76,19 +93,25 @@ export function nextZ(items: ScrapbookItem[]): number {
 }
 
 export function makeTextItem(text: string, items: ScrapbookItem[]): TextItemData {
+  // Cycle palette by text-item count so adding feels varied but
+  // deterministic — every Nth note is the same color.
+  const textCount = items.filter((i) => i.type === 'text').length
+  const swatch = NOTE_PALETTE[textCount % NOTE_PALETTE.length]
   return {
     id: makeId(),
     type: 'text',
-    x: 30,
-    y: 35,
-    width: 40,
-    height: 14,
+    x: 30 + ((textCount * 7) % 18),
+    y: 30 + ((textCount * 11) % 18),
+    width: 28,
+    height: 18,
     rotation: randomTilt(),
     z: nextZ(items),
     text,
-    color: '#3a3429',
+    color: swatch.color,
+    bg: swatch.bg,
+    tape: swatch.tape,
     fontFamily: 'caveat',
-    fontSize: 28,
+    fontSize: 26,
   }
 }
 

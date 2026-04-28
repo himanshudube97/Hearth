@@ -5,7 +5,7 @@ import { SongItemData } from '@/lib/scrapbook'
 
 interface Props {
   item: SongItemData
-  selected: boolean
+  isEditing: boolean
   onChange: (next: SongItemData) => void
 }
 
@@ -17,7 +17,15 @@ const providerLabel: Record<SongItemData['provider'], string> = {
   unknown: 'song',
 }
 
-export default function SongItem({ item, selected, onChange }: Props) {
+const providerAccent: Record<SongItemData['provider'], string> = {
+  spotify: '#1db954',
+  youtube: '#cc1b1b',
+  apple: '#fa57c1',
+  soundcloud: '#ff7700',
+  unknown: '#8b6f47',
+}
+
+export default function SongItem({ item, isEditing, onChange }: Props) {
   const titleRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -26,26 +34,39 @@ export default function SongItem({ item, selected, onChange }: Props) {
     }
   }, [item.title])
 
+  useEffect(() => {
+    if (isEditing && titleRef.current) {
+      const el = titleRef.current
+      el.focus()
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      range.collapse(false)
+      const sel = window.getSelection()
+      sel?.removeAllRanges()
+      sel?.addRange(range)
+    }
+  }, [isEditing])
+
   return (
     <div
       className="w-full h-full flex items-center gap-3 px-3"
       style={{
         background: '#fefaf0',
         border: '1px solid rgba(58, 52, 41, 0.18)',
+        borderLeft: `4px solid ${providerAccent[item.provider]}`,
         borderRadius: 10,
         boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.5)',
       }}
     >
-      {/* Music note icon */}
       <div
         className="flex items-center justify-center rounded-full flex-shrink-0"
         style={{
           width: 34,
           height: 34,
-          background: '#f3ead2',
-          border: '1px solid rgba(58, 52, 41, 0.18)',
-          color: '#3a3429',
+          background: providerAccent[item.provider],
+          color: '#fff',
           fontSize: 18,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
         }}
       >
         ♪
@@ -54,13 +75,14 @@ export default function SongItem({ item, selected, onChange }: Props) {
       <div className="flex-1 min-w-0 overflow-hidden">
         <div
           ref={titleRef}
-          contentEditable={selected}
+          contentEditable={isEditing}
           suppressContentEditableWarning
           onInput={(e) =>
             onChange({ ...item, title: (e.currentTarget as HTMLDivElement).innerText })
           }
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            if (isEditing) e.stopPropagation()
+          }}
           spellCheck={false}
           className="outline-none truncate"
           style={{
@@ -68,7 +90,7 @@ export default function SongItem({ item, selected, onChange }: Props) {
             fontSize: 20,
             color: '#3a3429',
             lineHeight: 1.1,
-            cursor: selected ? 'text' : 'inherit',
+            cursor: isEditing ? 'text' : 'inherit',
           }}
         >
           {item.title}
@@ -77,7 +99,8 @@ export default function SongItem({ item, selected, onChange }: Props) {
           style={{
             fontFamily: 'var(--font-caveat), cursive',
             fontSize: 14,
-            color: 'rgba(58, 52, 41, 0.55)',
+            color: providerAccent[item.provider],
+            opacity: 0.8,
             lineHeight: 1.2,
             marginTop: 2,
           }}
