@@ -12,7 +12,6 @@ const tabs = [
   { href: '/write', label: 'Write', icon: '✎' },
   { href: '/scrapbook', label: 'Scrapbook', icon: '✦' },
   { href: '/letters', label: 'Letters', icon: '✉' },
-  { href: '/timeline', label: 'Timeline', icon: '☰' },
   { href: '/shelf', label: 'Shelf', icon: '❒' },
   { href: '/constellation', label: 'Stars', icon: '★' },
 ]
