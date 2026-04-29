@@ -13,7 +13,9 @@ import { monthLabel, toRoman } from './shelfPalette'
 interface ShelfMobileBookProps {
   year: number
   monthIndex: number
-  entries: JournalEntry[]
+  // null = still fetching the month's entries; show a loading hint inside
+  // the same already-mounted overlay rather than swapping components.
+  entries: JournalEntry[] | null
   onClose: () => void
 }
 
@@ -47,7 +49,9 @@ export default function ShelfMobileBook({
   const { theme } = useThemeStore()
   const colors = getGlassDiaryColors(theme)
 
-  const days = useMemo(() => groupByDay(entries), [entries])
+  const days = useMemo(() => groupByDay(entries ?? []), [entries])
+  const isLoading = entries === null
+  const isEmpty = entries !== null && entries.length === 0
   const [dayIdx, setDayIdx] = useState(0)
   // Per-day selection map. Keying by dayIdx avoids needing a reset effect when
   // dayIdx changes (which would trip react-hooks/set-state-in-effect).
@@ -75,7 +79,7 @@ export default function ShelfMobileBook({
     setDayIdx((i) => Math.min(days.length - 1, i + 1))
   }, [days.length])
 
-  if (entries.length === 0 || !currentEntry) {
+  if (isLoading || isEmpty || !currentEntry) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -91,7 +95,7 @@ export default function ShelfMobileBook({
           ← shelf
         </button>
         <p style={{ color: theme.text.muted, fontFamily: 'Georgia, serif' }}>
-          no entries to read in this month.
+          {isLoading ? 'turning to the page…' : 'no entries to read in this month.'}
         </p>
       </motion.div>
     )

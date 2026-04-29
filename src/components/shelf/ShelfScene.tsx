@@ -4,7 +4,6 @@
 import { useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEntries, useEntryStats } from '@/hooks/useEntries'
-import { useThemeStore } from '@/store/theme'
 import ShelfHeader from './ShelfHeader'
 import YearTabs from './YearTabs'
 import Shelf, { ShelfMonth } from './Shelf'
@@ -34,7 +33,6 @@ function defaultYear(years: number[]): number {
 export default function ShelfScene() {
   const router = useRouter()
   const search = useSearchParams()
-  const { theme } = useThemeStore()
 
   const { stats, loading: statsLoading } = useEntryStats()
 
@@ -149,26 +147,16 @@ export default function ShelfScene() {
 
       {/* Spread overlay. Mounted as a plain conditional (no AnimatePresence) so
           react-pageflip controls its own DOM lifecycle without a parent
-          managing exit animations on top of it. The internal motion.div on
-          ShelfBookSpread still fades in. */}
+          managing exit animations on top of it. The spread itself stays
+          mounted across the loading→ready transition (entries={null} while
+          fetching) so the backdrop fades in exactly once per open. */}
       {mode === 'open' && selectedMonth !== null && (
-        spreadReady ? (
-          <ShelfBookSpread
-            year={selectedYear}
-            monthIndex={selectedMonth}
-            entries={monthEntries}
-            onClose={handleClose}
-          />
-        ) : (
-          <div
-            className="fixed inset-0 z-30 flex items-center justify-center"
-            style={{ background: theme.bg.gradient }}
-          >
-            <p style={{ color: theme.text.muted, fontFamily: 'Georgia, serif' }}>
-              turning to the page…
-            </p>
-          </div>
-        )
+        <ShelfBookSpread
+          year={selectedYear}
+          monthIndex={selectedMonth}
+          entries={spreadReady ? monthEntries : null}
+          onClose={handleClose}
+        />
       )}
     </div>
   )

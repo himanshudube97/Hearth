@@ -35,7 +35,9 @@ const PAGE_HEIGHT = 820
 interface ShelfBookSpreadProps {
   year: number
   monthIndex: number     // 0..11
-  entries: JournalEntry[] // entries in the selected month, decrypted
+  // null = still fetching the month's entries; the overlay shows a loading
+  // hint without remounting. Empty array = month genuinely has no entries.
+  entries: JournalEntry[] | null
   onClose: () => void
 }
 
@@ -114,9 +116,12 @@ export default function ShelfBookSpread({
   const diaryRootRef = useRef<HTMLDivElement>(null)
 
   // One day per spread; multiple entries on the same day are switched via
-  // EntrySelector.
-  const days = useMemo(() => groupByDay(entries), [entries])
+  // EntrySelector. While entries is null (still fetching) we render no days
+  // — a loading hint takes the book frame's place.
+  const days = useMemo(() => groupByDay(entries ?? []), [entries])
   const totalSpreads = days.length || 1
+  const isLoading = entries === null
+  const isEmpty = entries !== null && entries.length === 0
 
   // Visible spread index (0..days.length-1). Local state — does NOT touch
   // useDeskStore so /write's spread state stays untouched.
@@ -221,30 +226,6 @@ export default function ShelfBookSpread({
     )
   }
 
-  // Empty-month guard: if the user opens a month with zero entries (shouldn't
-  // happen via the UI, but defends against direct URL hits), render a stub.
-  if (entries.length === 0) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="fixed inset-0 z-30 flex items-center justify-center"
-        style={{ background: theme.bg.gradient }}
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-6 left-6 text-sm opacity-80 hover:opacity-100"
-          style={{ color: theme.text.primary, fontFamily: 'Georgia, serif' }}
-        >
-          ← shelf
-        </button>
-        <p style={{ color: theme.text.muted, fontFamily: 'Georgia, serif' }}>
-          no entries to read in this month.
-        </p>
-      </motion.div>
-    )
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -269,8 +250,20 @@ export default function ShelfBookSpread({
         {monthLabel(monthIndex)} {toRoman(year)}
       </div>
 
+      {/* Loading + empty-month inline copy. Sharing the outer overlay across
+          all three states (loading / empty / book) means the backdrop fades
+          in exactly once per open — no remount, no blip when entries land. */}
+      {(isLoading || isEmpty) && (
+        <p
+          className="text-sm italic"
+          style={{ color: theme.text.muted, fontFamily: 'Georgia, serif' }}
+        >
+          {isLoading ? 'turning to the page…' : 'no entries to read in this month.'}
+        </p>
+      )}
+
       {/* Multi-entry-per-day selector floats above the open book */}
-      {currentDay.length > 1 && (
+      {!isLoading && !isEmpty && currentDay.length > 1 && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2">
           <EntrySelector
             entries={currentDay}
@@ -281,6 +274,7 @@ export default function ShelfBookSpread({
       )}
 
       {/* Book frame */}
+      {!isLoading && !isEmpty && (
       <div
         ref={diaryRootRef}
         className="relative inline-block"
@@ -425,6 +419,7 @@ export default function ShelfBookSpread({
           )}
         </motion.div>
       </div>
+      )}
     </motion.div>
   )
 }
