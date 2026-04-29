@@ -9,6 +9,8 @@ import LeftPage from '@/components/desk/LeftPage'
 import RightPage from '@/components/desk/RightPage'
 import DateTabRail from '@/components/desk/DateTabRail'
 import EntrySelector from '@/components/desk/EntrySelector'
+import { RibbonBookmark } from '@/components/desk/interactive/RibbonBookmark'
+import RibbonTag from '@/components/desk/interactive/RibbonTag'
 import { JournalEntry } from '@/store/journal'
 import { monthLabel, toRoman } from './shelfPalette'
 import ShelfMobileBook from './ShelfMobileBook'
@@ -301,6 +303,14 @@ export default function ShelfBookSpread({
           transition={{ duration: 0.6 }}
         >
           <div className="book-cover" />
+
+          {/* Ribbon bookmark with hangtag dating the visible day —
+              same component /write uses so the read view feels continuous. */}
+          {currentDay[0] && (
+            <RibbonBookmark color={colors.ribbon}>
+              <RibbonTag date={new Date(currentDay[0].createdAt)} colors={colors} />
+            </RibbonBookmark>
+          )}
 
           <HTMLFlipBook
             ref={flipBookRef}
