@@ -81,16 +81,16 @@ export default function ShelfMobileBook({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="fixed inset-0 z-30 flex items-center justify-center px-6"
-        style={{ background: 'rgba(10,8,6,0.6)' }}
+        style={{ background: theme.bg.gradient }}
       >
         <button
           onClick={onClose}
           className="absolute top-5 left-5 text-sm opacity-80"
-          style={{ color: 'rgba(245,240,225,0.85)', fontFamily: 'Georgia, serif' }}
+          style={{ color: theme.text.primary, fontFamily: 'Georgia, serif' }}
         >
           ← shelf
         </button>
-        <p style={{ color: 'rgba(245,240,225,0.75)', fontFamily: 'Georgia, serif' }}>
+        <p style={{ color: theme.text.muted, fontFamily: 'Georgia, serif' }}>
           no entries to read in this month.
         </p>
       </motion.div>

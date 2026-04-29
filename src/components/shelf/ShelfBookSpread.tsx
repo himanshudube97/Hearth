@@ -234,11 +234,11 @@ export default function ShelfBookSpread({
         <button
           onClick={onClose}
           className="absolute top-6 left-6 text-sm opacity-80 hover:opacity-100"
-          style={{ color: 'rgba(245,240,225,0.85)', fontFamily: 'Georgia, serif' }}
+          style={{ color: theme.text.primary, fontFamily: 'Georgia, serif' }}
         >
           ← shelf
         </button>
-        <p style={{ color: 'rgba(245,240,225,0.75)', fontFamily: 'Georgia, serif' }}>
+        <p style={{ color: theme.text.muted, fontFamily: 'Georgia, serif' }}>
           no entries to read in this month.
         </p>
       </motion.div>
@@ -257,14 +257,14 @@ export default function ShelfBookSpread({
       {/* Top bar: back to shelf + volume label */}
       <button
         onClick={onClose}
-        className="absolute top-6 left-6 text-sm opacity-80 hover:opacity-100"
-        style={{ color: 'rgba(245,240,225,0.85)', fontFamily: 'Georgia, serif' }}
+        className="absolute top-6 left-6 text-sm opacity-80 hover:opacity-100 z-40"
+        style={{ color: theme.text.primary, fontFamily: 'Georgia, serif' }}
       >
         ← shelf
       </button>
       <div
-        className="absolute top-6 right-6 text-xs tracking-[0.3em] uppercase"
-        style={{ color: 'rgba(245,240,225,0.55)' }}
+        className="absolute top-6 right-6 text-xs tracking-[0.3em] uppercase z-40"
+        style={{ color: theme.text.muted }}
       >
         {monthLabel(monthIndex)} {toRoman(year)}
       </div>
