@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Sibling git worktrees carry their own .next/build outputs that
+    // should not be linted by the parent checkout.
+    ".worktrees/**",
   ]),
 ]);
 
