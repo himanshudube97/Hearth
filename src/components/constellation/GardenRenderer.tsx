@@ -21,6 +21,17 @@ import {
 import { LampLetterbox } from './garden/LampLetterbox'
 import { LeftLamp } from './garden/LeftLamp'
 import { Bunting } from './garden/Bunting'
+import {
+  SkyBand,
+  Hills,
+  DistantTrees,
+  MidGrove,
+  Wildflowers,
+  ForegroundFrame,
+  GroundBand,
+} from './garden/gardenLayers'
+import { AmbientDrift } from './garden/AmbientDrift'
+import { LetterClothesline } from './garden/LetterClothesline'
 
 export interface GardenRendererProps {
   loading: boolean
@@ -40,6 +51,7 @@ export function GardenRenderer({
   theme,
 }: GardenRendererProps) {
   const parallax = useGardenParallax()
+  const isPostal = theme.ambience === 'postal'
 
   const getMoodColor = (mood: number) => {
     const colors = [
@@ -73,7 +85,7 @@ export function GardenRenderer({
             transition={{ duration: 2, repeat: Infinity }}
             style={{ color: theme.text.muted }}
           >
-            ✦
+            {isPostal ? '✦' : '✿'}
           </motion.div>
           <p
             style={{
@@ -82,7 +94,7 @@ export function GardenRenderer({
               fontStyle: 'italic',
             }}
           >
-            sorting the evening post…
+            {isPostal ? 'sorting the evening post…' : 'tending the garden...'}
           </p>
         </motion.div>
       </motion.div>
@@ -104,7 +116,7 @@ export function GardenRenderer({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="text-3xl mb-4 opacity-50">✉</div>
+          <div className="text-3xl mb-4 opacity-50">{isPostal ? '✉' : '✿'}</div>
           <p
             style={{
               color: theme.text.muted,
@@ -112,7 +124,9 @@ export function GardenRenderer({
               fontStyle: 'italic',
             }}
           >
-            the post hasn't arrived yet — write something and the first letter will fly in
+            {isPostal
+              ? "the post hasn't arrived yet — write something and the first letter will fly in"
+              : 'your garden is waiting for its first leaf — write something to begin'}
           </p>
         </motion.div>
       </motion.div>
@@ -127,44 +141,82 @@ export function GardenRenderer({
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Dusk sky — gradient + sun glow + horizon haze */}
-      <DuskSky parallax={parallax} theme={theme} />
+      {isPostal ? (
+        <>
+          {/* Dusk sky — gradient + sun glow + horizon haze */}
+          <DuskSky parallax={parallax} theme={theme} />
 
-      {/* Twinkling stars / dust scattered in the upper sky */}
-      <StarField parallax={parallax} theme={theme} />
+          {/* Twinkling stars / dust scattered in the upper sky */}
+          <StarField parallax={parallax} theme={theme} />
 
-      {/* Sticker-style clouds at four parallax depths */}
-      <CloudDrift parallax={parallax} theme={theme} />
+          {/* Sticker-style clouds at four parallax depths */}
+          <CloudDrift parallax={parallax} theme={theme} />
 
-      {/* Far hazy village silhouette behind the main row */}
-      <FarVillage parallax={parallax} theme={theme} />
+          {/* Far hazy village silhouette behind the main row */}
+          <FarVillage parallax={parallax} theme={theme} />
 
-      {/* Mid-distance town silhouette with twinkling windows */}
-      <DistantVillage parallax={parallax} theme={theme} />
+          {/* Mid-distance town silhouette with twinkling windows */}
+          <DistantVillage parallax={parallax} theme={theme} />
 
-      {/* Closer foreground building row with chimneys + smoke */}
-      <NearVillage parallax={parallax} theme={theme} />
+          {/* Closer foreground building row with chimneys + smoke */}
+          <NearVillage parallax={parallax} theme={theme} />
 
-      {/* Paper planes drifting across the sky */}
-      <PaperPlanes parallax={parallax} theme={theme} />
+          {/* Paper planes drifting across the sky */}
+          <PaperPlanes parallax={parallax} theme={theme} />
 
-      {/* Envelope-balloon bobbing at upper-right */}
-      <EnvelopeBalloon parallax={parallax} theme={theme} />
+          {/* Envelope-balloon bobbing at upper-right */}
+          <EnvelopeBalloon parallax={parallax} theme={theme} />
 
-      {/* Curved path leading toward the horizon with perspective lamps */}
-      <CurvedPath parallax={parallax} theme={theme} />
+          {/* Curved path leading toward the horizon with perspective lamps */}
+          <CurvedPath parallax={parallax} theme={theme} />
 
-      {/* Soft ink-line ground band */}
-      <GroundLine theme={theme} />
+          {/* Soft ink-line ground band */}
+          <GroundLine theme={theme} />
 
-      {/* Mirror lamppost on the left (no postbox) */}
-      <LeftLamp theme={theme} parallax={parallax} />
+          {/* Mirror lamppost on the left (no postbox) */}
+          <LeftLamp theme={theme} parallax={parallax} />
 
-      {/* Colorful triangle bunting strung between the two lamp tops */}
-      <Bunting parallax={parallax} />
+          {/* Colorful triangle bunting strung between the two lamp tops */}
+          <Bunting parallax={parallax} />
 
-      {/* Foreground lamppost with letterbox in front of its pole */}
-      <LampLetterbox theme={theme} parallax={parallax} />
+          {/* Foreground lamppost with letterbox in front of its pole */}
+          <LampLetterbox theme={theme} parallax={parallax} />
+        </>
+      ) : (
+        <>
+          {/* Sky atmosphere */}
+          <SkyBand parallax={parallax} theme={theme} />
+
+          {/* Watercolor mountains */}
+          <Hills parallax={parallax} theme={theme} />
+
+          {/* Distant tree silhouettes along the horizon */}
+          <DistantTrees parallax={parallax} theme={theme} />
+
+          {/* Mid-distance grove of trees & shrubs */}
+          <MidGrove parallax={parallax} theme={theme} />
+
+          {/* Ground band (grass) */}
+          <GroundBand theme={theme} />
+
+          {/* Wildflowers scattered across the meadow */}
+          <Wildflowers parallax={parallax} theme={theme} />
+
+          {/* Letter clothesline — primary memory display, hangs across mid-scene */}
+          <LetterClothesline
+            memoryStars={memoryStars}
+            onSelect={setSelectedStar}
+            theme={theme}
+            getMoodColor={getMoodColor}
+          />
+
+          {/* Ambient creatures (butterflies, bee, bird) */}
+          <AmbientDrift theme={theme} />
+
+          {/* Foreground frame — large plants in corners (parallax inversion) */}
+          <ForegroundFrame parallax={parallax} theme={theme} />
+        </>
+      )}
 
       {/* Header */}
       <motion.div
@@ -181,7 +233,7 @@ export function GardenRenderer({
             fontStyle: 'italic',
           }}
         >
-          evening post
+          {isPostal ? 'evening post' : 'your garden'}
         </p>
         <p
           className="text-sm mt-1"
@@ -191,7 +243,14 @@ export function GardenRenderer({
             fontStyle: 'italic',
           }}
         >
-          {memoryStars.length} {memoryStars.length === 1 ? 'letter' : 'letters'} on the wind
+          {memoryStars.length}{' '}
+          {isPostal
+            ? memoryStars.length === 1
+              ? 'letter on the wind'
+              : 'letters on the wind'
+            : memoryStars.length === 1
+              ? 'letter pressed'
+              : 'letters pressed'}
         </p>
       </motion.div>
 

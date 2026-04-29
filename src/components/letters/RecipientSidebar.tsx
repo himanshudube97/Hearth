@@ -38,7 +38,7 @@ export default function RecipientSidebar({ recipient, onRecipientChange, unlock,
             <button
               key={t.key}
               onClick={() => onRecipientChange(t.key)}
-              className="flex items-center gap-3 rounded-xl p-3 text-left transition"
+              className="flex items-center gap-3 rounded-xl p-4 text-left transition"
               style={{
                 border: selected
                   ? '1.5px solid #c8742c'
@@ -55,7 +55,7 @@ export default function RecipientSidebar({ recipient, onRecipientChange, unlock,
                 {t.glyph}
               </span>
               <span style={{ fontFamily: 'var(--font-caveat), Caveat, cursive' }}>
-                <span className="block text-lg leading-tight" style={{ color: '#1f2750' }}>
+                <span className="block text-xl leading-tight" style={{ color: '#1f2750' }}>
                   {t.title}
                 </span>
                 <span className="block text-xs italic" style={{ color: '#7a5b3a' }}>

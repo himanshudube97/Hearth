@@ -85,8 +85,8 @@ export default function LetterWriteView({ onBack, onSealed }: Props) {
 
   return (
     <div
-      className="flex w-full min-h-screen"
-      style={{ backgroundColor: '#e6c885' }}
+      className="flex w-full"
+      style={{ minHeight: 'calc(100vh - 7rem)' }}
     >
       <RecipientSidebar
         recipient={recipient}
@@ -94,7 +94,7 @@ export default function LetterWriteView({ onBack, onSealed }: Props) {
         unlock={unlock}
         onUnlockChange={setUnlock}
       />
-      <div className="flex-1 px-10 py-12">
+      <div className="flex flex-1 flex-col px-10 py-6">
         <LetterPaper
           recipient={recipient}
           closeName={closeName}

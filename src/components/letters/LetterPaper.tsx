@@ -50,7 +50,8 @@ export default function LetterPaper(props: Props) {
   return (
     <motion.div
       className="
-        relative mx-auto w-full max-w-3xl rounded-md bg-[var(--color-paper,#f4ead0)] p-10
+        relative mx-auto flex w-full max-w-6xl flex-1 flex-col rounded-md
+        bg-[var(--color-paper,#f4ead0)] p-12
         shadow-[0_4px_24px_rgba(70,50,30,0.18)]
       "
       style={{
@@ -109,16 +110,18 @@ export default function LetterPaper(props: Props) {
         )}
       </div>
 
-      {/* Body editor */}
-      <EditorContent
-        editor={editor}
-        style={{
-          fontFamily: 'var(--font-caveat), Caveat, cursive',
-          fontSize: '20px',
-          lineHeight: '2.2rem',
-          color: '#1f2750',
-        }}
-      />
+      {/* Body editor — flex-1 so empty lined space fills out to the signature */}
+      <div className="flex-1">
+        <EditorContent
+          editor={editor}
+          style={{
+            fontFamily: 'var(--font-caveat), Caveat, cursive',
+            fontSize: '20px',
+            lineHeight: '2.2rem',
+            color: '#1f2750',
+          }}
+        />
+      </div>
 
       {/* Signature */}
       <div
