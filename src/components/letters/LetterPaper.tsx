@@ -55,7 +55,7 @@ export default function LetterPaper(props: Props) {
       "
       style={{
         backgroundImage:
-          'repeating-linear-gradient(transparent, transparent 2.1rem, rgba(80,60,40,0.18) 2.1rem, rgba(80,60,40,0.18) calc(2.1rem + 1px))',
+          'repeating-linear-gradient(transparent, transparent 2.1rem, rgba(120,90,50,0.22) 2.1rem, rgba(120,90,50,0.22) calc(2.1rem + 1px))',
         transformPerspective: 1200,
       }}
       animate={
@@ -66,22 +66,28 @@ export default function LetterPaper(props: Props) {
       transition={{ duration: 0.7, ease: [0.32, 0.72, 0.24, 1] }}
     >
       {/* Top-right stamp */}
-      <div className="absolute right-6 top-6 text-right text-xs italic opacity-70">
+      <div className="absolute right-6 top-6 text-right text-xs italic" style={{ color: '#8b6b3f' }}>
         <div>{format(props.createdAt, "EEEE, MMM d · 'evening'")}</div>
-        <div className="mt-1 inline-block border border-dashed border-[var(--color-accent,#c8742c)] px-2 py-1 text-[10px] uppercase tracking-[0.25em] text-[var(--color-accent,#c8742c)]">
+        <div
+          className="mt-1 inline-block px-2 py-1 text-[10px] uppercase tracking-[0.3em] not-italic"
+          style={{
+            border: '1px dashed #5a7440',
+            color: '#5a7440',
+          }}
+        >
           hearth
         </div>
       </div>
 
       {/* Small-caps title */}
-      <div className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--color-accent,#c8742c)]">
+      <div className="mb-6 text-xs uppercase tracking-[0.3em]" style={{ color: '#2c3a72' }}>
         a letter
       </div>
 
       {/* Salutation */}
       <div
         className="mb-4 text-3xl"
-        style={{ fontFamily: 'var(--font-caveat), Caveat, cursive' }}
+        style={{ fontFamily: 'var(--font-caveat), Caveat, cursive', color: '#1f2750' }}
       >
         {props.recipient === 'future_me' ? (
           <>
@@ -110,14 +116,14 @@ export default function LetterPaper(props: Props) {
           fontFamily: 'var(--font-caveat), Caveat, cursive',
           fontSize: '20px',
           lineHeight: '2.2rem',
-          color: 'rgba(60,40,20,0.9)',
+          color: '#1f2750',
         }}
       />
 
       {/* Signature */}
       <div
         className="mt-8 text-2xl"
-        style={{ fontFamily: 'var(--font-caveat), Caveat, cursive' }}
+        style={{ fontFamily: 'var(--font-caveat), Caveat, cursive', color: '#1f2750' }}
       >
         yours,{' '}
         <span className="underline decoration-dotted">{props.signatureName}</span>
@@ -130,6 +136,7 @@ export default function LetterPaper(props: Props) {
             <button
               onClick={() => setShowEmail(true)}
               className="underline opacity-70"
+              style={{ color: '#5a3f1f' }}
             >
               + send to their email on the unlock date
             </button>
@@ -139,7 +146,12 @@ export default function LetterPaper(props: Props) {
               value={props.closeEmail}
               onChange={e => props.onCloseEmailChange(e.target.value)}
               placeholder="email@example.com"
-              className="rounded border border-[rgba(80,60,40,0.25)] bg-transparent px-2 py-1"
+              className="rounded px-2 py-1"
+              style={{
+                border: '1px solid rgba(120,90,50,0.35)',
+                backgroundColor: 'transparent',
+                color: '#5a3f1f',
+              }}
             />
           )}
         </div>
@@ -154,21 +166,24 @@ export default function LetterPaper(props: Props) {
 
       {/* Footer */}
       <div className="mt-10 flex items-center justify-between text-xs">
-        <div className="italic opacity-60">— the end —</div>
+        <div className="opacity-70 italic" style={{ color: '#8b6b3f' }}>— the end —</div>
         <div className="flex gap-2">
           <button
             onClick={props.onBack}
-            className="rounded-full border border-[rgba(80,60,40,0.25)] px-4 py-2 hover:bg-[rgba(80,60,40,0.06)]"
+            className="rounded-full px-4 py-2 transition"
+            style={{
+              backgroundColor: '#fdf7e8',
+              border: '1px solid rgba(120,90,50,0.35)',
+              color: '#5a3f1f',
+            }}
           >
             ← back
           </button>
           <button
             onClick={props.onSeal}
             disabled={!props.canSeal}
-            className="
-              rounded-full bg-[var(--color-accent,#c8742c)] px-4 py-2 text-white shadow
-              disabled:cursor-not-allowed disabled:opacity-50
-            "
+            className="rounded-full px-4 py-2 text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ backgroundColor: '#c8742c' }}
           >
             fold &amp; seal ✦
           </button>

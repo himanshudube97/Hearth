@@ -15,18 +15,22 @@ const TILES: Array<{
   key: LetterRecipient
   title: string
   subtitle: string
-  glyph: string  // simple emoji/icon for now
+  glyph: string
+  emblemBg: string
 }> = [
-  { key: 'future_me',     title: 'future me',     subtitle: 'a year from now', glyph: '✦' },
-  { key: 'someone_close', title: 'someone close', subtitle: 'you name them',   glyph: '✿' },
+  { key: 'future_me',     title: 'future me',     subtitle: 'a year from now', glyph: '✦', emblemBg: '#c8742c' },
+  { key: 'someone_close', title: 'someone close', subtitle: 'you name them',   glyph: '✿', emblemBg: '#c89a7e' },
 ]
 
 export default function RecipientSidebar({ recipient, onRecipientChange, unlock, onUnlockChange }: Props) {
   const [showPicker, setShowPicker] = useState(unlock.kind === 'someday')
 
   return (
-    <aside className="w-72 shrink-0 px-6 py-8">
-      <div className="mb-3 text-xs uppercase tracking-[0.2em] opacity-60">dear …</div>
+    <aside className="w-72 shrink-0 px-6 py-10">
+      <div className="mb-4 text-[11px] uppercase tracking-[0.28em]" style={{ color: '#7a5b3a' }}>
+        dear …
+      </div>
+
       <div className="flex flex-col gap-3">
         {TILES.map(t => {
           const selected = recipient === t.key
@@ -34,31 +38,47 @@ export default function RecipientSidebar({ recipient, onRecipientChange, unlock,
             <button
               key={t.key}
               onClick={() => onRecipientChange(t.key)}
-              className={`
-                flex items-center gap-3 rounded-lg border p-3 text-left transition
-                ${selected
-                  ? 'border-[var(--color-accent,#c8742c)] bg-[rgba(200,116,44,0.12)]'
-                  : 'border-[rgba(80,60,40,0.18)] hover:bg-[rgba(80,60,40,0.05)]'}
-              `}
+              className="flex items-center gap-3 rounded-xl p-3 text-left transition"
+              style={{
+                border: selected
+                  ? '1.5px solid #c8742c'
+                  : '1.5px dashed rgba(120,90,50,0.35)',
+                backgroundColor: selected
+                  ? 'rgba(200,116,44,0.15)'
+                  : 'rgba(232,200,140,0.25)',
+              }}
             >
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-[rgba(80,60,40,0.08)] text-base">
+              <span
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-base"
+                style={{ backgroundColor: t.emblemBg, color: '#fff7e6' }}
+              >
                 {t.glyph}
               </span>
-              <span className="font-[var(--font-caveat),Caveat,cursive]">
-                <span className="block text-lg leading-none">{t.title}</span>
-                <span className="block text-xs opacity-70">{t.subtitle}</span>
+              <span style={{ fontFamily: 'var(--font-caveat), Caveat, cursive' }}>
+                <span className="block text-lg leading-tight" style={{ color: '#1f2750' }}>
+                  {t.title}
+                </span>
+                <span className="block text-xs italic" style={{ color: '#7a5b3a' }}>
+                  {t.subtitle}
+                </span>
               </span>
             </button>
           )
         })}
       </div>
 
-      <div className="mt-6 rounded-lg border border-dashed border-[rgba(80,60,40,0.25)] p-3 text-xs leading-relaxed italic opacity-75">
+      <div
+        className="mt-7 rounded-lg p-3 text-xs leading-relaxed italic"
+        style={{
+          border: '1px dashed rgba(120,90,50,0.4)',
+          color: '#6b4d28',
+        }}
+      >
         Letters can be opened on a date, or left to be found by chance.
-        <div className="mt-1">↳ choose when below</div>
+        <div className="mt-1" style={{ color: '#8b6b3f' }}>↳ choose when below</div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         {(['1_month','6_months','1_year','someday'] as const).map(k => {
           const label = k === '1_month' ? '1 month' : k === '6_months' ? '6 months' : k === '1_year' ? '1 year' : 'someday'
           const selected = unlock.kind === k
@@ -74,12 +94,13 @@ export default function RecipientSidebar({ recipient, onRecipientChange, unlock,
                   onUnlockChange({ kind: k })
                 }
               }}
-              className={`
-                rounded-md border px-3 py-1.5 text-xs transition
-                ${selected
-                  ? 'border-[var(--color-accent,#c8742c)] bg-[rgba(200,116,44,0.12)]'
-                  : 'border-[rgba(80,60,40,0.2)] hover:bg-[rgba(80,60,40,0.05)]'}
-              `}
+              className="rounded-md px-3 py-1.5 text-xs transition"
+              style={{
+                border: '1px solid rgba(120,90,50,0.35)',
+                backgroundColor: selected ? '#d8b878' : '#e6d5a7',
+                color: '#5a3f1f',
+                fontWeight: selected ? 500 : 400,
+              }}
             >
               {label}
             </button>
@@ -89,13 +110,18 @@ export default function RecipientSidebar({ recipient, onRecipientChange, unlock,
 
       {showPicker && unlock.kind === 'someday' && (
         <div className="mt-3">
-          <label className="block text-xs opacity-70 mb-1">pick a date</label>
+          <label className="block text-xs mb-1" style={{ color: '#7a5b3a' }}>pick a date</label>
           <input
             type="date"
             min={new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10)}
             value={unlock.date ? unlock.date.toISOString().slice(0, 10) : ''}
             onChange={e => onUnlockChange({ kind: 'someday', date: e.target.value ? new Date(e.target.value) : null })}
-            className="rounded-md border border-[rgba(80,60,40,0.25)] bg-transparent px-2 py-1 text-sm"
+            className="rounded-md px-2 py-1 text-sm"
+            style={{
+              border: '1px solid rgba(120,90,50,0.35)',
+              backgroundColor: '#e6d5a7',
+              color: '#5a3f1f',
+            }}
           />
         </div>
       )}

@@ -84,14 +84,17 @@ export default function LetterWriteView({ onBack, onSealed }: Props) {
   }
 
   return (
-    <div className="flex w-full">
+    <div
+      className="flex w-full min-h-screen"
+      style={{ backgroundColor: '#e6c885' }}
+    >
       <RecipientSidebar
         recipient={recipient}
         onRecipientChange={setRecipient}
         unlock={unlock}
         onUnlockChange={setUnlock}
       />
-      <div className="flex-1 px-6 py-8">
+      <div className="flex-1 px-10 py-12">
         <LetterPaper
           recipient={recipient}
           closeName={closeName}
