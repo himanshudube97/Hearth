@@ -469,13 +469,6 @@ const PAPER_PRESETS: Record<ThemeName, PaperPreset> = {
     highlight: 'rgba(245, 230, 190, 0.40)',
     shadow: 'rgba(70, 60, 25, 0.12)',
   },
-  // pale honey paper — bright cream sheet
-  paperSun: {
-    base: '#f0e0b0',
-    grain: 'rgba(140, 100, 40, 0.05)',
-    highlight: 'rgba(255, 245, 210, 0.45)',
-    shadow: 'rgba(120, 80, 30, 0.10)',
-  },
   // blush cream — dusty rose-tinted paper
   rose: {
     base: '#f0ddd0',
@@ -496,20 +489,6 @@ const PAPER_PRESETS: Record<ThemeName, PaperPreset> = {
     grain: 'rgba(60, 70, 80, 0.06)',
     highlight: 'rgba(240, 240, 230, 0.42)',
     shadow: 'rgba(40, 60, 70, 0.10)',
-  },
-  // honey paper — warm golden sheet
-  saffron: {
-    base: '#e8cc88',
-    grain: 'rgba(140, 90, 30, 0.07)',
-    highlight: 'rgba(250, 230, 180, 0.45)',
-    shadow: 'rgba(120, 70, 20, 0.12)',
-  },
-  // mint linen — cream with garden-green undertone
-  garden: {
-    base: '#dcdcb8',
-    grain: 'rgba(80, 110, 50, 0.06)',
-    highlight: 'rgba(240, 240, 210, 0.42)',
-    shadow: 'rgba(70, 100, 50, 0.10)',
   },
   // manila / buff — kraft envelope paper
   postal: {

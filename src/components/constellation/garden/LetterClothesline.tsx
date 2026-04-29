@@ -183,10 +183,11 @@ export function LetterClothesline({
           background: `linear-gradient(180deg, ${woodDark}cc 0%, ${wood}f0 35%, ${woodDark}e0 100%)`,
           borderRadius: 1,
           boxShadow: `inset 1px 0 0 ${woodDark}55, inset -1px 0 0 ${woodDark}55`,
+          transformOrigin: 'bottom',
         }}
         initial={{ scaleY: 0, opacity: 0 }}
         animate={{ scaleY: 1, opacity: 0.92 }}
-        transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1], transformOrigin: 'bottom' }}
+        transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
       />
       {/* Right post */}
       <motion.div
@@ -200,10 +201,11 @@ export function LetterClothesline({
           background: `linear-gradient(180deg, ${woodDark}cc 0%, ${wood}f0 35%, ${woodDark}e0 100%)`,
           borderRadius: 1,
           boxShadow: `inset 1px 0 0 ${woodDark}55, inset -1px 0 0 ${woodDark}55`,
+          transformOrigin: 'bottom',
         }}
         initial={{ scaleY: 0, opacity: 0 }}
         animate={{ scaleY: 1, opacity: 0.92 }}
-        transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1], transformOrigin: 'bottom' }}
+        transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
       />
 
       {/* Hanging envelopes — each wrapper is absolutely positioned at its
