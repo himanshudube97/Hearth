@@ -113,8 +113,6 @@ export default function ShelfBookSpread({
   const currentDay = days[visibleSpread] ?? []
   const currentEntryId =
     selectedEntryIds[visibleSpread] ?? currentDay[0]?.id ?? null
-  const currentEntry =
-    currentDay.find((e) => e.id === currentEntryId) ?? currentDay[0] ?? null
 
   const handleEntrySelect = useCallback(
     (entryId: string | null) => {
@@ -155,11 +153,6 @@ export default function ShelfBookSpread({
     () => days.map((day) => ({ id: day[0].id, createdAt: day[0].createdAt })),
     [days],
   )
-
-  // Reference currentEntry so the linter doesn't flag it as unused — it's a
-  // useful local handle for future expansion (mood ribbon, etc) and keeps the
-  // selector logic readable.
-  void currentEntry
 
   // Empty-month guard: if the user opens a month with zero entries (shouldn't
   // happen via the UI, but defends against direct URL hits), render a stub.
