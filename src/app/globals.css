@@ -102,16 +102,7 @@ textarea,
    tint comes from a CSS variable inherited from the book container, so
    per-theme color still applies without using inline style. */
 .diary-page {
-  /* The percentage on color-mix() is the page's true opacity:
-       100%  → fully opaque
-       0%    → fully transparent
-     A backdrop-filter blur gives the glass look behind the see-through
-     fraction. The mid-flip rule below still stacks an opaque base so the
-     curl reads as solid paper while turning. */
-  background-color: color-mix(in srgb, var(--page-bg-solid, rgb(20, 25, 22)) var(--diary-page-opacity, 95%), transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  background-color: var(--page-bg-solid, rgb(20, 25, 22));
 }
 
 /* Mid-flip opacity. The library marks resting pages with .--simple and
@@ -125,16 +116,21 @@ textarea,
 
 .diary-page--left {
   border-radius: 6px 0 0 6px;
-  box-shadow:
-    inset -4px 0 12px rgba(255, 255, 255, 0.06),
-    -10px 12px 40px rgba(0, 0, 0, 0.55);
+  box-shadow: -10px 12px 40px rgba(0, 0, 0, 0.55);
 }
 
 .diary-page--right {
   border-radius: 0 6px 6px 0;
-  box-shadow:
-    inset 4px 0 12px rgba(255, 255, 255, 0.06),
-    10px 12px 40px rgba(0, 0, 0, 0.55);
+  box-shadow: 10px 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* react-pageflip's flip-time shadow overlays are flat black gradients.
+   On a colored page they read as silver/plastic instead of "shadow." Blending
+   them via multiply makes them darken the underlying color naturally — same
+   visual function as a real paper-curl shadow on a colored sheet. */
+.stf__outerShadow,
+.stf__innerShadow {
+  mix-blend-mode: multiply;
 }
 
 /* Hardcover frame that sits behind the open spread. Negative inset extends
