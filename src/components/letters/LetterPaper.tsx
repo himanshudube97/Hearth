@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -25,6 +26,7 @@ interface Props {
   onSeal: () => void
   canSeal: boolean
   createdAt: Date
+  sealing?: boolean
 }
 
 export default function LetterPaper(props: Props) {
@@ -46,7 +48,7 @@ export default function LetterPaper(props: Props) {
   const [showEmail, setShowEmail] = useState(props.closeEmail.length > 0)
 
   return (
-    <div
+    <motion.div
       className="
         relative mx-auto w-full max-w-3xl rounded-md bg-[var(--color-paper,#f4ead0)] p-10
         shadow-[0_4px_24px_rgba(70,50,30,0.18)]
@@ -54,7 +56,14 @@ export default function LetterPaper(props: Props) {
       style={{
         backgroundImage:
           'repeating-linear-gradient(transparent, transparent 2.1rem, rgba(80,60,40,0.18) 2.1rem, rgba(80,60,40,0.18) calc(2.1rem + 1px))',
+        transformPerspective: 1200,
       }}
+      animate={
+        props.sealing
+          ? { scale: 0.92, rotateX: 30, opacity: 0.6 }
+          : { scale: 1, rotateX: 0, opacity: 1 }
+      }
+      transition={{ duration: 0.7, ease: [0.32, 0.72, 0.24, 1] }}
     >
       {/* Top-right stamp */}
       <div className="absolute right-6 top-6 text-right text-xs italic opacity-70">
@@ -165,6 +174,6 @@ export default function LetterPaper(props: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

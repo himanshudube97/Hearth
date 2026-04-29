@@ -75,6 +75,7 @@ export default function LetterWriteView({ onBack, onSealed }: Props) {
       if (!entryId) return
       const res = await fetch(`/api/entries/${entryId}/seal`, { method: 'POST' })
       if (res.ok) {
+        await new Promise(r => setTimeout(r, 900))
         onSealed()
       }
     } finally {
@@ -105,6 +106,7 @@ export default function LetterWriteView({ onBack, onSealed }: Props) {
           songUrl={null}
           onBack={onBack}
           onSeal={handleSeal}
+          sealing={sealing}
           canSeal={canSeal && !sealing}
           createdAt={createdAt}
         />
