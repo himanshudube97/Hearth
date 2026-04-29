@@ -109,6 +109,7 @@ export default function ShelfBookSpread({
   const isMobile = useIsMobile()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flipBookRef = useRef<any>(null)
+  const diaryRootRef = useRef<HTMLDivElement>(null)
 
   // One day per spread; multiple entries on the same day are switched via
   // EntrySelector.
@@ -162,6 +163,42 @@ export default function ShelfBookSpread({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  // Two-finger trackpad swipe = page flip. Mirrors BookSpread on /write:
+  // accumulate wheel delta and fire one full library flip past a threshold,
+  // then lock for the animation duration so one swipe == one page.
+  useEffect(() => {
+    const el = diaryRootRef.current
+    if (!el) return
+
+    const THRESHOLD = 60
+    const FLIP_LOCK_MS = 1300
+
+    let accumulated = 0
+    let isFlipping = false
+
+    const handler = (e: WheelEvent) => {
+      const dominant =
+        Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) e.preventDefault()
+      if (isFlipping || dominant === 0) return
+
+      accumulated += dominant
+      if (Math.abs(accumulated) < THRESHOLD) return
+
+      isFlipping = true
+      const pf = flipBookRef.current?.pageFlip?.()
+      if (accumulated > 0) pf?.flipNext()
+      else pf?.flipPrev()
+      accumulated = 0
+      setTimeout(() => {
+        isFlipping = false
+      }, FLIP_LOCK_MS)
+    }
+
+    el.addEventListener('wheel', handler, { passive: false })
+    return () => el.removeEventListener('wheel', handler)
+  }, [])
+
   // Build the rail's entry list: one representative entry per day (first).
   const railEntries = useMemo(
     () => days.map((day) => ({ id: day[0].id, createdAt: day[0].createdAt })),
@@ -190,7 +227,7 @@ export default function ShelfBookSpread({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="fixed inset-0 z-30 flex items-center justify-center"
-        style={{ background: 'rgba(10,8,6,0.6)' }}
+        style={{ background: theme.bg.gradient }}
       >
         <button
           onClick={onClose}
@@ -213,7 +250,7 @@ export default function ShelfBookSpread({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
       className="fixed inset-0 z-30 flex items-center justify-center"
-      style={{ background: 'rgba(10,8,6,0.6)' }}
+      style={{ background: theme.bg.gradient }}
     >
       {/* Top bar: back to shelf + volume label */}
       <button
@@ -243,6 +280,7 @@ export default function ShelfBookSpread({
 
       {/* Book frame */}
       <div
+        ref={diaryRootRef}
         className="relative inline-block"
         style={{
           ['--book-cover-bg' as string]: colors.cover,
