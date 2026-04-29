@@ -36,6 +36,8 @@ export default function BookSpine({
       type="button"
       onClick={onClick}
       aria-label={`Open ${label} ${year}, ${entryCount} entries`}
+      tabIndex={hidden ? -1 : 0}
+      aria-hidden={hidden ? 'true' : undefined}
       layoutId={`book-${year}-${monthIndex}`}
       whileHover={{ y: -6 }}
       whileTap={{ y: -2 }}
