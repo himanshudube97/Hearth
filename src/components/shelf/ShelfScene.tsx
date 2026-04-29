@@ -115,6 +115,17 @@ export default function ShelfScene() {
       : { limit: 1 }, // hook is always called; this branch is a no-op fetch we ignore
   )
 
+  // useEntries holds stale data from the prior options across the render
+  // immediately after monthKey changes (its effect runs post-commit). Mounting
+  // ShelfBookSpread with that stale entry, then unmounting one render later
+  // when `loading` flips true, crashes react-pageflip on cleanup. Treat the
+  // spread as "ready" only when entries are absent (genuine empty month) or
+  // their first item is dated within the current monthKey.
+  const spreadReady =
+    !entriesLoading &&
+    !!monthKey &&
+    (monthEntries.length === 0 || monthEntries[0].createdAt.startsWith(monthKey))
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
       <ShelfHeader
@@ -158,7 +169,15 @@ export default function ShelfScene() {
         )}
 
         {mode === 'open' && selectedMonth !== null && (
-          entriesLoading ? (
+          spreadReady ? (
+            <ShelfBookSpread
+              key="open"
+              year={selectedYear}
+              monthIndex={selectedMonth}
+              entries={monthEntries}
+              onClose={handleClose}
+            />
+          ) : (
             <div
               key="open-loading"
               className="fixed inset-0 z-30 flex items-center justify-center"
@@ -168,14 +187,6 @@ export default function ShelfScene() {
                 turning to the page…
               </p>
             </div>
-          ) : (
-            <ShelfBookSpread
-              key="open"
-              year={selectedYear}
-              monthIndex={selectedMonth}
-              entries={monthEntries}
-              onClose={handleClose}
-            />
           )
         )}
       </AnimatePresence>
