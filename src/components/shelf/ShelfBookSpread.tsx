@@ -11,8 +11,21 @@ import DateTabRail from '@/components/desk/DateTabRail'
 import EntrySelector from '@/components/desk/EntrySelector'
 import { JournalEntry } from '@/store/journal'
 import { monthLabel, toRoman } from './shelfPalette'
+import ShelfMobileBook from './ShelfMobileBook'
 
 const HTMLFlipBook = dynamic(() => import('react-pageflip'), { ssr: false })
+
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)')
+    const update = () => setIsMobile(mql.matches)
+    update()
+    mql.addEventListener('change', update)
+    return () => mql.removeEventListener('change', update)
+  }, [])
+  return isMobile
+}
 
 const PAGE_WIDTH = 650
 const PAGE_HEIGHT = 820
@@ -93,6 +106,7 @@ export default function ShelfBookSpread({
 }: ShelfBookSpreadProps) {
   const { theme } = useThemeStore()
   const colors = getGlassDiaryColors(theme)
+  const isMobile = useIsMobile()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flipBookRef = useRef<any>(null)
 
@@ -153,6 +167,20 @@ export default function ShelfBookSpread({
     () => days.map((day) => ({ id: day[0].id, createdAt: day[0].createdAt })),
     [days],
   )
+
+  // Mobile delegation: < 768px viewports get a vertical single-page reader
+  // instead of the fixed 1300×820 flipbook. This must run after all hooks
+  // above to satisfy the rules of hooks.
+  if (isMobile) {
+    return (
+      <ShelfMobileBook
+        year={year}
+        monthIndex={monthIndex}
+        entries={entries}
+        onClose={onClose}
+      />
+    )
+  }
 
   // Empty-month guard: if the user opens a month with zero entries (shouldn't
   // happen via the UI, but defends against direct URL hits), render a stub.
