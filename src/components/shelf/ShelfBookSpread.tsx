@@ -173,6 +173,9 @@ export default function ShelfBookSpread({
   // Two-finger trackpad swipe = page flip. Mirrors BookSpread on /write:
   // accumulate wheel delta and fire one full library flip past a threshold,
   // then lock for the animation duration so one swipe == one page.
+  // Re-runs when `entries` flips between null and array — the book frame
+  // (which holds diaryRootRef) is conditionally rendered, so the ref is
+  // null on the loading branch and only populates once the book mounts.
   useEffect(() => {
     const el = diaryRootRef.current
     if (!el) return
@@ -204,7 +207,7 @@ export default function ShelfBookSpread({
 
     el.addEventListener('wheel', handler, { passive: false })
     return () => el.removeEventListener('wheel', handler)
-  }, [])
+  }, [entries])
 
   // Build the rail's entry list: one representative entry per day (first).
   const railEntries = useMemo(
@@ -327,7 +330,14 @@ export default function ShelfBookSpread({
             showCover={false}
             startPage={0}
             onFlip={handleFlip}
-            onInit={() => setBookReady(true)}
+            onInit={() => {
+              // Defensive: react-pageflip's startPage isn't always honored on
+              // first paint, so explicitly position to spread 0 (= earliest
+              // day in the month, since groupByDay sorts days ascending).
+              flipBookRef.current?.pageFlip?.()?.turnToPage?.(0)
+              setVisibleSpread(0)
+              setBookReady(true)
+            }}
             className=""
             style={{}}
             startZIndex={0}
