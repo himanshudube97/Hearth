@@ -13,7 +13,7 @@ const tabs = [
   { href: '/scrapbook', label: 'Scrapbook', icon: '✦' },
   { href: '/letters', label: 'Letters', icon: '✉' },
   { href: '/timeline', label: 'Timeline', icon: '☰' },
-  { href: '/calendar', label: 'Calendar', icon: '▣' },
+  { href: '/shelf', label: 'Shelf', icon: '❒' },
   { href: '/constellation', label: 'Stars', icon: '★' },
 ]
 
