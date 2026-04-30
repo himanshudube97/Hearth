@@ -6,6 +6,7 @@ import type { JournalEntry } from '@/store/journal'
 import type { MemoryStar } from '../../ConstellationRenderer'
 import { MemoryModal } from '../../MemoryModal'
 import { RoseSky } from '../rose/RoseSky'
+import { GardenPath } from '../rose/GardenPath'
 
 export interface RoseGardenSceneProps {
   loading: boolean
@@ -75,6 +76,7 @@ export function RoseGardenScene({
       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
     >
       <RoseSky />
+      <GardenPath />
 
       <p
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
