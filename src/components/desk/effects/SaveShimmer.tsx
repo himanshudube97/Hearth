@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDeskStore } from '@/store/desk'
 
 interface SaveShimmerProps {
@@ -8,16 +8,24 @@ interface SaveShimmerProps {
 }
 
 export default function SaveShimmer({ enabled }: SaveShimmerProps) {
-  const status = useDeskStore((s) => s.autosaveStatus)
   const [pulseId, setPulseId] = useState(0)
-  const prevStatus = useRef(status)
 
+  // Subscribe to autosave status transitions via Zustand's external store
+  // subscription. Doing this in the subscribe callback (rather than inside
+  // the effect body via a selector + status dep) avoids react-hooks/
+  // set-state-in-effect — the setState fires on the external event, not on
+  // every render of this component.
   useEffect(() => {
-    if (enabled && prevStatus.current === 'saving' && status === 'saved') {
-      setPulseId((n) => n + 1)
-    }
-    prevStatus.current = status
-  }, [status, enabled])
+    if (!enabled) return
+    let prev = useDeskStore.getState().autosaveStatus
+    return useDeskStore.subscribe((state) => {
+      const next = state.autosaveStatus
+      if (prev === 'saving' && next === 'saved') {
+        setPulseId((n) => n + 1)
+      }
+      prev = next
+    })
+  }, [enabled])
 
   if (!enabled) return null
 
