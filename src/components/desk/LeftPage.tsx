@@ -15,6 +15,7 @@ import {
   findPositionOnLastRow,
 } from '@/lib/textarea-caret'
 import PenMenu from './PenMenu'
+import SparkleTrail from './effects/SparkleTrail'
 import { resolveFontFamily, resolveInkColor, parseStyle, type EntryStyle } from '@/lib/entry-style'
 import { isEntryLocked } from '@/lib/entry-lock-client'
 
@@ -346,7 +347,11 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
                 overflow: 'hidden',
               }}
             />
-            {/* Effect overlays for Tasks 9, 10, 11 mount here. */}
+            <SparkleTrail
+              textareaRef={textareaRef}
+              inkColor={inkColor}
+              enabled={activeStyle.effect === 'sparkle' && isNewEntry}
+            />
           </div>
         </div>
       </motion.div>

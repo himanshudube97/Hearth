@@ -18,6 +18,7 @@ import {
 import { resolveFontFamily, resolveInkColor, parseStyle, type EntryStyle } from '@/lib/entry-style'
 import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
+import SparkleTrail from './effects/SparkleTrail'
 
 const LINE_HEIGHT = 32
 const DOODLE_DRAFT_KEY = 'hearth_desk_doodle_draft'
@@ -356,7 +357,11 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
                 overflow: 'hidden',
               }}
             />
-            {/* Effect overlays for Tasks 9, 10, 11 mount here. */}
+            <SparkleTrail
+              textareaRef={textareaRef}
+              inkColor={inkColor}
+              enabled={activeStyle.effect === 'sparkle' && isNewEntry}
+            />
           </div>
         </div>
 

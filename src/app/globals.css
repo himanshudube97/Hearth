@@ -289,3 +289,18 @@ textarea,
   transform-origin: left center;
   animation: sb-wing 0.7s ease-in-out infinite;
 }
+
+.hearth-sparkle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: hearth-sparkle-fade 600ms ease-out forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes hearth-sparkle-fade {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) translateY(-8px) scale(0.4); }
+}
