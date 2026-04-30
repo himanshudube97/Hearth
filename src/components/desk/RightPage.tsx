@@ -15,12 +15,9 @@ import {
   getCaretLeftOffset,
   findPositionOnFirstRow,
 } from '@/lib/textarea-caret'
-import { resolveFontFamily, resolveInkColor, parseStyle, type EntryStyle } from '@/lib/entry-style'
+import { resolveFontFamily, parseStyle, type EntryStyle } from '@/lib/entry-style'
 import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
-import SparkleTrail from './effects/SparkleTrail'
-import SaveShimmer from './effects/SaveShimmer'
-import WetInkGlow from './effects/WetInkGlow'
 
 const LINE_HEIGHT = 32
 const DOODLE_DRAFT_KEY = 'hearth_desk_doodle_draft'
@@ -160,7 +157,6 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
     ? entryStyleDraft
     : parseStyle(entry?.style ?? null)
   const fontFamily = resolveFontFamily(activeStyle.font)
-  const inkColor = resolveInkColor(activeStyle.color, colors.bodyText)
 
   const linePattern = `repeating-linear-gradient(
     180deg,
@@ -348,27 +344,16 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
               placeholder="Begin writing..."
               className="absolute inset-0 w-full h-full resize-none outline-none"
               style={{
-                color: inkColor,
+                color: textColor,
                 fontFamily,
                 fontSize: '20px',
                 lineHeight: `${LINE_HEIGHT}px`,
-                caretColor: inkColor,
+                caretColor: accentColor,
                 backgroundColor: 'transparent',
                 backgroundImage: linePattern,
                 backgroundAttachment: 'local',
                 overflow: 'hidden',
               }}
-            />
-            <SparkleTrail
-              textareaRef={textareaRef}
-              inkColor={inkColor}
-              enabled={activeStyle.effect === 'sparkle' && isNewEntry}
-            />
-            <SaveShimmer enabled={activeStyle.effect === 'sparkle' && isNewEntry} />
-            <WetInkGlow
-              textareaRef={textareaRef}
-              inkColor={inkColor}
-              enabled={activeStyle.effect === 'wet-ink' && isNewEntry}
             />
           </div>
         </div>
@@ -457,7 +442,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
         <div
           className="flex-1 min-h-0 w-full whitespace-pre-wrap overflow-hidden"
           style={{
-            color: plainText ? inkColor : mutedColor,
+            color: plainText ? textColor : mutedColor,
             fontFamily,
             fontSize: '20px',
             lineHeight: `${LINE_HEIGHT}px`,

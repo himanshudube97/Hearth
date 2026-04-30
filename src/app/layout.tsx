@@ -5,7 +5,6 @@ import {
   Patrick_Hand,
   Shadows_Into_Light,
   Indie_Flower,
-  Homemade_Apple,
 } from "next/font/google";
 import "./globals.css";
 import LayoutContent from "@/components/LayoutContent";
@@ -41,14 +40,6 @@ const shadowsIntoLight = Shadows_Into_Light({
 
 const indieFlower = Indie_Flower({
   variable: "--font-indie",
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-  preload: false,
-});
-
-const homemadeApple = Homemade_Apple({
-  variable: "--font-homemade",
   subsets: ["latin"],
   weight: "400",
   display: "swap",
@@ -103,7 +94,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${ebGaramond.variable} ${caveat.variable} ${patrickHand.variable} ${shadowsIntoLight.variable} ${indieFlower.variable} ${homemadeApple.variable} antialiased font-serif`}
+        className={`${ebGaramond.variable} ${caveat.variable} ${patrickHand.variable} ${shadowsIntoLight.variable} ${indieFlower.variable} antialiased font-serif`}
       >
         <AuthProvider>
           <E2EEProvider>

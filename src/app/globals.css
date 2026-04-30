@@ -290,37 +290,3 @@ textarea,
   animation: sb-wing 0.7s ease-in-out infinite;
 }
 
-.hearth-sparkle {
-  position: absolute;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  pointer-events: none;
-  animation: hearth-sparkle-fade 600ms ease-out forwards;
-  will-change: transform, opacity;
-}
-
-@keyframes hearth-sparkle-fade {
-  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) translateY(-8px) scale(0.4); }
-}
-
-.hearth-shimmer {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    100deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0) 35%,
-    rgba(255, 255, 255, 0.18) 50%,
-    rgba(255, 255, 255, 0) 65%,
-    transparent 100%
-  );
-  transform: translateX(-100%);
-  animation: hearth-shimmer-sweep 700ms ease-out forwards;
-  pointer-events: none;
-}
-
-@keyframes hearth-shimmer-sweep {
-  to { transform: translateX(100%); }
-}
