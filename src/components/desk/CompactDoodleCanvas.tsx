@@ -72,20 +72,41 @@ const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
     }
   }, [])
 
+  // Erase only the portion of each stroke that falls within ERASER_RADIUS
+  // of the pointer. A stroke split by an erase becomes multiple sub-strokes
+  // (e.g. erasing the middle of a line leaves the two ends behind).
   const eraseAt = useCallback((point: Point) => {
     setLocalStrokes((prev) => {
-      // Walk newest-first so erasing favours the stroke drawn most recently.
-      for (let i = prev.length - 1; i >= 0; i--) {
-        const hit = prev[i].points.some(
-          ([x, y]) => Math.hypot(x - point.x, y - point.y) <= ERASER_RADIUS,
-        )
-        if (hit) {
-          const next = prev.filter((_, idx) => idx !== i)
-          onStrokesChange(next)
-          return next
+      let anyChange = false
+      const next: StrokeData[] = []
+      for (const stroke of prev) {
+        let touched = false
+        const segments: number[][][] = []
+        let current: number[][] = []
+        for (const p of stroke.points) {
+          const dist = Math.hypot(p[0] - point.x, p[1] - point.y)
+          if (dist <= ERASER_RADIUS) {
+            if (current.length >= 2) segments.push(current)
+            current = []
+            touched = true
+          } else {
+            current.push(p)
+          }
+        }
+        if (current.length >= 2) segments.push(current)
+
+        if (!touched) {
+          next.push(stroke)
+        } else {
+          anyChange = true
+          for (const seg of segments) {
+            next.push({ color: stroke.color, size: stroke.size, points: seg })
+          }
         }
       }
-      return prev
+      if (!anyChange) return prev
+      onStrokesChange(next)
+      return next
     })
   }, [onStrokesChange])
 
