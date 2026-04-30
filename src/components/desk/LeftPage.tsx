@@ -242,10 +242,20 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
           {isEditingSong || !songInput ? (
             <>
               <div
-                className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
+                className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium flex items-center justify-between"
                 style={{ color: mutedColor }}
               >
-                Add a Song
+                <span>Add a Song</span>
+                {songInput && /https?:\/\//.test(songInput) && (
+                  <button
+                    onClick={() => setIsEditingSong(false)}
+                    className="text-[10px] normal-case tracking-normal opacity-60 hover:opacity-100 transition-opacity"
+                    style={{ color: mutedColor }}
+                    title="Back to player"
+                  >
+                    ← back to player
+                  </button>
+                )}
               </div>
               <input
                 type="text"
