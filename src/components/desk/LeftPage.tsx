@@ -27,6 +27,7 @@ interface Entry {
   mood: number
   song?: string | null
   createdAt: string
+  style?: EntryStyle | null
 }
 
 interface LeftPageProps {
@@ -68,7 +69,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
 
   const activeStyle: EntryStyle = isNewEntry
     ? entryStyleDraft
-    : parseStyle((entry as unknown as { style?: unknown })?.style ?? null)
+    : parseStyle(entry?.style ?? null)
   const fontFamily = resolveFontFamily(activeStyle.font)
   const inkColor = resolveInkColor(activeStyle.color, colors.bodyText)
   const lockedForEntry = !isNewEntry && entry

@@ -52,6 +52,7 @@ interface Entry {
   photos?: Photo[]
   doodles?: Array<{ strokes: StrokeData[] }>
   createdAt: string
+  style?: EntryStyle | null
 }
 
 interface RightPageProps {
@@ -154,7 +155,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
   const entryStyleDraft = useDeskStore((s) => s.entryStyleDraft)
   const activeStyle: EntryStyle = isNewEntry
     ? entryStyleDraft
-    : parseStyle((entry as unknown as { style?: unknown })?.style ?? null)
+    : parseStyle(entry?.style ?? null)
   const fontFamily = resolveFontFamily(activeStyle.font)
   const inkColor = resolveInkColor(activeStyle.color, colors.bodyText)
 
