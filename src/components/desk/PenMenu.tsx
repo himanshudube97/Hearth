@@ -64,13 +64,13 @@ export default function PenMenu({
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 4, scale: 0.98 }}
       transition={{ duration: 0.15 }}
-      className="absolute z-50 rounded-xl shadow-lg flex gap-2"
+      className="absolute z-50 rounded-lg shadow-md flex gap-1"
       style={{
-        top: '-4px',
+        top: '-2px',
         right: '32px',
         background: panelBg,
         border: `1px solid ${panelBorder}`,
-        padding: '6px',
+        padding: '3px',
       }}
       role="dialog"
       aria-label="Font"
@@ -81,11 +81,11 @@ export default function PenMenu({
           <button
             key={key}
             onClick={() => pick(key)}
-            className="px-2 py-1 rounded-md transition-opacity"
+            className="px-1.5 rounded-md transition-opacity"
             style={{
               fontFamily: resolveFontFamily(key),
-              fontSize: '20px',
-              lineHeight: 1,
+              fontSize: '14px',
+              lineHeight: 1.4,
               color: bodyText,
               background: selected ? `${bodyText}18` : 'transparent',
               border: `1px solid ${selected ? bodyText : panelBorder}`,
