@@ -17,6 +17,7 @@ import {
 import PenMenu from './PenMenu'
 import SparkleTrail from './effects/SparkleTrail'
 import SaveShimmer from './effects/SaveShimmer'
+import WetInkGlow from './effects/WetInkGlow'
 import { resolveFontFamily, resolveInkColor, parseStyle, type EntryStyle } from '@/lib/entry-style'
 import { isEntryLocked } from '@/lib/entry-lock-client'
 
@@ -354,6 +355,11 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
               enabled={activeStyle.effect === 'sparkle' && isNewEntry}
             />
             <SaveShimmer enabled={activeStyle.effect === 'sparkle' && isNewEntry} />
+            <WetInkGlow
+              textareaRef={textareaRef}
+              inkColor={inkColor}
+              enabled={activeStyle.effect === 'wet-ink' && isNewEntry}
+            />
           </div>
         </div>
       </motion.div>
