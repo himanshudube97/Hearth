@@ -5,6 +5,7 @@ import type { Theme } from '@/lib/themes'
 import type { JournalEntry } from '@/store/journal'
 import type { MemoryStar } from '../../ConstellationRenderer'
 import { MemoryModal } from '../../MemoryModal'
+import { RoseSky } from '../rose/RoseSky'
 
 export interface RoseGardenSceneProps {
   loading: boolean
@@ -69,11 +70,12 @@ export function RoseGardenScene({
   return (
     <motion.div
       className="fixed inset-0 overflow-hidden"
-      style={{ background: theme.bg.gradient }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
     >
+      <RoseSky />
+
       <p
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
         style={{ color: theme.text.muted, fontStyle: 'italic' }}
