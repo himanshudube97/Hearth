@@ -5,8 +5,8 @@ import { useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEntries, useEntryStats } from '@/hooks/useEntries'
 import ShelfHeader from './ShelfHeader'
-import YearTabs from './YearTabs'
 import Shelf, { ShelfMonth } from './Shelf'
+import WaxSealTag from './WaxSealTag'
 import ShelfBookSpread from './ShelfBookSpread'
 
 type Mode = 'shelf' | 'open'
@@ -23,11 +23,16 @@ function parseMonth(raw: string | null): number | null {
   return Number.isInteger(n) && n >= 1 && n <= 12 ? n - 1 : null
 }
 
-function defaultYear(years: number[]): number {
-  const thisYear = new Date().getFullYear()
-  if (years.includes(thisYear)) return thisYear
-  if (years.length === 0) return thisYear
-  return years[years.length - 1] // most recent year with entries
+function buildMonths(
+  year: number,
+  stats: ReturnType<typeof useEntryStats>['stats'],
+): ShelfMonth[] {
+  const yearStats = stats?.years.find((y) => y.year === year)
+  return Array.from({ length: 12 }, (_, monthIndex) => {
+    const monthKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}`
+    const ms = yearStats?.months.find((m) => m.month === monthKey)
+    return { monthIndex, entryCount: ms?.entryCount ?? 0 }
+  })
 }
 
 export default function ShelfScene() {
@@ -35,48 +40,39 @@ export default function ShelfScene() {
   const search = useSearchParams()
 
   const { stats, loading: statsLoading } = useEntryStats()
+  const currentYear = new Date().getFullYear()
 
-  // Years that actually have entries.
-  const yearsWithEntries = useMemo(() => {
-    if (!stats) return [] as number[]
-    return [...stats.years.map((y) => y.year)].sort((a, b) => a - b)
-  }, [stats])
+  // Years to display: any year with entries + always show the current year
+  // (so a brand-new user still gets an "in progress" shelf to write into).
+  const displayYears = useMemo(() => {
+    const set = new Set<number>([currentYear])
+    if (stats) for (const y of stats.years) set.add(y.year)
+    return [...set].sort((a, b) => b - a) // newest first
+  }, [stats, currentYear])
 
-  const fallback = defaultYear(yearsWithEntries)
+  const fallback = displayYears[0] ?? currentYear
   const selectedYear = parseYear(search.get('year'), fallback)
   const selectedMonth = parseMonth(search.get('month'))
-
-  // Two states only: browsing the shelf, or reading a month. Tapping a spine
-  // jumps directly to reading — no closed-cover intermediate. Removing that
-  // middle state simplifies the AnimatePresence/react-pageflip mount sequence
-  // that was causing reconciliation crashes.
   const mode: Mode = selectedMonth === null ? 'shelf' : 'open'
 
-  // Per-month entry counts for the selected year.
-  const months: ShelfMonth[] = useMemo(() => {
-    const yearStats = stats?.years.find((y) => y.year === selectedYear)
-    return Array.from({ length: 12 }, (_, monthIndex) => {
-      const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, '0')}`
-      const ms = yearStats?.months.find((m) => m.month === monthKey)
-      return { monthIndex, entryCount: ms?.entryCount ?? 0 }
-    })
-  }, [stats, selectedYear])
+  const monthsByYear = useMemo(() => {
+    const map = new Map<number, ShelfMonth[]>()
+    for (const y of displayYears) map.set(y, buildMonths(y, stats))
+    return map
+  }, [displayYears, stats])
 
-  const entriesThisYear = useMemo(
-    () => months.reduce((sum, m) => sum + m.entryCount, 0),
-    [months],
-  )
+  const entriesThisYear = useMemo(() => {
+    const months = monthsByYear.get(currentYear) ?? []
+    return months.reduce((sum, m) => sum + m.entryCount, 0)
+  }, [monthsByYear, currentYear])
   const totalEntries = stats?.totalEntries ?? 0
 
-  // URL transitions
   const setQuery = useCallback(
     (next: { year?: number; month?: number | null }) => {
       const params = new URLSearchParams(search.toString())
       if (next.year !== undefined) params.set('year', String(next.year))
       if (next.month === null) params.delete('month')
       else if (next.month !== undefined) params.set('month', String(next.month + 1))
-      // `open` was a v1 flag for the closed-cover intermediate; the spread
-      // now opens directly on month click, so strip it from any URL we write.
       params.delete('open')
       const qs = params.toString()
       router.replace(qs ? `/shelf?${qs}` : '/shelf', { scroll: false })
@@ -84,12 +80,8 @@ export default function ShelfScene() {
     [router, search],
   )
 
-  const handleYearSelect = useCallback(
-    (year: number) => setQuery({ year, month: null }),
-    [setQuery],
-  )
   const handleMonthClick = useCallback(
-    (monthIndex: number) => setQuery({ month: monthIndex }),
+    (year: number, monthIndex: number) => setQuery({ year, month: monthIndex }),
     [setQuery],
   )
   const handleClose = useCallback(
@@ -97,7 +89,7 @@ export default function ShelfScene() {
     [setQuery],
   )
 
-  // Lazy-load entries only when reading.
+  // Lazy-load entries for the open month only.
   const monthKey =
     selectedMonth !== null
       ? `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`
@@ -105,15 +97,8 @@ export default function ShelfScene() {
   const { entries: monthEntries, loading: entriesLoading } = useEntries(
     mode === 'open' && monthKey
       ? { month: monthKey, includeDoodles: true }
-      : { limit: 1 }, // hook is always called; this branch is a no-op fetch we ignore
+      : { limit: 1 },
   )
-
-  // useEntries holds stale data from the prior options across the render
-  // immediately after monthKey changes (its effect runs post-commit). Mounting
-  // ShelfBookSpread with that stale entry, then unmounting one render later
-  // when `loading` flips true, crashes react-pageflip on cleanup. Treat the
-  // spread as "ready" only when entries are absent (genuine empty month) or
-  // their first item is dated within the current monthKey.
   const spreadReady =
     !entriesLoading &&
     !!monthKey &&
@@ -122,42 +107,57 @@ export default function ShelfScene() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
       <ShelfHeader
-        selectedYear={selectedYear}
-        entriesThisYear={entriesThisYear}
-        totalEntries={totalEntries}
-      />
-      <YearTabs
-        years={yearsWithEntries}
-        selectedYear={selectedYear}
-        onSelect={handleYearSelect}
-      />
-
-      {statsLoading ? (
-        <p className="text-center text-sm opacity-50 py-16">opening the shelf…</p>
-      ) : (
-        <div className="pt-12 pb-20">
-          <Shelf
-            year={selectedYear}
-            months={months}
-            onMonthClick={handleMonthClick}
-            pulledMonthIndex={mode !== 'shelf' ? selectedMonth : null}
-          />
-        </div>
-      )}
-
-      {/* Spread overlay. Mounted as a plain conditional (no AnimatePresence) so
-          react-pageflip controls its own DOM lifecycle without a parent
-          managing exit animations on top of it. The spread itself stays
-          mounted across the loading→ready transition (entries={null} while
-          fetching) so the backdrop fades in exactly once per open. */}
-      {mode === 'open' && selectedMonth !== null && (
-        <ShelfBookSpread
-          year={selectedYear}
-          monthIndex={selectedMonth}
-          entries={spreadReady ? monthEntries : null}
-          onClose={handleClose}
+          selectedYear={currentYear}
+          entriesThisYear={entriesThisYear}
+          totalEntries={totalEntries}
         />
-      )}
+
+        {statsLoading ? (
+          <p className="text-center text-sm opacity-50 py-16">opening the shelf…</p>
+        ) : (
+          <div className="pb-20">
+            {displayYears.map((year, idx) => {
+              const months = monthsByYear.get(year) ?? []
+              const isCurrent = year === currentYear
+              return (
+                <div key={year}>
+                  {/* Wax-seal tag hanging above each shelf. The first tag's
+                      thread feels long (descending from the header); later
+                      tags' threads are shorter — they hang from the shelf
+                      directly above. */}
+                  <div className="flex justify-center">
+                    <WaxSealTag
+                      year={year}
+                      status={isCurrent ? 'in progress' : 'archive'}
+                      threadLength={idx === 0 ? 28 : 40}
+                    />
+                  </div>
+                  {/* Spacer between tag and the shelf below it */}
+                  <div style={{ height: 36 }} />
+                  <Shelf
+                    year={year}
+                    months={months}
+                    onMonthClick={(m) => handleMonthClick(year, m)}
+                    pulledMonthIndex={
+                      mode !== 'shelf' && year === selectedYear ? selectedMonth : null
+                    }
+                  />
+                  {/* Space below the shelf for the next tag's thread */}
+                  {idx < displayYears.length - 1 && <div style={{ height: 80 }} />}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {mode === 'open' && selectedMonth !== null && (
+          <ShelfBookSpread
+            year={selectedYear}
+            monthIndex={selectedMonth}
+            entries={spreadReady ? monthEntries : null}
+            onClose={handleClose}
+          />
+        )}
     </div>
   )
 }

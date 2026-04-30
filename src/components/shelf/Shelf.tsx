@@ -17,8 +17,15 @@ interface ShelfProps {
 }
 
 const PLANK_HEIGHT = 14
+const PLANK_OVERHANG = 28 // plank extends beyond the books on each side
+const HANGER_HEIGHT = 60  // metal rod rising above the plank to the wall
+
 const PLANK_GRAIN =
-  'repeating-linear-gradient(90deg, #5a3a22 0 6px, #4d3119 6px 7px, #5a3a22 7px 14px)'
+  'repeating-linear-gradient(90deg, #6b4528 0 8px, #533318 8px 9px, #6b4528 9px 18px, #5d3a20 18px 19px, #6b4528 19px 28px)'
+const PLANK_FACE =
+  'linear-gradient(180deg, #7a512c 0%, #6b4528 30%, #533318 75%, #3a2510 100%)'
+const PLANK_EDGE =
+  'linear-gradient(180deg, #4a2f18 0%, #2a1808 100%)'
 
 export default function Shelf({
   year,
@@ -32,9 +39,7 @@ export default function Shelf({
       <div
         className={[
           'flex gap-3',
-          // Desktop: spines stand upright on a horizontal plank.
           'md:flex-row md:items-end md:justify-center',
-          // Mobile: spines lie on their sides, stacked vertically.
           'flex-col items-center',
         ].join(' ')}
       >
@@ -60,28 +65,98 @@ export default function Shelf({
         })}
       </div>
 
-      {/* Wooden plank — desktop is a horizontal bar under the row; mobile is a
-          vertical bar to the left of the stack. */}
+      {/* Wooden plank — desktop horizontal under the row, with hanger rods on
+          each end so the shelf appears wall-mounted. */}
       <div
         aria-hidden="true"
-        className="hidden md:block absolute left-0 right-0"
+        className="hidden md:block absolute"
         style={{
-          bottom: `-${PLANK_HEIGHT + 4}px`,
-          height: `${PLANK_HEIGHT}px`,
-          background: PLANK_GRAIN,
+          left: -PLANK_OVERHANG,
+          right: -PLANK_OVERHANG,
+          bottom: -(PLANK_HEIGHT + 4),
+          height: PLANK_HEIGHT,
+          background: PLANK_FACE,
+          backgroundImage: `${PLANK_FACE}, ${PLANK_GRAIN}`,
+          backgroundBlendMode: 'overlay',
           borderRadius: '2px',
-          boxShadow: '0 6px 12px rgba(0,0,0,0.25)',
+          boxShadow:
+            'inset 0 1px 0 rgba(255,225,180,0.18), inset 0 -2px 0 rgba(0,0,0,0.45), 0 8px 14px rgba(0,0,0,0.28)',
         }}
       />
+      {/* Plank front edge / shadow line */}
+      <div
+        aria-hidden="true"
+        className="hidden md:block absolute"
+        style={{
+          left: -PLANK_OVERHANG,
+          right: -PLANK_OVERHANG,
+          bottom: -(PLANK_HEIGHT + 6),
+          height: 3,
+          background: PLANK_EDGE,
+          borderRadius: '0 0 2px 2px',
+          opacity: 0.85,
+        }}
+      />
+
+      {/* Hanger rods — left + right metal verticals rising to the wall */}
+      <Hanger side="left" />
+      <Hanger side="right" />
+
+      {/* Mobile vertical bar */}
       <div
         aria-hidden="true"
         className="md:hidden absolute top-0 bottom-0"
         style={{
-          left: `-${PLANK_HEIGHT + 4}px`,
-          width: `${PLANK_HEIGHT}px`,
+          left: -(PLANK_HEIGHT + 4),
+          width: PLANK_HEIGHT,
           background: PLANK_GRAIN,
           borderRadius: '2px',
           boxShadow: '6px 0 12px rgba(0,0,0,0.25)',
+        }}
+      />
+    </div>
+  )
+}
+
+function Hanger({ side }: { side: 'left' | 'right' }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="hidden md:block absolute"
+      style={{
+        [side]: 4,
+        bottom: -2,
+        width: 4,
+        height: HANGER_HEIGHT + 14,
+        pointerEvents: 'none',
+      }}
+    >
+      {/* Rod */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 1,
+          top: 0,
+          width: 2,
+          height: HANGER_HEIGHT,
+          background:
+            'linear-gradient(180deg, #4a3a18 0%, #b8932e 35%, #856919 65%, #3a2810 100%)',
+          borderRadius: 1,
+          boxShadow: '0 0 1px rgba(0,0,0,0.4)',
+        }}
+      />
+      {/* Top cap (pin head against the wall) */}
+      <div
+        style={{
+          position: 'absolute',
+          left: -3,
+          top: -3,
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background:
+            'radial-gradient(circle at 35% 30%, #5a3a18 0%, #2a1808 70%, #150a02 100%)',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)',
         }}
       />
     </div>
