@@ -71,6 +71,16 @@ export function validateAppendOnlyDiff(input: LockedDiffInput): DiffResult {
     return { ok: false, reason: 'Mood is locked after the day of writing' }
   }
   if (input.newStyle !== undefined) {
+    // Stable JSON-string equality is good enough here because callers always
+    // run candidate styles through `parseStyle` before saving, which assigns
+    // keys in a fixed order (font, color, effect). One soft fragility: a
+    // client that explicitly sends `color: null` ("Default") will compare
+    // unequal to an existing record that simply omits `color`, even though
+    // both mean the same thing. Both writers (POST + PUT) currently call
+    // parseStyle on the way in, so the saved shape preserves whatever the
+    // client first sent — keeping the comparison stable in practice. If a
+    // future writer canonicalizes color presence differently, parse both
+    // sides through parseStyle before comparison.
     const oldJson = JSON.stringify(input.oldStyle ?? null)
     const newJson = JSON.stringify(input.newStyle ?? null)
     if (oldJson !== newJson) {

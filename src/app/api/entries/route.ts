@@ -284,6 +284,7 @@ export async function POST(request: NextRequest) {
       e2eeIV: entry.e2eeIV,
       spreads: entry.spreads,
       photos: entry.photos,
+      style: parseStyle(entry.style),
     }, { status: 201 })
   } catch (error) {
     console.error('Error creating entry:', error)
