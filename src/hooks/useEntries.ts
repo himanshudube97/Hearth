@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { JournalEntry } from '@/store/journal'
 import { useE2EE } from './useE2EE'
+import { getClientTz } from '@/lib/entry-lock-client'
 
 interface Pagination {
   hasMore: boolean
@@ -83,7 +84,9 @@ export function useEntries(options: UseEntriesOptions = {}) {
       }
 
       const cursor = reset ? undefined : pagination.nextCursor ?? undefined
-      const res = await fetch(buildUrl(cursor))
+      const res = await fetch(buildUrl(cursor), {
+        headers: { 'X-User-TZ': getClientTz() },
+      })
 
       if (!res.ok) {
         throw new Error('Failed to fetch entries')
@@ -139,7 +142,9 @@ export function useEntryStats() {
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/entries/stats')
+      const res = await fetch('/api/entries/stats', {
+        headers: { 'X-User-TZ': getClientTz() },
+      })
 
       if (!res.ok) {
         throw new Error('Failed to fetch stats')

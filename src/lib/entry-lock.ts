@@ -7,6 +7,88 @@
  * slightly different window — that's an acceptable edge case.
  */
 
+/**
+ * Returns the UTC instant that corresponds to a YYYY-MM-DD wall-clock midnight
+ * in the given IANA timezone. Used by the entries API to compute month/day
+ * boundaries in the user's local time so that an entry written at "May 1 00:30
+ * IST" lands in the May diary, not the April one (it would in UTC).
+ *
+ * Iterates twice to cover the rare case of a DST transition straddling the
+ * boundary: first pass finds the offset at the naive UTC guess and shifts; the
+ * second pass corrects if the new instant has a different offset.
+ */
+export function utcInstantForLocalDate(
+  year: number,
+  month0: number,
+  day: number,
+  tz: string = 'UTC',
+): Date {
+  let guess = Date.UTC(year, month0, day, 0, 0, 0, 0)
+  for (let i = 0; i < 2; i++) {
+    let parts: Record<string, string>
+    try {
+      parts = Object.fromEntries(
+        new Intl.DateTimeFormat('en-CA', {
+          timeZone: tz,
+          hour12: false,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+          .formatToParts(new Date(guess))
+          .filter((p) => p.type !== 'literal')
+          .map((p) => [p.type, p.value]),
+      )
+    } catch {
+      return new Date(guess)
+    }
+    const localAsUTC = Date.UTC(
+      parseInt(parts.year),
+      parseInt(parts.month) - 1,
+      parseInt(parts.day),
+      parseInt(parts.hour) % 24,
+      parseInt(parts.minute),
+      parseInt(parts.second),
+    )
+    const offsetMs = localAsUTC - guess
+    if (offsetMs === 0) break
+    guess = guess - offsetMs
+  }
+  return new Date(guess)
+}
+
+/**
+ * Returns today's date components (year, month0, day) in the given IANA tz.
+ * Used to build a "today" UTC window when the server runs in a different tz
+ * than the user.
+ */
+export function localDatePartsNow(tz: string = 'UTC'): { year: number; month0: number; day: number } {
+  try {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+        .formatToParts(new Date())
+        .filter((p) => p.type !== 'literal')
+        .map((p) => [p.type, p.value]),
+    )
+    return {
+      year: parseInt(parts.year),
+      month0: parseInt(parts.month) - 1,
+      day: parseInt(parts.day),
+    }
+  } catch {
+    const now = new Date()
+    return { year: now.getUTCFullYear(), month0: now.getUTCMonth(), day: now.getUTCDate() }
+  }
+}
+
 function dayKey(date: Date, tz: string): string {
   // YYYY-MM-DD in the given tz. en-CA happens to format that way.
   try {

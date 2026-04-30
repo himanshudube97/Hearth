@@ -3,7 +3,6 @@
 import React, { memo, useRef, useCallback, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
-import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 
 interface PhotoSlotProps {
   photo?: {
@@ -105,12 +104,11 @@ const PhotoSlot = memo(function PhotoSlot({
 }: PhotoSlotProps) {
   void _spread // Acknowledge unused parameter
   const { theme } = useThemeStore()
-  const colors = getGlassDiaryColors(theme)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isHovering, setIsHovering] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const borderColor = colors.photoBorder
+  const heartColor = theme.accent.warm
 
   // Random tilt per mount so empty polaroids feel as natural as freshly-clicked ones
   const defaultRotation = useMemo(() => {
@@ -234,20 +232,62 @@ const PhotoSlot = memo(function PhotoSlot({
     )
   }
 
-  // Empty slot - show add button
+  // Empty slot on a locked entry — render an empty polaroid with a heart so
+  // it reads as "no photo here" without breaking the polaroid aesthetic.
   if (disabled) {
     return (
-      <div
-        className={`relative flex items-center justify-center ${className}`}
-        style={{
-          aspectRatio: '4/5',
-          border: `2px dashed ${borderColor}`,
-          borderRadius: '4px',
-          opacity: 0.7,
-        }}
+      <motion.div
+        className={`relative ${className}`}
+        style={{ transformOrigin: 'center center' }}
+        initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
+        animate={{ opacity: 1, scale: 1, rotate: defaultRotation }}
+        transition={{ type: 'spring', stiffness: 300, damping: 22 }}
       >
-        <span style={{ color: colors.sectionLabel, fontSize: '12px' }}>Photo</span>
-      </div>
+        <div
+          className="relative"
+          style={{
+            background: '#f5efdc',
+            padding: '8px 8px 22px',
+            boxShadow: '0 6px 14px rgba(0,0,0,0.35)',
+          }}
+        >
+          {/* Washi-tape strip */}
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              left: '50%',
+              transform: 'translateX(-50%) rotate(-2deg)',
+              width: '50px',
+              height: '14px',
+              background: 'rgba(220, 200, 140, 0.55)',
+              border: '1px solid rgba(220, 200, 140, 0.25)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Empty photo well with heart */}
+          <div
+            className="w-full flex items-center justify-center"
+            style={{
+              aspectRatio: '4/5',
+              background: 'rgba(60,40,20,0.08)',
+            }}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="34"
+              height="34"
+              fill={heartColor}
+              style={{ opacity: 0.3 }}
+              aria-hidden
+            >
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+          </div>
+        </div>
+      </motion.div>
     )
   }
 

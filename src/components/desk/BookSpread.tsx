@@ -16,7 +16,7 @@ import SpineOrnaments from './SpineOrnaments'
 import DateTabRail from './DateTabRail'
 import { StrokeData, useJournalStore } from '@/store/journal'
 import { useAutosaveEntry, AutosaveDraft } from '@/hooks/useAutosaveEntry'
-import { isEntryLocked } from '@/lib/entry-lock-client'
+import { isEntryLocked, getClientTz } from '@/lib/entry-lock-client'
 import { parseStyle } from '@/lib/entry-style'
 import { htmlToSplitPlainText, PAGE_BREAK_MARKER } from '@/lib/text-utils'
 
@@ -153,7 +153,14 @@ export default function BookSpread() {
         // first load and refresh.
         const flipbookPromise = import('react-pageflip')
 
-        const res = await fetch('/api/entries?limit=50')
+        // One diary = one calendar month. Scope the fetch to the current
+        // month so navigation can never flip into last month's pages —
+        // past months live on the shelf, opened separately.
+        const now = new Date()
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+        const res = await fetch(`/api/entries?month=${currentMonth}&limit=50`, {
+          headers: { 'X-User-TZ': getClientTz() },
+        })
         if (!res.ok) {
           await flipbookPromise.catch(() => {})
           return

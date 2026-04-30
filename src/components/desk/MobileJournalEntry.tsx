@@ -13,6 +13,7 @@ import SongEmbed from '@/components/SongEmbed'
 import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
 import EntrySelector from './EntrySelector'
+import { getClientTz } from '@/lib/entry-lock-client'
 
 interface Photo {
   id?: string
@@ -106,7 +107,13 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
   // Fetch entries
   const fetchEntries = useCallback(async () => {
     try {
-      const res = await fetch('/api/entries?limit=50')
+      // One diary = one calendar month. Scope the fetch to the current
+      // month so the mobile entry view can't navigate into last month.
+      const now = new Date()
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      const res = await fetch(`/api/entries?month=${currentMonth}&limit=50`, {
+        headers: { 'X-User-TZ': getClientTz() },
+      })
       if (res.ok) {
         const data = await res.json()
         const fetched = data.entries || []

@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
-import { isEntryLocked } from '@/lib/entry-lock'
+import { isEntryLocked, utcInstantForLocalDate, localDatePartsNow } from '@/lib/entry-lock'
 import { parseStyle } from '@/lib/entry-style'
 
 // Helper to strip HTML and create preview
@@ -41,24 +41,26 @@ export async function GET(request: NextRequest) {
     const includeDoodles = searchParams.get('includeDoodles') !== 'false'
     const includePhotos = searchParams.get('includePhotos') !== 'false'
 
-    // Build date range filter
+    // Build date range filter. Compute boundaries in the user's tz, not the
+    // server's, so an entry written at midnight in the user's local time lands
+    // in the right month/day window even when the server runs in UTC.
+    const userTz = request.headers.get('x-user-tz') ?? 'UTC'
     let dateFilter: { gte?: Date; lt?: Date } | undefined
 
     if (today) {
-      const todayStart = new Date()
-      todayStart.setHours(0, 0, 0, 0)
-      const todayEnd = new Date()
-      todayEnd.setHours(23, 59, 59, 999)
+      const { year: ty, month0: tm, day: td } = localDatePartsNow(userTz)
+      const todayStart = utcInstantForLocalDate(ty, tm, td, userTz)
+      const todayEnd = utcInstantForLocalDate(ty, tm, td + 1, userTz)
       dateFilter = { gte: todayStart, lt: todayEnd }
     } else if (month) {
       const [y, m] = month.split('-').map(Number)
-      const monthStart = new Date(y, m - 1, 1)
-      const monthEnd = new Date(y, m, 1)
+      const monthStart = utcInstantForLocalDate(y, m - 1, 1, userTz)
+      const monthEnd = utcInstantForLocalDate(y, m, 1, userTz)
       dateFilter = { gte: monthStart, lt: monthEnd }
     } else if (year) {
       const y = parseInt(year)
-      const yearStart = new Date(y, 0, 1)
-      const yearEnd = new Date(y + 1, 0, 1)
+      const yearStart = utcInstantForLocalDate(y, 0, 1, userTz)
+      const yearEnd = utcInstantForLocalDate(y + 1, 0, 1, userTz)
       dateFilter = { gte: yearStart, lt: yearEnd }
     }
 

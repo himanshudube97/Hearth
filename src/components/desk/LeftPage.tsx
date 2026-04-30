@@ -21,6 +21,90 @@ import { isEntryLocked } from '@/lib/entry-lock-client'
 // Line height must match the line pattern spacing
 const LINE_HEIGHT = 32
 
+// Empty-song placeholder for locked entries: a record-sleeve sticker with the
+// vinyl peeking out and a handwritten "untitled" caption. Sized to fill the
+// section so the locked state doesn't feel like dead space.
+function VinylStickerPlaceholder({ accent }: { accent: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
+      animate={{ opacity: 1, scale: 1, rotate: -3 }}
+      transition={{ type: 'spring', stiffness: 240, damping: 22 }}
+      style={{ transformOrigin: 'center center' }}
+    >
+      <svg
+        width="190"
+        height="140"
+        viewBox="0 0 220 160"
+        aria-hidden
+        style={{ filter: 'drop-shadow(0 4px 7px rgba(0,0,0,0.22))' }}
+      >
+        {/* Vinyl disc — peeks out the right edge of the sleeve */}
+        <g>
+          <circle cx="155" cy="80" r="58" fill="#1c1410" />
+          {/* Concentric grooves */}
+          <g fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6">
+            <circle cx="155" cy="80" r="52" />
+            <circle cx="155" cy="80" r="46" />
+            <circle cx="155" cy="80" r="40" />
+            <circle cx="155" cy="80" r="34" />
+            <circle cx="155" cy="80" r="28" />
+          </g>
+          {/* Sheen */}
+          <path
+            d="M118 56 A 42 42 0 0 1 184 50"
+            stroke="rgba(255,255,255,0.13)"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            fill="none"
+          />
+          {/* Center label + spindle hole */}
+          <circle cx="155" cy="80" r="20" fill={accent} />
+          <circle cx="155" cy="80" r="20" fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="0.6" />
+          <circle cx="155" cy="80" r="2.2" fill="#fbf7ec" />
+        </g>
+
+        {/* Square sleeve — sits in front of the vinyl, hiding its left half */}
+        <g>
+          {/* Sleeve back/shadow edge */}
+          <rect x="8" y="14" width="120" height="132" rx="2" fill="rgba(60,40,20,0.18)" />
+          {/* Sleeve face */}
+          <rect x="6" y="12" width="120" height="132" rx="2" fill="#f5efdc" stroke="rgba(60,40,20,0.18)" strokeWidth="0.8" />
+          {/* Inner border line for record-store feel */}
+          <rect x="14" y="20" width="104" height="116" rx="1" fill="none" stroke={accent} strokeWidth="0.8" opacity="0.45" />
+          {/* Handwritten caption */}
+          <text
+            x="66"
+            y="80"
+            textAnchor="middle"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              fontSize: '24px',
+              fill: 'rgba(60,40,20,0.7)',
+            }}
+          >
+            untitled
+          </text>
+          {/* Small note glyph below caption */}
+          <text
+            x="66"
+            y="108"
+            textAnchor="middle"
+            style={{
+              fontFamily: "'Caveat', cursive",
+              fontSize: '20px',
+              fill: accent,
+              opacity: 0.7,
+            }}
+          >
+            ♪
+          </text>
+        </g>
+      </svg>
+    </motion.div>
+  )
+}
+
 interface Entry {
   id: string
   text: string
@@ -375,9 +459,9 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
       transition={{ delay: 0.2, duration: 0.5 }}
       className="h-full flex flex-col overflow-hidden"
     >
-      {/* Song section — match new-entry layout. Show "Listening to" embed if
-          the entry has a song; otherwise show the "Add a Song" empty state
-          with a disabled input so the layout stays structurally identical. */}
+      {/* Song section — show "Listening to" embed if the entry has a song.
+          Empty state on locked entries renders a small paused cassette tape
+          so the section feels like a physical object instead of dead UI. */}
       <div className="mb-2 flex-shrink-0" style={{ minHeight: '68px' }}>
         {entry?.song ? (
           <>
@@ -390,25 +474,9 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
             <SongEmbed url={entry.song} compact audioOnly />
           </>
         ) : (
-          <>
-            <div
-              className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
-              style={{ color: colors.sectionLabel }}
-            >
-              Add a Song
-            </div>
-            <input
-              type="text"
-              disabled
-              placeholder="Paste Spotify, YouTube, or SoundCloud link..."
-              className="w-full px-3 py-2 rounded-lg text-sm bg-transparent outline-none opacity-50"
-              style={{
-                border: `1px solid ${colors.doodleBorder}`,
-                color: textColor,
-                background: colors.doodleBg,
-              }}
-            />
-          </>
+          <div className="flex items-center justify-center" style={{ minHeight: '150px' }}>
+            <VinylStickerPlaceholder accent={accentColor} />
+          </div>
         )}
       </div>
 
