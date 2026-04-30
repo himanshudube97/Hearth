@@ -8,6 +8,7 @@ import { MemoryModal } from '../../MemoryModal'
 import { RoseSky } from '../rose/RoseSky'
 import { GardenPath } from '../rose/GardenPath'
 import { Trellis } from '../rose/Trellis'
+import { ScatteredFlora } from '../rose/ScatteredFlora'
 import { RoseBlooms } from '../rose/RoseBlooms'
 
 export interface RoseGardenSceneProps {
@@ -80,6 +81,7 @@ export function RoseGardenScene({
       <RoseSky />
       <GardenPath />
       <Trellis />
+      <ScatteredFlora />
       <RoseBlooms
         memoryStars={memoryStars}
         onSelect={setSelectedStar}
