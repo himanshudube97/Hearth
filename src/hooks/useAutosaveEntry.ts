@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { StrokeData } from '@/store/journal'
+import type { EntryStyle } from '@/lib/entry-style'
 import { useDeskStore, type AutosaveStatus } from '@/store/desk'
 import { getClientTz } from '@/lib/entry-lock-client'
 
@@ -14,6 +15,10 @@ export interface AutosaveDraft {
   song: string | null
   photos: { url: string; position: number; rotation: number; spread: number }[]
   doodles: { strokes: StrokeData[]; spread: number }[]
+  // Per-entry display style. Always present in the draft (possibly empty {}),
+  // sent to the server only when non-empty so existing letter saves don't
+  // pick up an empty `style: {}` over the wire.
+  style?: EntryStyle
   // Letter-only fields. Absent for normal journal entries; present (possibly
   // null) for letter drafts so the server can persist recipient/scheduling.
   entryType?: string
@@ -91,6 +96,7 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
         spread: p.spread ?? 1,
       })),
       doodles: draft.doodles,
+      ...(draft.style && Object.keys(draft.style).length > 0 ? { style: draft.style } : {}),
       // Letter fields — only included when present, so journal saves stay
       // identical on the wire.
       ...(draft.entryType !== undefined ? { entryType: draft.entryType } : {}),
