@@ -10,6 +10,7 @@ import { GardenPath } from '../rose/GardenPath'
 import { Trellis } from '../rose/Trellis'
 import { ScatteredFlora } from '../rose/ScatteredFlora'
 import { RoseBlooms } from '../rose/RoseBlooms'
+import { PetalDrift } from '../rose/PetalDrift'
 
 export interface RoseGardenSceneProps {
   loading: boolean
@@ -87,6 +88,7 @@ export function RoseGardenScene({
         onSelect={setSelectedStar}
         getMoodColor={getMoodColor}
       />
+      <PetalDrift />
 
       <motion.div
         initial={{ opacity: 0 }}
