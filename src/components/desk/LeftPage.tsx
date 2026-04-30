@@ -243,7 +243,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
             <>
               <div
                 className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium flex items-center justify-between"
-                style={{ color: colors.sectionLabel }}
+                style={{ color: mutedColor }}
               >
                 <span>Add a Song</span>
                 {songInput && /https?:\/\//.test(songInput) && (
@@ -292,7 +292,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
         <div className="flex-1 min-h-0 flex flex-col relative">
           <div
             className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium flex-shrink-0"
-            style={{ color: colors.sectionLabel }}
+            style={{ color: mutedColor }}
           >
             Write your thoughts
           </div>
