@@ -60,17 +60,17 @@ export default function PenMenu({
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: -4, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -4, scale: 0.98 }}
+      initial={{ opacity: 0, x: 4, scale: 0.98 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 4, scale: 0.98 }}
       transition={{ duration: 0.15 }}
       className="absolute z-50 rounded-xl shadow-lg flex gap-2"
       style={{
-        top: '28px',
-        right: '0px',
+        top: '-4px',
+        right: '32px',
         background: panelBg,
         border: `1px solid ${panelBorder}`,
-        padding: '8px',
+        padding: '6px',
       }}
       role="dialog"
       aria-label="Font"
