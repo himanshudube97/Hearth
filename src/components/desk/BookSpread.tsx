@@ -6,8 +6,8 @@ import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useDeskStore } from '@/store/desk'
 import { getGlassDiaryColors, GlassDiaryColors } from '@/lib/glassDiaryColors'
-import LeftPage from './LeftPage'
-import RightPage from './RightPage'
+import LeftPage, { type LeftPageHandle } from './LeftPage'
+import RightPage, { type RightPageHandle } from './RightPage'
 import { RibbonBookmark } from './interactive/RibbonBookmark'
 import RibbonTag from './interactive/RibbonTag'
 import ThemeOrnament from './decorations/ThemeOrnament'
@@ -17,7 +17,7 @@ import DateTabRail from './DateTabRail'
 import { StrokeData, useJournalStore } from '@/store/journal'
 import { useAutosaveEntry, AutosaveDraft } from '@/hooks/useAutosaveEntry'
 import { isEntryLocked } from '@/lib/entry-lock-client'
-import { htmlToPlainText, splitTextForSpread } from '@/lib/text-utils'
+import { htmlToSplitPlainText, PAGE_BREAK_MARKER } from '@/lib/text-utils'
 
 const HTMLFlipBook = dynamic(() => import('react-pageflip'), { ssr: false })
 
@@ -81,11 +81,14 @@ const PageWrapper = memo(
 )
 
 function combineDraftHtml(left: string, right: string): string {
-  // Mirrors the conversion the old handleSave did: plain newline-separated
-  // text per page → <p>-wrapped HTML, concatenated with no page-break marker.
+  // Plain newline-separated text per page → <p>-wrapped HTML, joined with a
+  // page-break marker. The marker preserves the exact left/right boundary
+  // chosen by live DOM-overflow measurement during typing — without it,
+  // reload would re-derive the split via a character-count formula that
+  // diverges from the actual rendered layout, reshuffling the user's text.
   const leftHtml = left.trim() ? `<p>${left.replace(/\n/g, '</p><p>')}</p>` : ''
   const rightHtml = right.trim() ? `<p>${right.replace(/\n/g, '</p><p>')}</p>` : ''
-  return leftHtml + rightHtml
+  return leftHtml + PAGE_BREAK_MARKER + rightHtml
 }
 
 export default function BookSpread() {
@@ -119,8 +122,12 @@ export default function BookSpread() {
   // this prevents that.
   const [bookReady, setBookReady] = useState(false)
   const [pendingPhotos, setPendingPhotos] = useState<Photo[]>([])
-  const [rightTextareaFocusTrigger, setRightTextareaFocusTrigger] = useState(0)
-  const [leftTextareaFocusTrigger, setLeftTextareaFocusTrigger] = useState(0)
+  // Focus is driven imperatively (refs) instead of via React state. Holding
+  // focus in BookSpread state would re-render the flipbook on every spine
+  // crossing, and react-pageflip's updateFromHtml destroys/recreates page
+  // DOM mid-update, blurring the focused textarea.
+  const leftPageRef = useRef<LeftPageHandle>(null)
+  const rightPageRef = useRef<RightPageHandle>(null)
 
   // Track pendingPhotos via ref so the autosave-trigger callback (which is
   // wired via store .subscribe outside React's render cycle) sees fresh data.
@@ -169,9 +176,10 @@ export default function BookSpread() {
         setTotalSpreads(remainder.length + 1)
 
         if (active) {
-          // Hydrate active state from the entry.
-          const plain = htmlToPlainText(active.text || '')
-          const [leftPlain, rightPlain] = splitTextForSpread(plain)
+          // Hydrate active state from the entry. Uses the persisted page-break
+          // marker when present so the boundary matches what was visible the
+          // last time the user typed.
+          const [leftPlain, rightPlain] = htmlToSplitPlainText(active.text || '')
           useDeskStore.getState().setDrafts(leftPlain, rightPlain)
           setCurrentSong(active.song || '')
           setCurrentMood(active.mood ?? 2)
@@ -340,15 +348,41 @@ export default function BookSpread() {
     if (overflowText) {
       useDeskStore.getState().setRightPageDraft((prev) => overflowText + prev)
     }
-    setRightTextareaFocusTrigger(prev => prev + 1)
+    // Wait one frame so RightPage re-renders with the prepended text before
+    // we read textarea.value to position the caret.
+    requestAnimationFrame(() => {
+      rightPageRef.current?.focusAtAfterPrepend(overflowText.length)
+    })
   }, [])
 
-  const handleNavigateRight = useCallback(() => {
-    setRightTextareaFocusTrigger(prev => prev + 1)
+  // ArrowRight (no targetLeft) lands at position 0 of the right page.
+  // ArrowDown passes the caret's left pixel offset so the destination caret
+  // lands on row 0 at the same visual horizontal column.
+  const handleNavigateRight = useCallback((targetLeft?: number) => {
+    if (typeof targetLeft === 'number') {
+      rightPageRef.current?.focusAtFirstRow(targetLeft)
+    } else {
+      rightPageRef.current?.focusAtStart()
+    }
   }, [])
 
-  const handleNavigateLeft = useCallback(() => {
-    setLeftTextareaFocusTrigger(prev => prev + 1)
+  const handleNavigateLeft = useCallback((targetLeft?: number) => {
+    if (typeof targetLeft === 'number') {
+      leftPageRef.current?.focusAtLastRow(targetLeft)
+    } else {
+      leftPageRef.current?.focusAtEnd()
+    }
+  }, [])
+
+  // Backspace at right-page pos 0: continuous-document semantics — delete the
+  // last character of the left page and land caret at left's new end.
+  const handleBackspaceAcrossSpine = useCallback(() => {
+    useDeskStore.getState().setLeftPageDraft((prev) =>
+      prev.length > 0 ? prev.slice(0, -1) : prev,
+    )
+    requestAnimationFrame(() => {
+      leftPageRef.current?.focusAtEnd()
+    })
   }, [])
 
   const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
@@ -498,22 +532,23 @@ export default function BookSpread() {
             {/* New-entry spread (always last) */}
             <PageWrapper key="new-L" side="left" colors={colors}>
               <LeftPage
+                ref={leftPageRef}
                 entry={null}
                 isNewEntry={true}
                 onPageFull={handleLeftPageFull}
                 onNavigateRight={handleNavigateRight}
-                focusTrigger={leftTextareaFocusTrigger}
               />
             </PageWrapper>
             <PageWrapper key="new-R" side="right" colors={colors}>
               <RightPage
+                ref={rightPageRef}
                 entry={null}
                 isNewEntry={true}
                 photos={pendingPhotos}
                 onPhotoAdd={handlePhotoAdd}
                 autosaveStatus={autosave.status}
-                focusTrigger={rightTextareaFocusTrigger}
                 onNavigateLeft={handleNavigateLeft}
+                onBackspaceAcrossSpine={handleBackspaceAcrossSpine}
               />
             </PageWrapper>
           </HTMLFlipBook>

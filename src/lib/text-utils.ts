@@ -2,7 +2,7 @@
 
 import { JOURNAL, getLeftPageMaxLines } from './journal-constants'
 
-const PAGE_BREAK_MARKER = '<!--page-break-->'
+export const PAGE_BREAK_MARKER = '<!--page-break-->'
 
 /**
  * Strip the <!--page-break--> marker from stored HTML and join into one string.
@@ -91,6 +91,26 @@ export function splitTextForSpread(
 export function htmlToPlainText(html: string): string {
   const lines = htmlToLines(html)
   return lines.join('\n')
+}
+
+/**
+ * Split stored HTML into [leftPlain, rightPlain]. Uses the persisted
+ * page-break marker when present so the boundary chosen by live DOM
+ * measurement during typing is restored exactly. Legacy entries (no
+ * marker) fall back to the character-count formula.
+ */
+export function htmlToSplitPlainText(html: string): [string, string] {
+  if (!html) return ['', '']
+  const idx = html.indexOf(PAGE_BREAK_MARKER)
+  if (idx >= 0) {
+    const leftHtml = html.slice(0, idx)
+    const rightHtml = html.slice(idx + PAGE_BREAK_MARKER.length)
+    return [
+      htmlToLines(leftHtml).join('\n'),
+      htmlToLines(rightHtml).join('\n'),
+    ]
+  }
+  return splitTextForSpread(htmlToPlainText(html))
 }
 
 /**

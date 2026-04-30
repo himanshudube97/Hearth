@@ -1,6 +1,6 @@
 'use client'
 
-import React, { memo, useState, useCallback, useEffect, useRef } from 'react'
+import React, { memo, useState, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
@@ -8,7 +8,12 @@ import { useJournalStore } from '@/store/journal'
 import { useDeskStore } from '@/store/desk'
 import SongEmbed from '@/components/SongEmbed'
 import { JOURNAL } from '@/lib/journal-constants'
-import { htmlToPlainText, splitTextForSpread } from '@/lib/text-utils'
+import { htmlToSplitPlainText } from '@/lib/text-utils'
+import {
+  isCaretOnLastVisualRow,
+  getCaretLeftOffset,
+  findPositionOnLastRow,
+} from '@/lib/textarea-caret'
 
 // Line height must match the line pattern spacing
 const LINE_HEIGHT = 32
@@ -25,18 +30,21 @@ interface LeftPageProps {
   entry: Entry | null
   isNewEntry: boolean
   onPageFull?: (overflowText: string) => void
-  onNavigateRight?: () => void
-  focusTrigger?: number
+  onNavigateRight?: (targetLeft?: number) => void
 }
 
+export interface LeftPageHandle {
+  focusAtEnd: () => void
+  focusAtStart: () => void
+  focusAtLastRow: (targetLeft: number) => void
+}
 
-const LeftPage = memo(function LeftPage({
+const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPage({
   entry,
   isNewEntry,
   onPageFull,
   onNavigateRight,
-  focusTrigger = 0,
-}: LeftPageProps) {
+}: LeftPageProps, ref) {
   const { theme } = useThemeStore()
   const colors = getGlassDiaryColors(theme)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- mood picker commented out, keeping for future use
@@ -84,23 +92,50 @@ const LeftPage = memo(function LeftPage({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Focus textarea when navigating back from right page
-  useEffect(() => {
-    if (focusTrigger > 0 && textareaRef.current) {
-      const textarea = textareaRef.current
-      textarea.focus()
-      const len = textarea.value.length
-      textarea.setSelectionRange(len, len)
-    }
-  }, [focusTrigger])
+  // Imperative focus API. Lives on the page component itself so the parent
+  // (BookSpread) doesn't have to hold focus state — any setState in BookSpread
+  // would re-render the flipbook, whose updateFromHtml destroys/recreates page
+  // DOM and kills focus.
+  useImperativeHandle(ref, () => ({
+    focusAtEnd: () => {
+      const t = textareaRef.current
+      if (!t) return
+      t.focus()
+      const len = t.value.length
+      t.setSelectionRange(len, len)
+    },
+    focusAtStart: () => {
+      const t = textareaRef.current
+      if (!t) return
+      t.focus()
+      t.setSelectionRange(0, 0)
+    },
+    focusAtLastRow: (targetLeft: number) => {
+      const t = textareaRef.current
+      if (!t) return
+      t.focus()
+      const pos = findPositionOnLastRow(t, targetLeft)
+      t.setSelectionRange(pos, pos)
+    },
+  }))
 
-  // Arrow key navigation: only ArrowRight at the very end of text → right page
+  // Arrow key navigation: cross the spine into the right page when the caret
+  // is at the trailing edge of the left textarea.
+  // - ArrowRight at end-of-value
+  // - ArrowDown on the visual last row
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget
     if (e.key === 'ArrowRight') {
-      const textarea = e.currentTarget
       if (textarea.selectionStart === textarea.value.length && textarea.selectionEnd === textarea.value.length) {
         e.preventDefault()
         onNavigateRight?.()
+      }
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      if (isCaretOnLastVisualRow(textarea)) {
+        e.preventDefault()
+        onNavigateRight?.(getCaretLeftOffset(textarea))
       }
     }
   }, [onNavigateRight])
@@ -240,10 +275,9 @@ const LeftPage = memo(function LeftPage({
     )
   }
 
-  // Viewing existing entry - dynamic split at render time
-  const fullText = entry?.text || ''
-  const fullPlainText = htmlToPlainText(fullText)
-  const [leftPlainText] = splitTextForSpread(fullPlainText)
+  // Viewing existing entry — uses the persisted page-break marker when
+  // present so the boundary matches what the user saw while typing.
+  const [leftPlainText] = htmlToSplitPlainText(entry?.text || '')
   const plainText = leftPlainText
 
   return (
@@ -317,6 +351,8 @@ const LeftPage = memo(function LeftPage({
       </div>
     </motion.div>
   )
-})
+}))
+
+LeftPage.displayName = 'LeftPage'
 
 export default LeftPage

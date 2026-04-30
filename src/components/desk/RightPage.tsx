@@ -1,6 +1,6 @@
 'use client'
 
-import React, { memo, useState, useEffect, useCallback, useRef } from 'react'
+import React, { memo, useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react'
 import { motion } from 'framer-motion'
 import { getStroke } from 'perfect-freehand'
 import { useThemeStore } from '@/store/theme'
@@ -9,7 +9,12 @@ import { useJournalStore, StrokeData } from '@/store/journal'
 import { useDeskStore } from '@/store/desk'
 import { getRandomPrompt } from '@/lib/themes'
 import { JOURNAL } from '@/lib/journal-constants'
-import { htmlToPlainText, splitTextForSpread } from '@/lib/text-utils'
+import { htmlToSplitPlainText } from '@/lib/text-utils'
+import {
+  isCaretOnFirstVisualRow,
+  getCaretLeftOffset,
+  findPositionOnFirstRow,
+} from '@/lib/textarea-caret'
 import type { AutosaveStatus } from '@/hooks/useAutosaveEntry'
 import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
@@ -55,8 +60,15 @@ interface RightPageProps {
   photos?: Photo[]
   onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
   autosaveStatus?: AutosaveStatus
-  focusTrigger?: number
-  onNavigateLeft?: () => void
+  onNavigateLeft?: (targetLeft?: number) => void
+  onBackspaceAcrossSpine?: () => void
+}
+
+export interface RightPageHandle {
+  focusAtEnd: () => void
+  focusAtStart: () => void
+  focusAtFirstRow: (targetLeft: number) => void
+  focusAtAfterPrepend: (prependLength: number) => void
 }
 
 // Doodle Preview for existing entries
@@ -113,15 +125,15 @@ const DoodlePreview = memo(function DoodlePreview({
   )
 })
 
-const RightPage = memo(function RightPage({
+const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function RightPage({
   entry,
   isNewEntry,
   photos = [],
   onPhotoAdd,
   autosaveStatus = 'idle',
-  focusTrigger = 0,
   onNavigateLeft,
-}: RightPageProps) {
+  onBackspaceAcrossSpine,
+}: RightPageProps, ref) {
   const { theme } = useThemeStore()
   const colors = getGlassDiaryColors(theme)
   const { currentDoodleStrokes, setDoodleStrokes } = useJournalStore()
@@ -149,26 +161,69 @@ const RightPage = memo(function RightPage({
     setPrompt(getRandomPrompt())
   }, [])
 
-  // Focus textarea when text overflows from left page
-  useEffect(() => {
-    if (focusTrigger > 0 && textareaRef.current) {
-      const textarea = textareaRef.current
-      textarea.focus()
-      const len = textarea.value.length
-      textarea.setSelectionRange(len, len)
-    }
-  }, [focusTrigger])
+  // Imperative focus API. Lives on the page component itself so the parent
+  // (BookSpread) doesn't have to hold focus state — any setState in BookSpread
+  // would re-render the flipbook, whose updateFromHtml destroys/recreates page
+  // DOM and kills focus.
+  useImperativeHandle(ref, () => ({
+    focusAtEnd: () => {
+      const t = textareaRef.current
+      if (!t) return
+      t.focus()
+      const len = t.value.length
+      t.setSelectionRange(len, len)
+    },
+    focusAtStart: () => {
+      const t = textareaRef.current
+      if (!t) return
+      t.focus()
+      t.setSelectionRange(0, 0)
+    },
+    focusAtFirstRow: (targetLeft: number) => {
+      const t = textareaRef.current
+      if (!t) return
+      t.focus()
+      const pos = findPositionOnFirstRow(t, targetLeft)
+      t.setSelectionRange(pos, pos)
+    },
+    focusAtAfterPrepend: (prependLength: number) => {
+      const t = textareaRef.current
+      if (!t) return
+      t.focus()
+      const pos = Math.min(prependLength, t.value.length)
+      t.setSelectionRange(pos, pos)
+    },
+  }))
 
-  // Arrow key navigation: only ArrowLeft at position 0 → left page
+  // Cross-spine navigation: when the caret is at the leading edge of the right
+  // textarea, arrow keys and backspace operate on the left page instead.
+  // - ArrowLeft / Backspace at position 0
+  // - ArrowUp on the visual first row (preserves visual column)
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget
+    const atStart =
+      textarea.selectionStart === 0 && textarea.selectionEnd === 0
     if (e.key === 'ArrowLeft') {
-      const textarea = e.currentTarget
-      if (textarea.selectionStart === 0 && textarea.selectionEnd === 0) {
+      if (atStart) {
         e.preventDefault()
         onNavigateLeft?.()
       }
+      return
     }
-  }, [onNavigateLeft])
+    if (e.key === 'Backspace') {
+      if (atStart) {
+        e.preventDefault()
+        onBackspaceAcrossSpine?.()
+      }
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      if (isCaretOnFirstVisualRow(textarea)) {
+        e.preventDefault()
+        onNavigateLeft?.(getCaretLeftOffset(textarea))
+      }
+    }
+  }, [onNavigateLeft, onBackspaceAcrossSpine])
 
   // Load doodle draft from localStorage
   useEffect(() => {
@@ -328,10 +383,9 @@ const RightPage = memo(function RightPage({
     )
   }
 
-  // Viewing existing entry - dynamic split at render time
-  const fullText = entry?.text || ''
-  const fullPlainText = htmlToPlainText(fullText)
-  const [, rightPlainText] = splitTextForSpread(fullPlainText)
+  // Viewing existing entry — uses the persisted page-break marker when
+  // present so the boundary matches what the user saw while typing.
+  const [, rightPlainText] = htmlToSplitPlainText(entry?.text || '')
   const plainText = rightPlainText
 
   const entryPhotos = entry?.photos || []
@@ -436,6 +490,8 @@ const RightPage = memo(function RightPage({
       </div>
     </motion.div>
   )
-})
+}))
+
+RightPage.displayName = 'RightPage'
 
 export default RightPage
