@@ -8,6 +8,7 @@ import { MemoryModal } from '../../MemoryModal'
 import { RoseSky } from '../rose/RoseSky'
 import { GardenPath } from '../rose/GardenPath'
 import { Trellis } from '../rose/Trellis'
+import { RoseBlooms } from '../rose/RoseBlooms'
 
 export interface RoseGardenSceneProps {
   loading: boolean
@@ -79,13 +80,41 @@ export function RoseGardenScene({
       <RoseSky />
       <GardenPath />
       <Trellis />
+      <RoseBlooms
+        memoryStars={memoryStars}
+        onSelect={setSelectedStar}
+        getMoodColor={getMoodColor}
+        theme={theme}
+      />
 
-      <p
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ color: theme.text.muted, fontStyle: 'italic' }}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute top-20 left-1/2 -translate-x-1/2 text-center pointer-events-none"
       >
-        rose garden coming — {memoryStars.length} blooms ready
-      </p>
+        <p
+          className="text-lg"
+          style={{
+            color: theme.text.primary,
+            fontFamily: 'var(--font-serif)',
+            fontStyle: 'italic',
+          }}
+        >
+          your rose garden
+        </p>
+        <p
+          className="text-sm mt-1"
+          style={{
+            color: `${theme.text.muted}90`,
+            fontFamily: 'var(--font-serif)',
+            fontStyle: 'italic',
+          }}
+        >
+          {memoryStars.length}{' '}
+          {memoryStars.length === 1 ? 'bloom in the garden' : 'blooms in the garden'}
+        </p>
+      </motion.div>
 
       <MemoryModal
         selectedStar={selectedStar}
