@@ -52,6 +52,13 @@ const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
   const [selectedColor, setSelectedColor] = useState<string>(doodleColors[0])
   const [isErasing, setIsErasing] = useState(false)
 
+  // Latest strokes mirror, so the eraser callback can read fresh values
+  // synchronously across rapid pointermove events without using a setState
+  // updater (calling onStrokesChange inside an updater would be a side
+  // effect during render and trigger React's setState-in-render warning).
+  const strokesRef = useRef(localStrokes)
+  strokesRef.current = localStrokes
+
   const brushes = [
     { name: 'S', size: 2 },
     { name: 'M', size: 4 },
@@ -76,38 +83,38 @@ const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
   // of the pointer. A stroke split by an erase becomes multiple sub-strokes
   // (e.g. erasing the middle of a line leaves the two ends behind).
   const eraseAt = useCallback((point: Point) => {
-    setLocalStrokes((prev) => {
-      let anyChange = false
-      const next: StrokeData[] = []
-      for (const stroke of prev) {
-        let touched = false
-        const segments: number[][][] = []
-        let current: number[][] = []
-        for (const p of stroke.points) {
-          const dist = Math.hypot(p[0] - point.x, p[1] - point.y)
-          if (dist <= ERASER_RADIUS) {
-            if (current.length >= 2) segments.push(current)
-            current = []
-            touched = true
-          } else {
-            current.push(p)
-          }
-        }
-        if (current.length >= 2) segments.push(current)
-
-        if (!touched) {
-          next.push(stroke)
+    const prev = strokesRef.current
+    let anyChange = false
+    const next: StrokeData[] = []
+    for (const stroke of prev) {
+      let touched = false
+      const segments: number[][][] = []
+      let current: number[][] = []
+      for (const p of stroke.points) {
+        const dist = Math.hypot(p[0] - point.x, p[1] - point.y)
+        if (dist <= ERASER_RADIUS) {
+          if (current.length >= 2) segments.push(current)
+          current = []
+          touched = true
         } else {
-          anyChange = true
-          for (const seg of segments) {
-            next.push({ color: stroke.color, size: stroke.size, points: seg })
-          }
+          current.push(p)
         }
       }
-      if (!anyChange) return prev
-      onStrokesChange(next)
-      return next
-    })
+      if (current.length >= 2) segments.push(current)
+
+      if (!touched) {
+        next.push(stroke)
+      } else {
+        anyChange = true
+        for (const seg of segments) {
+          next.push({ color: stroke.color, size: stroke.size, points: seg })
+        }
+      }
+    }
+    if (!anyChange) return
+    strokesRef.current = next
+    setLocalStrokes(next)
+    onStrokesChange(next)
   }, [onStrokesChange])
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
