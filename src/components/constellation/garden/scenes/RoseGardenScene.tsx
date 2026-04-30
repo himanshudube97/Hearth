@@ -7,6 +7,7 @@ import type { MemoryStar } from '../../ConstellationRenderer'
 import { MemoryModal } from '../../MemoryModal'
 import { RoseSky } from '../rose/RoseSky'
 import { GardenPath } from '../rose/GardenPath'
+import { Trellis } from '../rose/Trellis'
 
 export interface RoseGardenSceneProps {
   loading: boolean
@@ -77,6 +78,7 @@ export function RoseGardenScene({
     >
       <RoseSky />
       <GardenPath />
+      <Trellis />
 
       <p
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
