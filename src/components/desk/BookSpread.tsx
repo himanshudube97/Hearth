@@ -17,6 +17,7 @@ import DateTabRail from './DateTabRail'
 import { StrokeData, useJournalStore } from '@/store/journal'
 import { useAutosaveEntry, AutosaveDraft } from '@/hooks/useAutosaveEntry'
 import { isEntryLocked } from '@/lib/entry-lock-client'
+import { parseStyle } from '@/lib/entry-style'
 import { htmlToSplitPlainText, PAGE_BREAK_MARKER } from '@/lib/text-utils'
 
 const HTMLFlipBook = dynamic(() => import('react-pageflip'), { ssr: false })
@@ -36,6 +37,7 @@ interface Entry {
   photos?: Photo[]
   doodles?: Array<{ strokes: StrokeData[] }>
   createdAt: string
+  style?: import('@/lib/entry-style').EntryStyle | null
 }
 
 // Fixed page dimensions for the flipbook
@@ -181,6 +183,7 @@ export default function BookSpread() {
           // last time the user typed.
           const [leftPlain, rightPlain] = htmlToSplitPlainText(active.text || '')
           useDeskStore.getState().setDrafts(leftPlain, rightPlain)
+          useDeskStore.getState().setEntryStyleDraft(parseStyle(active.style ?? null))
           setCurrentSong(active.song || '')
           setCurrentMood(active.mood ?? 2)
           const doodleStrokes = active.doodles?.[0]?.strokes ?? []
@@ -245,6 +248,7 @@ export default function BookSpread() {
       doodles: journal.currentDoodleStrokes.length > 0
         ? [{ strokes: journal.currentDoodleStrokes, spread: 1 }]
         : [],
+      style: desk.entryStyleDraft,
     }
   }, [])
 
@@ -256,7 +260,8 @@ export default function BookSpread() {
     const unsubDesk = useDeskStore.subscribe((state, prev) => {
       if (
         state.leftPageDraft !== prev.leftPageDraft ||
-        state.rightPageDraft !== prev.rightPageDraft
+        state.rightPageDraft !== prev.rightPageDraft ||
+        state.entryStyleDraft !== prev.entryStyleDraft
       ) {
         autosaveRef.current.trigger(buildDraft())
       }

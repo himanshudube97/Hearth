@@ -15,6 +15,7 @@ import {
   getCaretLeftOffset,
   findPositionOnFirstRow,
 } from '@/lib/textarea-caret'
+import { resolveFontFamily, resolveInkColor, parseStyle, type EntryStyle } from '@/lib/entry-style'
 import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
 
@@ -149,6 +150,14 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
   const accentColor = theme.accent.warm
   const textColor = colors.bodyText
   const mutedColor = theme.text.muted
+
+  const entryStyleDraft = useDeskStore((s) => s.entryStyleDraft)
+  const activeStyle: EntryStyle = isNewEntry
+    ? entryStyleDraft
+    : parseStyle((entry as unknown as { style?: unknown })?.style ?? null)
+  const fontFamily = resolveFontFamily(activeStyle.font)
+  const inkColor = resolveInkColor(activeStyle.color, colors.bodyText)
+
   const linePattern = `repeating-linear-gradient(
     180deg,
     transparent 0px,
@@ -257,7 +266,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
 
   const refreshPrompt = useCallback(() => {
     setPrompt(getRandomPrompt())
-  }, [])
+  }, [setPrompt])
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value
@@ -326,25 +335,28 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
               ↻
             </button>
           </div>
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Begin writing..."
-            className="flex-1 min-h-0 w-full resize-none outline-none"
-            style={{
-              color: textColor,
-              fontFamily: 'var(--font-caveat), Georgia, serif',
-              fontSize: '20px',
-              lineHeight: `${LINE_HEIGHT}px`,
-              caretColor: accentColor,
-              backgroundColor: 'transparent',
-              backgroundImage: linePattern,
-              backgroundAttachment: 'local',
-              overflow: 'hidden',
-            }}
-          />
+          <div className="flex-1 min-h-0 relative">
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Begin writing..."
+              className="absolute inset-0 w-full h-full resize-none outline-none"
+              style={{
+                color: inkColor,
+                fontFamily,
+                fontSize: '20px',
+                lineHeight: `${LINE_HEIGHT}px`,
+                caretColor: inkColor,
+                backgroundColor: 'transparent',
+                backgroundImage: linePattern,
+                backgroundAttachment: 'local',
+                overflow: 'hidden',
+              }}
+            />
+            {/* Effect overlays for Tasks 9, 10, 11 mount here. */}
+          </div>
         </div>
 
         {/* Doodle Area */}
@@ -431,8 +443,8 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
         <div
           className="flex-1 min-h-0 w-full whitespace-pre-wrap overflow-hidden"
           style={{
-            color: plainText ? textColor : mutedColor,
-            fontFamily: 'var(--font-caveat), Georgia, serif',
+            color: plainText ? inkColor : mutedColor,
+            fontFamily,
             fontSize: '20px',
             lineHeight: `${LINE_HEIGHT}px`,
             fontStyle: plainText ? 'normal' : 'italic',

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { memo, useState, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 import { useJournalStore } from '@/store/journal'
@@ -14,6 +14,9 @@ import {
   getCaretLeftOffset,
   findPositionOnLastRow,
 } from '@/lib/textarea-caret'
+import PenMenu from './PenMenu'
+import { resolveFontFamily, resolveInkColor, parseStyle, type EntryStyle } from '@/lib/entry-style'
+import { isEntryLocked } from '@/lib/entry-lock-client'
 
 // Line height must match the line pattern spacing
 const LINE_HEIGHT = 32
@@ -52,13 +55,25 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
   // Draft text lives in desk store so typing doesn't re-render BookSpread.
   const text = useDeskStore((s) => s.leftPageDraft)
   const setLeftPageDraft = useDeskStore((s) => s.setLeftPageDraft)
+  const entryStyleDraft = useDeskStore((s) => s.entryStyleDraft)
+  const setEntryStyleDraft = useDeskStore((s) => s.setEntryStyleDraft)
   const onTextChange = setLeftPageDraft
   const [songInput, setSongInput] = useState(entry?.song || currentSong || '')
   const [isEditingSong, setIsEditingSong] = useState(!songInput)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const accentColor = theme.accent.warm
   const textColor = colors.bodyText
   const mutedColor = theme.text.muted
+
+  const activeStyle: EntryStyle = isNewEntry
+    ? entryStyleDraft
+    : parseStyle((entry as unknown as { style?: unknown })?.style ?? null)
+  const fontFamily = resolveFontFamily(activeStyle.font)
+  const inkColor = resolveInkColor(activeStyle.color, colors.bodyText)
+  const lockedForEntry = !isNewEntry && entry
+    ? isEntryLocked(entry.createdAt, { entryType: 'normal' })
+    : false
   const linePattern = `repeating-linear-gradient(
     180deg,
     transparent 0px,
@@ -262,32 +277,76 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
         </div>
 
         {/* Writing Area */}
-        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0 flex flex-col relative">
           <div
             className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium flex-shrink-0"
             style={{ color: mutedColor }}
           >
             Write your thoughts
           </div>
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
-            placeholder="What's on your mind today..."
-            className="flex-1 min-h-0 w-full resize-none outline-none"
-            style={{
-              color: textColor,
-              fontFamily: 'var(--font-caveat), Georgia, serif',
-              fontSize: '20px',
-              lineHeight: `${LINE_HEIGHT}px`,
-              caretColor: accentColor,
-              backgroundColor: 'transparent',
-              backgroundImage: linePattern,
-              backgroundAttachment: 'local',
-              overflow: 'hidden',
-            }}
-          />
+
+          {/* Pen-nib icon — only on entries the user can still style. The
+              new-entry spread always qualifies; viewing branches gate this
+              themselves (the v1 viewing branch below doesn't render this
+              block). The lockedForEntry check is belt-and-suspenders for
+              future cases where existing entries are also editable. */}
+          {!lockedForEntry && (
+            <>
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="absolute right-0 top-0 w-6 h-6 flex items-center justify-center rounded-md transition-opacity"
+                style={{
+                  color: accentColor,
+                  opacity: menuOpen ? 1 : 0.65,
+                }}
+                title="Pen settings"
+                aria-label="Pen settings"
+                aria-expanded={menuOpen}
+              >
+                <PenNibIcon />
+              </button>
+
+              <AnimatePresence>
+                {menuOpen && (
+                  <PenMenu
+                    value={entryStyleDraft}
+                    onChange={setEntryStyleDraft}
+                    onClose={() => setMenuOpen(false)}
+                    themeBodyText={colors.bodyText}
+                    panelBg={colors.doodleBg}
+                    panelBorder={colors.doodleBorder}
+                    labelColor={mutedColor}
+                  />
+                )}
+              </AnimatePresence>
+            </>
+          )}
+
+          {/* Textarea + effect overlays share a relative sub-wrapper so the
+              overlays' coordinate origin matches the textarea's border-box.
+              This keeps particle / glow positions aligned with the caret. */}
+          <div className="flex-1 min-h-0 relative">
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              placeholder="What's on your mind today..."
+              className="absolute inset-0 w-full h-full resize-none outline-none"
+              style={{
+                color: inkColor,
+                fontFamily,
+                fontSize: '20px',
+                lineHeight: `${LINE_HEIGHT}px`,
+                caretColor: inkColor,
+                backgroundColor: 'transparent',
+                backgroundImage: linePattern,
+                backgroundAttachment: 'local',
+                overflow: 'hidden',
+              }}
+            />
+            {/* Effect overlays for Tasks 9, 10, 11 mount here. */}
+          </div>
         </div>
       </motion.div>
     )
@@ -354,8 +413,8 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
         <div
           className="flex-1 min-h-0 w-full whitespace-pre-wrap overflow-hidden"
           style={{
-            color: plainText ? textColor : mutedColor,
-            fontFamily: 'var(--font-caveat), Georgia, serif',
+            color: plainText ? inkColor : mutedColor,
+            fontFamily,
             fontSize: '20px',
             lineHeight: `${LINE_HEIGHT}px`,
             fontStyle: plainText ? 'normal' : 'italic',
@@ -370,6 +429,22 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
     </motion.div>
   )
 }))
+
+function PenNibIcon() {
+  // 16px pen nib outline. Stroke uses currentColor so the icon picks up
+  // the button's color (theme accent).
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M11.5 1.5L14.5 4.5L6 13H3V10L11.5 1.5Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path d="M9.5 3.5L12.5 6.5" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 LeftPage.displayName = 'LeftPage'
 
