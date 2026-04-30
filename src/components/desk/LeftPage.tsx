@@ -16,6 +16,7 @@ import {
 } from '@/lib/textarea-caret'
 import PenMenu from './PenMenu'
 import SparkleTrail from './effects/SparkleTrail'
+import SaveShimmer from './effects/SaveShimmer'
 import { resolveFontFamily, resolveInkColor, parseStyle, type EntryStyle } from '@/lib/entry-style'
 import { isEntryLocked } from '@/lib/entry-lock-client'
 
@@ -352,6 +353,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
               inkColor={inkColor}
               enabled={activeStyle.effect === 'sparkle' && isNewEntry}
             />
+            <SaveShimmer enabled={activeStyle.effect === 'sparkle' && isNewEntry} />
           </div>
         </div>
       </motion.div>

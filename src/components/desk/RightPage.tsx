@@ -19,6 +19,7 @@ import { resolveFontFamily, resolveInkColor, parseStyle, type EntryStyle } from 
 import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
 import SparkleTrail from './effects/SparkleTrail'
+import SaveShimmer from './effects/SaveShimmer'
 
 const LINE_HEIGHT = 32
 const DOODLE_DRAFT_KEY = 'hearth_desk_doodle_draft'
@@ -362,6 +363,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
               inkColor={inkColor}
               enabled={activeStyle.effect === 'sparkle' && isNewEntry}
             />
+            <SaveShimmer enabled={activeStyle.effect === 'sparkle' && isNewEntry} />
           </div>
         </div>
 
