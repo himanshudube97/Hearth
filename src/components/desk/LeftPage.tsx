@@ -29,7 +29,7 @@ interface Entry {
 interface LeftPageProps {
   entry: Entry | null
   isNewEntry: boolean
-  onPageFull?: (overflowText: string) => void
+  onPageFull?: (overflowText: string, cursorStaysOnLeft: boolean) => void
   onNavigateRight?: (targetLeft?: number) => void
 }
 
@@ -142,6 +142,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value
+    const newCursorPos = e.target.selectionStart
     if (newText.length > JOURNAL.MAX_CHARS) return
 
     const textarea = textareaRef.current
@@ -186,11 +187,28 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
     const fitsText = newText.slice(0, splitAt)
     const overflowText = newText.slice(splitAt).replace(/^\s+/, '')
 
+    // If the user's caret sits in the kept-left portion (e.g. Enter on the
+    // second-to-last line pushes the LAST line off, but the caret should
+    // remain on the new empty line), keep focus on the left page. Same when
+    // the overflow is just stripped whitespace (the change effectively
+    // nooped on the right) — there's no reason to yank focus across.
+    const cursorStaysOnLeft = overflowText.length === 0 || newCursorPos <= splitAt
+
     onTextChange?.(fitsText)
-    // Always notify overflow — even if overflowText is empty (e.g. Enter on last line)
-    // so that focus moves to the right page
     if (onPageFull) {
-      onPageFull(overflowText)
+      onPageFull(overflowText, cursorStaysOnLeft)
+    }
+
+    if (cursorStaysOnLeft) {
+      // Wait for React to commit fitsText to the textarea, then restore the
+      // caret — setting textarea.value via React often resets the selection.
+      requestAnimationFrame(() => {
+        const t = textareaRef.current
+        if (!t) return
+        t.focus()
+        const pos = Math.min(newCursorPos, t.value.length)
+        t.setSelectionRange(pos, pos)
+      })
     }
   }, [onTextChange, onPageFull])
 

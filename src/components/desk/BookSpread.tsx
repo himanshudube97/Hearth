@@ -344,15 +344,20 @@ export default function BookSpread() {
     return () => el.removeEventListener('wheel', handler)
   }, [])
 
-  const handleLeftPageFull = useCallback((overflowText: string) => {
+  const handleLeftPageFull = useCallback((overflowText: string, cursorStaysOnLeft: boolean) => {
     if (overflowText) {
       useDeskStore.getState().setRightPageDraft((prev) => overflowText + prev)
     }
-    // Wait one frame so RightPage re-renders with the prepended text before
-    // we read textarea.value to position the caret.
-    requestAnimationFrame(() => {
-      rightPageRef.current?.focusAtAfterPrepend(overflowText.length)
-    })
+    // Only follow the overflow with focus when the user's caret was actually
+    // in the spilled portion (e.g. typing past the right edge of the last
+    // line). When they were editing in the middle and the LAST line got
+    // pushed off, focus belongs on the left page — LeftPage restores its
+    // own selection.
+    if (!cursorStaysOnLeft) {
+      requestAnimationFrame(() => {
+        rightPageRef.current?.focusAtAfterPrepend(overflowText.length)
+      })
+    }
   }, [])
 
   // ArrowRight (no targetLeft) lands at position 0 of the right page.
@@ -546,7 +551,6 @@ export default function BookSpread() {
                 isNewEntry={true}
                 photos={pendingPhotos}
                 onPhotoAdd={handlePhotoAdd}
-                autosaveStatus={autosave.status}
                 onNavigateLeft={handleNavigateLeft}
                 onBackspaceAcrossSpine={handleBackspaceAcrossSpine}
               />

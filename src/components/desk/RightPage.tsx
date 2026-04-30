@@ -15,7 +15,6 @@ import {
   getCaretLeftOffset,
   findPositionOnFirstRow,
 } from '@/lib/textarea-caret'
-import type { AutosaveStatus } from '@/hooks/useAutosaveEntry'
 import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
 
@@ -59,7 +58,6 @@ interface RightPageProps {
   isNewEntry: boolean
   photos?: Photo[]
   onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
-  autosaveStatus?: AutosaveStatus
   onNavigateLeft?: (targetLeft?: number) => void
   onBackspaceAcrossSpine?: () => void
 }
@@ -130,7 +128,6 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
   isNewEntry,
   photos = [],
   onPhotoAdd,
-  autosaveStatus = 'idle',
   onNavigateLeft,
   onBackspaceAcrossSpine,
 }: RightPageProps, ref) {
@@ -144,6 +141,9 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
   const text = useDeskStore((s) => s.rightPageDraft)
   const leftPageText = useDeskStore((s) => s.leftPageDraft)
   const setRightPageDraft = useDeskStore((s) => s.setRightPageDraft)
+  // Subscribed here directly (not via prop from BookSpread) so save
+  // transitions don't re-render the flipbook and steal textarea focus.
+  const autosaveStatus = useDeskStore((s) => s.autosaveStatus)
   const setText = setRightPageDraft
 
   const accentColor = theme.accent.warm

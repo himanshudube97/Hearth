@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { StrokeData } from '@/store/journal'
+import { useDeskStore, type AutosaveStatus } from '@/store/desk'
 import { getClientTz } from '@/lib/entry-lock-client'
 
 const DEBOUNCE_MS = 1500
@@ -23,11 +24,12 @@ export interface AutosaveDraft {
   unlockDate?: string | null
 }
 
-export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+// Re-exported so existing callers that imported `AutosaveStatus` from this
+// hook keep working — the canonical type now lives in the desk store.
+export type { AutosaveStatus }
 
 export interface UseAutosaveResult {
   entryId: string | null
-  status: AutosaveStatus
   flush: () => Promise<void>
   reset: (nextEntryId?: string | null) => void
   trigger: (draft: AutosaveDraft) => void
@@ -43,7 +45,10 @@ function isDraftEmpty(d: AutosaveDraft): boolean {
 
 export function useAutosaveEntry(initialEntryId: string | null = null): UseAutosaveResult {
   const [entryId, setEntryId] = useState<string | null>(initialEntryId)
-  const [status, setStatus] = useState<AutosaveStatus>('idle')
+  // Status is written straight to the desk store so consumers of this hook
+  // (notably BookSpread) don't re-render on every save transition. Read it
+  // from `useDeskStore((s) => s.autosaveStatus)` where it's actually needed.
+  const setStatus = useDeskStore.getState().setAutosaveStatus
 
   // All save bookkeeping lives in refs so the save closure is stable across
   // renders and always sees the latest draft / entry id.
@@ -174,5 +179,5 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
     }
   }, [])
 
-  return { entryId, status, flush, reset, trigger }
+  return { entryId, flush, reset, trigger }
 }

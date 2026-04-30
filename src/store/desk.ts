@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 
+export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+
 interface DeskStore {
   currentSpread: number
   totalSpreads: number
@@ -9,12 +11,18 @@ interface DeskStore {
   // No longer persisted — DB autosave is the source of truth.
   leftPageDraft: string
   rightPageDraft: string
+  // Autosave status lives here for the same reason as drafts: routing it
+  // through BookSpread state would re-render the flipbook on every save
+  // transition (idle → saving → saved) and steal focus from the textarea.
+  // RightPage subscribes to this directly.
+  autosaveStatus: AutosaveStatus
   goToSpread: (spread: number) => void
   setTotalSpreads: (total: number) => void
   setLeftPageDraft: (updater: string | ((prev: string) => string)) => void
   setRightPageDraft: (updater: string | ((prev: string) => string)) => void
   setDrafts: (left: string, right: string) => void
   clearDrafts: () => void
+  setAutosaveStatus: (status: AutosaveStatus) => void
 }
 
 export const useDeskStore = create<DeskStore>()((set) => ({
@@ -22,6 +30,7 @@ export const useDeskStore = create<DeskStore>()((set) => ({
   totalSpreads: 1,
   leftPageDraft: '',
   rightPageDraft: '',
+  autosaveStatus: 'idle',
   goToSpread: (spread) => set({ currentSpread: spread }),
   setTotalSpreads: (total) => set({ totalSpreads: total }),
   setLeftPageDraft: (updater) => set((state) => ({
@@ -32,4 +41,5 @@ export const useDeskStore = create<DeskStore>()((set) => ({
   })),
   setDrafts: (left, right) => set({ leftPageDraft: left, rightPageDraft: right }),
   clearDrafts: () => set({ leftPageDraft: '', rightPageDraft: '' }),
+  setAutosaveStatus: (status) => set({ autosaveStatus: status }),
 }))
