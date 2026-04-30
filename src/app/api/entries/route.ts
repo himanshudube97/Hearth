@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
 import { isEntryLocked } from '@/lib/entry-lock'
+import { parseStyle } from '@/lib/entry-style'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string | null | undefined, maxLength = 150): string {
@@ -130,6 +132,7 @@ export async function GET(request: NextRequest) {
         isArchived: entry.isArchived,
         encryptionType: entry.encryptionType,
         e2eeIV: entry.e2eeIV,
+        style: parseStyle(entry.style),
       }
     })
 
@@ -171,6 +174,8 @@ export async function POST(request: NextRequest) {
       encryptionType, e2eeIV,
       // New fields
       photos, spreads,
+      // New: per-entry style
+      style,
     } = body
 
     // Enforce one-normal-entry-per-day. Letters and other special types
@@ -226,6 +231,7 @@ export async function POST(request: NextRequest) {
         mood: mood ?? 2,
         song: song || null,
         tags: tags ?? [],
+        style: style !== undefined ? (parseStyle(style) as Prisma.InputJsonValue) : Prisma.JsonNull,
         userId: user.id,
         entryType: entryType || 'normal',
         unlockDate: unlockDate ? new Date(unlockDate) : null,

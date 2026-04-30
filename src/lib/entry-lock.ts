@@ -60,6 +60,8 @@ export interface LockedDiffInput {
   newDoodleSpreads?: number[]
   oldMood: number
   newMood?: number
+  oldStyle: unknown            // existing JournalEntry.style as stored (Prisma Json)
+  newStyle?: unknown           // candidate replacement
 }
 
 export type DiffResult = { ok: true } | { ok: false; reason: string }
@@ -67,6 +69,13 @@ export type DiffResult = { ok: true } | { ok: false; reason: string }
 export function validateAppendOnlyDiff(input: LockedDiffInput): DiffResult {
   if (input.newMood !== undefined && input.newMood !== input.oldMood) {
     return { ok: false, reason: 'Mood is locked after the day of writing' }
+  }
+  if (input.newStyle !== undefined) {
+    const oldJson = JSON.stringify(input.oldStyle ?? null)
+    const newJson = JSON.stringify(input.newStyle ?? null)
+    if (oldJson !== newJson) {
+      return { ok: false, reason: 'Entry style is locked after the day of writing' }
+    }
   }
   if (input.newSong !== undefined && input.oldSong && input.newSong !== input.oldSong) {
     return { ok: false, reason: 'Song is locked once added' }

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
 import { isEntryLocked, validateAppendOnlyDiff } from '@/lib/entry-lock'
+import { parseStyle } from '@/lib/entry-style'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string, maxLength = 150): string {
@@ -54,6 +55,7 @@ export async function GET(
       spreads: entry.spreads,
       isArchived: entry.isArchived,
       photos: entry.photos,
+      style: parseStyle(entry.style),
     })
   } catch (error) {
     console.error('Error fetching entry:', error)
@@ -92,6 +94,7 @@ export async function PUT(
         mood: true,
         entryType: true,
         isSealed: true,
+        style: true,
         photos: { select: { spread: true, position: true } },
         doodles: { select: { spread: true } },
       },
@@ -109,6 +112,7 @@ export async function PUT(
     const {
       text, mood, song, tags, encryptionType, e2eeIV,
       spreads, appendText, newPhotos, newDoodles,
+      style,
       // Letter-only fields. Drafts can be edited freely; sealed letters reject
       // all writes via the lock check below.
       entryType, recipientEmail, recipientName, senderName, letterLocation, unlockDate,
@@ -138,6 +142,8 @@ export async function PUT(
         appendText,
         oldSong: existing.song,
         newSong: song,
+        oldStyle: existing.style,
+        newStyle: style,
         oldPhotos: existing.photos,
         newPhotoSlots: newPhotos?.map((p: { spread: number; position: number }) => ({
           spread: p.spread,
@@ -179,6 +185,9 @@ export async function PUT(
     }
 
     if (mood !== undefined) updateData.mood = mood
+    if (style !== undefined) {
+      updateData.style = parseStyle(style)
+    }
     if (song !== undefined) updateData.song = song
     if (tags !== undefined) updateData.tags = tags
     if (spreads !== undefined) updateData.spreads = spreads
@@ -266,6 +275,7 @@ export async function PUT(
       spreads: updatedEntry?.spreads,
       isArchived: updatedEntry?.isArchived,
       photos: updatedEntry?.photos,
+      style: parseStyle(updatedEntry?.style),
     })
   } catch (error) {
     console.error('Error updating entry:', error)
