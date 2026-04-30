@@ -419,7 +419,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
       <div className="mb-3 flex-shrink-0">
         <div
           className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
-          style={{ color: mutedColor }}
+          style={{ color: colors.sectionLabel }}
         >
           {entryPhotos.length > 0 ? 'Photos' : 'Add Photos'}
         </div>
@@ -461,7 +461,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
       <div className="mt-2 flex-shrink-0" style={{ height: '140px' }}>
         <div
           className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium"
-          style={{ color: mutedColor }}
+          style={{ color: colors.sectionLabel }}
         >
           {entryDoodle?.strokes && entryDoodle.strokes.length > 0 ? 'Doodle' : 'Draw'}
         </div>

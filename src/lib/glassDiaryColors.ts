@@ -75,7 +75,7 @@ export function getGlassDiaryColors(theme: Theme): GlassDiaryColors {
     pageBorder: warm(theme, 0.18),
     ruledLine: warm(theme, 0.28),
     sectionLabel: withAlpha(theme.text.primary, 0.95),
-    prompt: withAlpha(theme.text.primary, 0.7),
+    prompt: withAlpha(theme.text.primary, 0.85),
     date: warm(theme, 0.85),
     bodyText: theme.text.primary,
     photoBorder: warm(theme, 0.3),
