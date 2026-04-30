@@ -72,7 +72,7 @@ function measureAt(
   return { top: span.offsetTop, left: span.offsetLeft, height: span.offsetHeight }
 }
 
-function getCaretCoordinates(
+export function getCaretCoordinates(
   textarea: HTMLTextAreaElement,
   position: number,
 ): { top: number; left: number; height: number } {
@@ -99,6 +99,15 @@ export function isCaretOnLastVisualRow(textarea: HTMLTextAreaElement): boolean {
 
 export function getCaretLeftOffset(textarea: HTMLTextAreaElement): number {
   return getCaretCoordinates(textarea, textarea.selectionStart).left
+}
+
+// Caret coordinates at the current selectionStart, in textarea-local pixels
+// (relative to the textarea's content-box origin). Effect overlays use this
+// to position particles / glow at the pen tip.
+export function getCaretLocalCoords(
+  textarea: HTMLTextAreaElement,
+): { top: number; left: number; height: number } {
+  return getCaretCoordinates(textarea, textarea.selectionStart)
 }
 
 // Find the character index whose visual position lies on the first visual row
