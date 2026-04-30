@@ -65,6 +65,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
   const [songInput, setSongInput] = useState(entry?.song || currentSong || '')
   const [isEditingSong, setIsEditingSong] = useState(!songInput)
   const [menuOpen, setMenuOpen] = useState(false)
+  const penButtonRef = useRef<HTMLButtonElement>(null)
 
   const accentColor = theme.accent.warm
   const textColor = colors.bodyText
@@ -297,6 +298,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
           {!lockedForEntry && (
             <>
               <button
+                ref={penButtonRef}
                 onClick={() => setMenuOpen((v) => !v)}
                 className="absolute right-0 top-0 w-6 h-6 flex items-center justify-center rounded-md transition-opacity"
                 style={{
@@ -320,6 +322,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
                     panelBg={colors.doodleBg}
                     panelBorder={colors.doodleBorder}
                     labelColor={mutedColor}
+                    triggerRef={penButtonRef}
                   />
                 )}
               </AnimatePresence>

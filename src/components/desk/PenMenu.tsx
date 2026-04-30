@@ -25,6 +25,11 @@ interface PenMenuProps {
   panelBg: string
   panelBorder: string
   labelColor: string
+  // Trigger element ref. Excluded from outside-click closure so a second
+  // click on the pen-nib (the toggle) doesn't fire close-then-reopen: the
+  // mousedown would otherwise close it and the click handler immediately
+  // re-toggle it open.
+  triggerRef?: React.RefObject<HTMLButtonElement | null>
 }
 
 export default function PenMenu({
@@ -35,26 +40,28 @@ export default function PenMenu({
   panelBg,
   panelBorder,
   labelColor,
+  triggerRef,
 }: PenMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
 
-  // Close on outside click + Escape.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     const onDown = (e: MouseEvent) => {
       if (!ref.current) return
-      if (!ref.current.contains(e.target as Node)) onClose()
+      const target = e.target as Node
+      if (ref.current.contains(target)) return
+      if (triggerRef?.current?.contains(target)) return
+      onClose()
     }
     window.addEventListener('keydown', onKey)
-    // mousedown so that clicking a textarea elsewhere on the page closes the menu.
     window.addEventListener('mousedown', onDown)
     return () => {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('mousedown', onDown)
     }
-  }, [onClose])
+  }, [onClose, triggerRef])
 
   const setFont = (font: FontKey) => onChange({ ...value, font })
   const setColor = (color: ColorKey | null) => onChange({ ...value, color })
