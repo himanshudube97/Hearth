@@ -15,7 +15,7 @@ import {
   findPositionOnLastRow,
 } from '@/lib/textarea-caret'
 import PenMenu from './PenMenu'
-import { resolveFontFamily, parseStyle, type EntryStyle } from '@/lib/entry-style'
+import { resolveFontFamily, resolveFontSize, parseStyle, type EntryStyle } from '@/lib/entry-style'
 import { isEntryLocked } from '@/lib/entry-lock-client'
 
 // Line height must match the line pattern spacing
@@ -72,6 +72,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
     ? entryStyleDraft
     : parseStyle(entry?.style ?? null)
   const fontFamily = resolveFontFamily(activeStyle.font)
+  const fontSize = resolveFontSize(activeStyle.font, 20)
   const lockedForEntry = !isNewEntry && entry
     ? isEntryLocked(entry.createdAt, { entryType: 'normal' })
     : false
@@ -337,7 +338,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
               style={{
                 color: textColor,
                 fontFamily,
-                fontSize: '20px',
+                fontSize,
                 lineHeight: `${LINE_HEIGHT}px`,
                 caretColor: accentColor,
                 backgroundColor: 'transparent',
@@ -415,7 +416,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
           style={{
             color: plainText ? textColor : mutedColor,
             fontFamily,
-            fontSize: '20px',
+            fontSize,
             lineHeight: `${LINE_HEIGHT}px`,
             fontStyle: plainText ? 'normal' : 'italic',
             backgroundColor: 'transparent',

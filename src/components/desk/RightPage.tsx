@@ -15,7 +15,7 @@ import {
   getCaretLeftOffset,
   findPositionOnFirstRow,
 } from '@/lib/textarea-caret'
-import { resolveFontFamily, parseStyle, type EntryStyle } from '@/lib/entry-style'
+import { resolveFontFamily, resolveFontSize, parseStyle, type EntryStyle } from '@/lib/entry-style'
 import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
 
@@ -157,6 +157,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
     ? entryStyleDraft
     : parseStyle(entry?.style ?? null)
   const fontFamily = resolveFontFamily(activeStyle.font)
+  const fontSize = resolveFontSize(activeStyle.font, 20)
 
   const linePattern = `repeating-linear-gradient(
     180deg,
@@ -346,7 +347,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
               style={{
                 color: textColor,
                 fontFamily,
-                fontSize: '20px',
+                fontSize,
                 lineHeight: `${LINE_HEIGHT}px`,
                 caretColor: accentColor,
                 backgroundColor: 'transparent',
@@ -444,7 +445,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
           style={{
             color: plainText ? textColor : mutedColor,
             fontFamily,
-            fontSize: '20px',
+            fontSize,
             lineHeight: `${LINE_HEIGHT}px`,
             fontStyle: plainText ? 'normal' : 'italic',
             backgroundColor: 'transparent',

@@ -8,6 +8,7 @@ import {
   FONT_KEYS,
   FONT_DEFS,
   resolveFontFamily,
+  resolveFontSize,
 } from '@/lib/entry-style'
 
 interface PenMenuProps {
@@ -84,7 +85,7 @@ export default function PenMenu({
             className="px-1.5 rounded-md transition-opacity"
             style={{
               fontFamily: resolveFontFamily(key),
-              fontSize: '14px',
+              fontSize: resolveFontSize(key, 14),
               lineHeight: 1.4,
               color: bodyText,
               background: selected ? `${bodyText}18` : 'transparent',

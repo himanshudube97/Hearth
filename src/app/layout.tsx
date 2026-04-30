@@ -3,8 +3,6 @@ import {
   EB_Garamond,
   Caveat,
   Patrick_Hand,
-  Shadows_Into_Light,
-  Indie_Flower,
 } from "next/font/google";
 import "./globals.css";
 import LayoutContent from "@/components/LayoutContent";
@@ -24,22 +22,6 @@ const caveat = Caveat({
 
 const patrickHand = Patrick_Hand({
   variable: "--font-patrick-hand",
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-  preload: false,
-});
-
-const shadowsIntoLight = Shadows_Into_Light({
-  variable: "--font-shadows",
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-  preload: false,
-});
-
-const indieFlower = Indie_Flower({
-  variable: "--font-indie",
   subsets: ["latin"],
   weight: "400",
   display: "swap",
@@ -94,7 +76,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${ebGaramond.variable} ${caveat.variable} ${patrickHand.variable} ${shadowsIntoLight.variable} ${indieFlower.variable} antialiased font-serif`}
+        className={`${ebGaramond.variable} ${caveat.variable} ${patrickHand.variable} antialiased font-serif`}
       >
         <AuthProvider>
           <E2EEProvider>
