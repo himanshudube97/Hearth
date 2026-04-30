@@ -3,23 +3,26 @@
 import { motion } from 'framer-motion'
 import type { Theme } from '@/lib/themes'
 import type { JournalEntry } from '@/store/journal'
-import type { MemoryStar } from './ConstellationRenderer'
-import { MemoryModal } from './MemoryModal'
-import { useGardenParallax } from './garden/useGardenParallax'
+import type { MemoryStar } from '../../ConstellationRenderer'
+import { MemoryModal } from '../../MemoryModal'
+import { useGardenParallax } from '../useGardenParallax'
 import {
-  SkyBand,
-  Hills,
-  DistantTrees,
-  MidGrove,
-  Wildflowers,
-  ForegroundFrame,
-  GroundBand,
-} from './garden/gardenLayers'
-import { AmbientDrift } from './garden/AmbientDrift'
-import { LetterClothesline } from './garden/LetterClothesline'
-import { PostalScene } from './garden/scenes/PostalScene'
+  DuskSky,
+  StarField,
+  CloudDrift,
+  FarVillage,
+  DistantVillage,
+  NearVillage,
+  CurvedPath,
+  PaperPlanes,
+  EnvelopeBalloon,
+  GroundLine,
+} from '../PostalSky'
+import { LampLetterbox } from '../LampLetterbox'
+import { LeftLamp } from '../LeftLamp'
+import { Bunting } from '../Bunting'
 
-export interface GardenRendererProps {
+export interface PostalSceneProps {
   loading: boolean
   entries: JournalEntry[]
   memoryStars: MemoryStar[]
@@ -28,22 +31,14 @@ export interface GardenRendererProps {
   theme: Theme
 }
 
-export function GardenRenderer(props: GardenRendererProps) {
-  const { theme } = props
-  if (theme.ambience === 'postal') {
-    return <PostalScene {...props} />
-  }
-  return <MeadowInline {...props} />
-}
-
-function MeadowInline({
+export function PostalScene({
   loading,
   entries,
   memoryStars,
   selectedStar,
   setSelectedStar,
   theme,
-}: GardenRendererProps) {
+}: PostalSceneProps) {
   const parallax = useGardenParallax()
 
   const getMoodColor = (mood: number) => {
@@ -78,7 +73,7 @@ function MeadowInline({
             transition={{ duration: 2, repeat: Infinity }}
             style={{ color: theme.text.muted }}
           >
-            ✿
+            ✦
           </motion.div>
           <p
             style={{
@@ -87,7 +82,7 @@ function MeadowInline({
               fontStyle: 'italic',
             }}
           >
-            tending the garden...
+            sorting the evening post…
           </p>
         </motion.div>
       </motion.div>
@@ -109,7 +104,7 @@ function MeadowInline({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="text-3xl mb-4 opacity-50">✿</div>
+          <div className="text-3xl mb-4 opacity-50">✉</div>
           <p
             style={{
               color: theme.text.muted,
@@ -117,7 +112,7 @@ function MeadowInline({
               fontStyle: 'italic',
             }}
           >
-            your garden is waiting for its first leaf — write something to begin
+            the post hasn&apos;t arrived yet — write something and the first letter will fly in
           </p>
         </motion.div>
       </motion.div>
@@ -132,20 +127,19 @@ function MeadowInline({
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
     >
-      <SkyBand parallax={parallax} theme={theme} />
-      <Hills parallax={parallax} theme={theme} />
-      <DistantTrees parallax={parallax} theme={theme} />
-      <MidGrove parallax={parallax} theme={theme} />
-      <GroundBand theme={theme} />
-      <Wildflowers parallax={parallax} theme={theme} />
-      <LetterClothesline
-        memoryStars={memoryStars}
-        onSelect={setSelectedStar}
-        theme={theme}
-        getMoodColor={getMoodColor}
-      />
-      <AmbientDrift theme={theme} />
-      <ForegroundFrame parallax={parallax} theme={theme} />
+      <DuskSky parallax={parallax} theme={theme} />
+      <StarField parallax={parallax} theme={theme} />
+      <CloudDrift parallax={parallax} theme={theme} />
+      <FarVillage parallax={parallax} theme={theme} />
+      <DistantVillage parallax={parallax} theme={theme} />
+      <NearVillage parallax={parallax} theme={theme} />
+      <PaperPlanes parallax={parallax} theme={theme} />
+      <EnvelopeBalloon parallax={parallax} theme={theme} />
+      <CurvedPath parallax={parallax} theme={theme} />
+      <GroundLine theme={theme} />
+      <LeftLamp theme={theme} parallax={parallax} />
+      <Bunting parallax={parallax} />
+      <LampLetterbox theme={theme} parallax={parallax} />
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -161,7 +155,7 @@ function MeadowInline({
             fontStyle: 'italic',
           }}
         >
-          your garden
+          evening post
         </p>
         <p
           className="text-sm mt-1"
@@ -172,7 +166,7 @@ function MeadowInline({
           }}
         >
           {memoryStars.length}{' '}
-          {memoryStars.length === 1 ? 'letter pressed' : 'letters pressed'}
+          {memoryStars.length === 1 ? 'letter on the wind' : 'letters on the wind'}
         </p>
       </motion.div>
 
