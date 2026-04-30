@@ -52,6 +52,9 @@ model JournalEntry {
   isSealed    Boolean   @default(false)
   expiresAt   DateTime?
   tags        String[]  @default([])
+  // Per-entry display style (font / ink color / effect). Plain JSON, non-sensitive.
+  // null = all defaults (Caveat / theme text / no effect).
+  style       Json?
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
