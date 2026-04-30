@@ -84,7 +84,6 @@ export function RoseGardenScene({
         memoryStars={memoryStars}
         onSelect={setSelectedStar}
         getMoodColor={getMoodColor}
-        theme={theme}
       />
 
       <motion.div

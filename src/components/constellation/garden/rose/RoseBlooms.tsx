@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion'
 import { useMemo } from 'react'
-import type { Theme } from '@/lib/themes'
 import type { MemoryStar } from '../../ConstellationRenderer'
 import { RoseSVG } from './RoseSVG'
 import { roseColorForId, roseSizeForId } from './roseHash'
@@ -11,7 +10,6 @@ interface RoseBloomsProps {
   memoryStars: MemoryStar[]
   onSelect: (s: MemoryStar) => void
   getMoodColor: (mood: number) => string
-  theme: Theme
 }
 
 // Anchor positions for up to 7 blooms, in viewport-percentage coords.
@@ -43,6 +41,7 @@ export function RoseBlooms({ memoryStars, onSelect, getMoodColor }: RoseBloomsPr
           key={star.id}
           type="button"
           onClick={() => onSelect(star)}
+          aria-label={`Open memory from ${new Date(star.entry.createdAt).toLocaleDateString()}`}
           className="absolute cursor-pointer focus:outline-none"
           style={{
             left: `${anchor.x}%`,
