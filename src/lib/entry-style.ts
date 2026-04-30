@@ -18,11 +18,15 @@ export const FONT_KEYS: readonly FontKey[] = [
   'patrick-hand',
 ] as const
 
-// `sizeScale` lets us optically match fonts that have different x-heights
-// at the same nominal font-size. Caveat reads smaller than Patrick Hand at
-// the same px size, so we scale it up slightly.
+// `sizeScale` is kept at 1.0 for both fonts. We tried scaling Caveat up to
+// optically match Patrick Hand's x-height, but that made Caveat wider per
+// glyph than Patrick Hand — so an entry that filled both pages in Patrick
+// Hand would overflow the bottom of the right page when switched to Caveat.
+// Holding both at 1.0 means switching fonts can rebalance line wrap but
+// never exceeds the total capacity Patrick Hand allows. Caveat reads a
+// touch smaller; that's the trade.
 export const FONT_DEFS: Record<FontKey, { label: string; cssFamily: string; sizeScale: number }> = {
-  'caveat':              { label: 'Caveat',             cssFamily: `var(--font-caveat), Georgia, serif`,        sizeScale: 1.15 },
+  'caveat':              { label: 'Caveat',             cssFamily: `var(--font-caveat), Georgia, serif`,        sizeScale: 1.00 },
   'patrick-hand':        { label: 'Patrick Hand',       cssFamily: `var(--font-patrick-hand), Georgia, serif`,  sizeScale: 1.00 },
 }
 
