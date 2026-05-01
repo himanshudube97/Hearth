@@ -40,15 +40,6 @@ interface Entry {
   style?: import('@/lib/entry-style').EntryStyle | null
 }
 
-interface BookSpreadProps {
-  /** When true, the diary cover is closed: a single-page-wide hardcover panel
-   *  is shown centered, and the spread + open-frame are hidden. When the
-   *  prop flips to false, the closed panel rotates -180° around the spine
-   *  (backface-visibility:hidden so it disappears past 90°) while the
-   *  spread + open-frame snap in once the flip is past vertical. */
-  closed?: boolean
-}
-
 // Fixed page dimensions for the flipbook
 const PAGE_WIDTH = 650
 const PAGE_HEIGHT = 820
@@ -102,7 +93,7 @@ function combineDraftHtml(left: string, right: string): string {
   return leftHtml + PAGE_BREAK_MARKER + rightHtml
 }
 
-export default function BookSpread({ closed = false }: BookSpreadProps) {
+export default function BookSpread() {
   const { theme, themeName } = useThemeStore()
   const setCurrentSong = useJournalStore((s) => s.setCurrentSong)
   const setCurrentMood = useJournalStore((s) => s.setCurrentMood)
@@ -452,44 +443,6 @@ export default function BookSpread({ closed = false }: BookSpreadProps) {
           ['--book-cover-border' as string]: colors.coverBorder,
         } as React.CSSProperties}
       >
-        {/* Open-frame: full-spread hardcover backdrop, only visible when
-            the cover is open. Cross-fades with the closed-cover flip
-            (starts at 0.45s, runs 1.05s) so the spread is already mostly
-            visible by the time the cover clears 90° — no jump from
-            "right half blocked" to "right half visible". */}
-        <div
-          className="book-cover"
-          style={{
-            left: '-48px',
-            opacity: closed ? 0 : 1,
-            transition: closed
-              ? 'opacity 0.55s ease-in'
-              : 'opacity 1.05s cubic-bezier(0.33, 1, 0.68, 1) 0.45s',
-          }}
-        />
-
-        {/* Closed-cover: single-page-wide textured panel that flips around
-            its left edge (the spine). 2.0s symmetric ease-in-out cubic
-            keeps the rotation weighted on both ends so it feels like a
-            real hardcover swinging — no flick. Opacity is held until the
-            rotation has nearly reached 90° (delay 0.85s) and then fades
-            over 0.3s so the cover smoothly disappears around the edge-on
-            crossing rather than snapping out via backface-hidden alone. */}
-        <div
-          className="book-cover"
-          style={{
-            left: '50%',
-            opacity: closed ? 1 : 0,
-            transform: closed
-              ? 'perspective(2200px) rotateY(0deg)'
-              : 'perspective(2200px) rotateY(-180deg)',
-            transformOrigin: 'left center',
-            backfaceVisibility: 'hidden',
-            WebkitBackfaceVisibility: 'hidden',
-            transition:
-              'transform 2.0s cubic-bezier(0.45, 0, 0.55, 1), opacity 0.3s ease-in-out 0.85s',
-          } as React.CSSProperties}
-        />
 
       {/* Book wrapper. Sized for the spread (1300x820), relative so chrome
           can be positioned absolutely on top. The --page-bg CSS variable is
@@ -498,11 +451,13 @@ export default function BookSpread({ closed = false }: BookSpreadProps) {
           inline styles mid-flip).
 
           Conditionally rendered on `!loading` so the cover and pages mount
-          together once entries are fetched. Anything rendered during the
-          fetch (cover frame, ribbon, ornaments) would pop in without its
-          flipbook contents, producing a visible blip on navigation/refresh.
-          Mounting after loading guarantees framer-motion's `initial` state
-          is the very first paint — no FOUC. */}
+          together once entries are fetched. Mount cannot wait for bookReady
+          because bookReady fires from HTMLFlipBook's onInit, which lives
+          inside this motion.div — gating mount on it would deadlock. The
+          motion.div instead mounts at opacity 0 and fades in once
+          bookReady fires (or the 800ms safety timer trips). The cover
+          backdrop lives inside, inheriting the same fade so it never pops
+          in alone before the pages. */}
       {!loading && (
       <motion.div
         className="relative"
@@ -516,20 +471,22 @@ export default function BookSpread({ closed = false }: BookSpreadProps) {
         initial={{ rotateX: 5, opacity: 0 }}
         animate={
           bookReady
-            ? { rotateX: 0, opacity: closed ? 0 : 1 }
+            ? { rotateX: 0, opacity: 1 }
             : { rotateX: 5, opacity: 0 }
         }
-        // Cross-fades with the 2.0s cover flip. Front-loaded ease-out
-        // (cubic) so the spread is already at ~80% opacity by the time
-        // the cover clears 90° — no abrupt reveal of the right page when
-        // the cover hides itself.
         transition={{
           rotateX: { duration: 0.6 },
-          opacity: closed
-            ? { duration: 0.55, ease: 'easeIn' }
-            : { duration: 1.05, ease: [0.33, 1, 0.68, 1], delay: 0.45 },
+          opacity: { duration: 0.6 },
         }}
       >
+        {/* Full-spread hardcover backdrop. Lives inside motion.div so it
+            inherits the same opacity fade-in — the cover and pages reveal
+            together rather than the cover popping in first. */}
+        <div
+          className="book-cover"
+          style={{ left: '-48px' }}
+        />
+
         {/* Ribbon bookmark with brass swivel clasp + oval hangtag dangling beneath */}
         <RibbonBookmark color={colors.ribbon}>
           <RibbonTag date={spreadDate} colors={colors} />

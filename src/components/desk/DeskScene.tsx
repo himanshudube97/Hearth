@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useLayoutMode } from '@/hooks/useMediaQuery'
 import BookSpread from './BookSpread'
-import { useDiaryCover } from '@/hooks/useDiaryCover'
 
 // Pre-generate random particle data at module level to keep render pure
 const DUST_PARTICLES = Array.from({ length: 12 }, () => ({
@@ -26,7 +25,6 @@ export default function DeskScene() {
   const { theme } = useThemeStore()
   const layoutMode = useLayoutMode()
   const [scaleForTablet, setScaleForTablet] = useState(1)
-  const { coverState, markOpen, closeCover } = useDiaryCover()
 
   useEffect(() => {
     setMounted(true)
@@ -103,48 +101,13 @@ export default function DeskScene() {
         <MobileJournalEntry onClose={handleMobileClose} />
       ) : (
         <>
-          {/* Wheel-capture overlay: while closed, intercepts trackpad
-              scroll before BookSpread's own wheel handler sees it, and
-              triggers the cover open past a small threshold. */}
-          {coverState === 'closed' && (
-            <div
-              ref={(el) => {
-                if (!el) return
-                let accumulated = 0
-                let triggered = false
-                const handler = (e: WheelEvent) => {
-                  e.preventDefault()
-                  if (triggered) return
-                  accumulated += e.deltaY
-                  if (Math.abs(accumulated) > 60) {
-                    triggered = true
-                    markOpen()
-                  }
-                }
-                el.addEventListener('wheel', handler, { passive: false })
-                return () => el.removeEventListener('wheel', handler)
-              }}
-              style={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 50,
-              }}
-              onClick={markOpen}
-            />
-          )}
-
           {/* Book - center.
               `top` uses max() so on short viewports the book stays
               anchored ~100px below the page top, keeping the global
               navigation bar and the book's top decorations from
               colliding. On taller viewports the 50% wins and the book
-              renders perfectly centered as before.
-
-              Inner motion.div shifts the whole BookSpread left by 325px
-              when closed so the single-page-width cover panel lands at
-              screen center (the spread is 1300px wide; half is 650px;
-              shifting left 325px centers the right half). */}
-          <motion.div
+              renders perfectly centered as before. */}
+          <div
             className="absolute z-30"
             style={{
               top: 'max(50%, 510px)',
@@ -155,16 +118,8 @@ export default function DeskScene() {
               transformOrigin: 'center center',
             }}
           >
-            <motion.div
-              animate={{ x: coverState === 'closed' ? -325 : 0 }}
-              // Same duration + softer ease-in-out curve as the closed-
-              // cover flip so the book gliding to center reads as one
-              // continuous, weighted motion with the cover swinging open.
-              transition={{ duration: 2.0, ease: [0.45, 0, 0.55, 1] }}
-            >
-              <BookSpread closed={coverState === 'closed'} />
-            </motion.div>
-          </motion.div>
+            <BookSpread />
+          </div>
 
           {/* Floating dust particles */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -194,43 +149,6 @@ export default function DeskScene() {
               />
             ))}
           </div>
-
-          {coverState === 'open' && (
-            <button
-              onClick={closeCover}
-              aria-label="Close diary"
-              title="Close diary"
-              style={{
-                position: 'fixed',
-                top: 20,
-                right: 20,
-                zIndex: 60,
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: 'rgba(0, 0, 0, 0.25)',
-                backdropFilter: 'blur(8px)',
-                border: `1px solid ${theme.accent.warm}40`,
-                color: theme.text.primary,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 18,
-                lineHeight: 1,
-                transition: 'background 0.2s, border-color 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.4)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.25)'
-              }}
-            >
-              ×
-            </button>
-          )}
-
         </>
       )}
     </div>
