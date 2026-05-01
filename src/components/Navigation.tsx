@@ -13,7 +13,7 @@ const tabs = [
   { href: '/scrapbook', label: 'Scrapbook', icon: '✦' },
   { href: '/letters', label: 'Letters', icon: '✉' },
   { href: '/shelf', label: 'Shelf', icon: '❒' },
-  { href: '/constellation', label: 'Stars', icon: '★' },
+  { href: '/constellation', label: 'Memory', icon: '★' },
 ]
 
 export default function Navigation() {
