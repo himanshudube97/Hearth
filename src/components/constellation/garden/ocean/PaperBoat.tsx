@@ -42,12 +42,11 @@ export function PaperBoat({
 }: PaperBoatProps) {
   const reduceMotion = useReducedMotion()
 
-  // Idle bob: ±2px Y over 3.5s, ±1° rotation drift around the base tilt
+  // Gentle vertical bob — no rotation drift. Boats sit at their static tilt.
   const animate = reduceMotion
     ? undefined
     : {
         y: [0, -2, 0, 2, 0],
-        rotate: [tilt - 1, tilt + 1, tilt - 1],
       }
 
   const transition = reduceMotion
@@ -79,10 +78,11 @@ export function PaperBoat({
         padding: 0,
         transform: 'translate(-50%, 0)',
       }}
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 6, rotate: tilt }}
       animate={{
         opacity: 1,
         y: 0,
+        rotate: tilt,
         ...(animate ?? {}),
       }}
       transition={{
