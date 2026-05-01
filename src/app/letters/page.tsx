@@ -1,31 +1,22 @@
+// src/app/letters/page.tsx
 'use client'
 
 import { useState } from 'react'
-import SealedLetterList from '@/components/letters/SealedLetterList'
-import LetterWriteView from '@/components/letters/LetterWriteView'
-
-type Surface = 'list' | 'write'
+import LettersNav from '@/components/letters/LettersNav'
+import InboxView from '@/components/letters/inbox/InboxView'
+import SentView from '@/components/letters/sent/SentView'
+import type { LettersTab } from '@/components/letters/letterTypes'
 
 export default function LettersPage() {
-  const [surface, setSurface] = useState<Surface>('list')
-  const [refreshKey, setRefreshKey] = useState(0)
-
-  if (surface === 'list') {
-    return (
-      <SealedLetterList
-        key={refreshKey}
-        onWriteClick={() => setSurface('write')}
-      />
-    )
-  }
+  const [tab, setTab] = useState<LettersTab>('inbox')
+  const [newCount, setNewCount] = useState(0)
 
   return (
-    <LetterWriteView
-      onBack={() => setSurface('list')}
-      onSealed={() => {
-        setRefreshKey(k => k + 1)
-        setSurface('list')
-      }}
-    />
+    <>
+      <LettersNav active={tab} onChange={setTab} newCount={newCount} />
+      {tab === 'inbox'
+        ? <InboxView onUnreadCountChange={setNewCount} />
+        : <SentView />}
+    </>
   )
 }

@@ -67,3 +67,24 @@ export function mapRecipientToSchema(
     recipientEmail: null,
   }
 }
+
+// === New v2 types ===
+
+export interface InboxLetter {
+  id: string
+  recipientName: string | null
+  sealedAt: string       // ISO
+  unlockDate: string | null
+  isViewed: boolean
+}
+
+export interface SentStamp {
+  id: string
+  recipientName: string | null
+  sealedAt: string
+  unlockDate: string | null
+  isDelivered: boolean
+  letterPeekedAt: string | null
+}
+
+export type LettersTab = 'inbox' | 'sent'
