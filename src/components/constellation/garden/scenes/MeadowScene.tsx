@@ -16,7 +16,8 @@ import {
   GroundBand,
 } from '../gardenLayers'
 import { AmbientDrift } from '../AmbientDrift'
-import { LetterClothesline } from '../LetterClothesline'
+import { MeadowMemoryButterflies } from '../MeadowMemoryButterflies'
+import { MeadowGarden } from '../MeadowGarden'
 
 export interface MeadowSceneProps {
   loading: boolean
@@ -129,13 +130,14 @@ export function MeadowScene({
       <MidGrove parallax={parallax} theme={theme} />
       <GroundBand theme={theme} />
       <Wildflowers parallax={parallax} theme={theme} />
-      <LetterClothesline
+      <MeadowGarden theme={theme} />
+      <AmbientDrift theme={theme} creatures={['bee', 'bird']} />
+      <MeadowMemoryButterflies
         memoryStars={memoryStars}
         onSelect={setSelectedStar}
         theme={theme}
         getMoodColor={getMoodColor}
       />
-      <AmbientDrift theme={theme} />
       <ForegroundFrame parallax={parallax} theme={theme} />
 
       <motion.div
