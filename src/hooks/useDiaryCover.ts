@@ -73,6 +73,7 @@ export function useDiaryCover(): UseDiaryCoverResult {
 
   const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isSnappingRef = useRef(false)
+  const animationRef = useRef<ReturnType<typeof animate> | null>(null)
 
   const scheduleSnap = useCallback(() => {
     if (snapTimerRef.current) clearTimeout(snapTimerRef.current)
@@ -81,12 +82,13 @@ export function useDiaryCover(): UseDiaryCoverResult {
       isSnappingRef.current = true
       const current = progress.get()
       const target = current >= SNAP_THRESHOLD ? 1 : 0
-      animate(progress, target, {
+      animationRef.current = animate(progress, target, {
         type: 'spring',
         stiffness: 200,
         damping: 26,
         onComplete: () => {
           isSnappingRef.current = false
+          animationRef.current = null
           if (target === 1) {
             markOpen()
           }
@@ -106,10 +108,11 @@ export function useDiaryCover(): UseDiaryCoverResult {
     [progress, scheduleSnap]
   )
 
-  // Cleanup any pending snap on unmount.
+  // Cleanup any pending snap and in-flight animation on unmount.
   useEffect(() => {
     return () => {
       if (snapTimerRef.current) clearTimeout(snapTimerRef.current)
+      animationRef.current?.stop()
     }
   }, [])
 
