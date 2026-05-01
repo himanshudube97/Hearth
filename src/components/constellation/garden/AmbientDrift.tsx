@@ -182,7 +182,20 @@ const CREATURES: CreatureConfig[] = [
   },
 ]
 
-export function AmbientDrift({ theme }: { theme: Theme }) {
+type Creature = 'butterfly' | 'bee' | 'bird'
+
+export function AmbientDrift({
+  theme,
+  creatures,
+}: {
+  theme: Theme
+  /** Limit which creatures render. Omit to show everything. */
+  creatures?: Creature[]
+}) {
+  const visible = creatures
+    ? CREATURES.filter(c => creatures.includes(c.name as Creature))
+    : CREATURES
+
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
       {/* Soft drifting petals */}
@@ -219,8 +232,8 @@ export function AmbientDrift({ theme }: { theme: Theme }) {
         )
       })}
 
-      {/* Creatures — 5 colorful butterflies, 1 bee, 1 bird */}
-      {CREATURES.map(c => (
+      {/* Creatures — filtered subset (or all if no filter passed) */}
+      {visible.map(c => (
         <motion.div
           key={`creature-${c.id}`}
           className="absolute"

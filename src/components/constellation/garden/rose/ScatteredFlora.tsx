@@ -7,21 +7,39 @@ interface FloraItem {
   scale: number
 }
 
+// Four lush clusters along the path edges + bush bases.
+// Each cluster is 5–6 overlapping items so the scene reads as full
+// rather than as scattered specks. Coordinates are viewport-percentage.
 const FLORA: FloraItem[] = [
-  { type: 'leaf', x: 12, y: 78, scale: 1.0 },
-  { type: 'daisy', x: 16, y: 84, scale: 0.9 },
-  { type: 'baby', x: 22, y: 80, scale: 1.1 },
-  { type: 'bud', x: 26, y: 74, scale: 0.85 },
-  { type: 'leaf', x: 36, y: 86, scale: 1.0 },
-  { type: 'daisy', x: 42, y: 90, scale: 0.85 },
-  { type: 'baby', x: 58, y: 88, scale: 1.0 },
-  { type: 'leaf', x: 64, y: 84, scale: 0.9 },
-  { type: 'bud', x: 72, y: 76, scale: 0.95 },
-  { type: 'daisy', x: 78, y: 82, scale: 1.0 },
-  { type: 'baby', x: 84, y: 86, scale: 0.9 },
-  { type: 'leaf', x: 88, y: 80, scale: 0.85 },
-  { type: 'daisy', x: 8, y: 92, scale: 1.0 },
-  { type: 'leaf', x: 92, y: 94, scale: 1.1 },
+  // Cluster A — far left, tucked against the foreground bush
+  { type: 'leaf', x: 8, y: 84, scale: 1.2 },
+  { type: 'daisy', x: 12, y: 87, scale: 1.0 },
+  { type: 'baby', x: 14, y: 82, scale: 1.15 },
+  { type: 'bud', x: 18, y: 79, scale: 0.95 },
+  { type: 'leaf', x: 6, y: 91, scale: 1.0 },
+  { type: 'daisy', x: 16, y: 92, scale: 0.9 },
+
+  // Cluster B — left of path, mid-low (under the bench)
+  { type: 'leaf', x: 22, y: 86, scale: 1.0 },
+  { type: 'baby', x: 26, y: 89, scale: 1.0 },
+  { type: 'daisy', x: 30, y: 92, scale: 1.05 },
+  { type: 'bud', x: 34, y: 83, scale: 0.85 },
+  { type: 'leaf', x: 38, y: 90, scale: 0.95 },
+
+  // Cluster C — right of path, mirroring B
+  { type: 'leaf', x: 62, y: 90, scale: 1.0 },
+  { type: 'bud', x: 66, y: 83, scale: 0.9 },
+  { type: 'daisy', x: 70, y: 92, scale: 1.05 },
+  { type: 'baby', x: 74, y: 88, scale: 1.05 },
+  { type: 'leaf', x: 78, y: 86, scale: 0.95 },
+
+  // Cluster D — far right, tucked against the foreground bush
+  { type: 'daisy', x: 84, y: 90, scale: 0.95 },
+  { type: 'leaf', x: 88, y: 86, scale: 1.05 },
+  { type: 'baby', x: 86, y: 82, scale: 1.1 },
+  { type: 'bud', x: 82, y: 79, scale: 0.95 },
+  { type: 'leaf', x: 92, y: 92, scale: 1.0 },
+  { type: 'daisy', x: 94, y: 86, scale: 0.9 },
 ]
 
 function FloraSVG({ type, scale }: { type: FloraItem['type']; scale: number }) {

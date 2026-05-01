@@ -7,8 +7,11 @@ import type { MemoryStar } from '../../ConstellationRenderer'
 import { MemoryModal } from '../../MemoryModal'
 import { RoseSky } from '../rose/RoseSky'
 import { GardenPath } from '../rose/GardenPath'
+import { LowHedge } from '../rose/LowHedge'
 import { Trellis } from '../rose/Trellis'
 import { ScatteredFlora } from '../rose/ScatteredFlora'
+import { GardenBench } from '../rose/GardenBench'
+import { ForegroundBushes } from '../rose/ForegroundBushes'
 import { RoseBlooms } from '../rose/RoseBlooms'
 import { PetalDrift } from '../rose/PetalDrift'
 import { RoseSVG } from '../rose/RoseSVG'
@@ -122,15 +125,18 @@ export function RoseGardenScene({
     >
       <RoseSky />
       <GardenPath />
+      <LowHedge />
       <Trellis />
       <ScatteredFlora />
+      <GardenBench />
+      <ForegroundBushes />
       <RoseBlooms
         memoryStars={memoryStars}
         onSelect={setSelectedStar}
         getMoodColor={getMoodColor}
       />
       <PetalDrift />
-      <AmbientDrift theme={theme} />
+      <AmbientDrift theme={theme} creatures={['bee', 'bird']} />
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -156,8 +162,8 @@ export function RoseGardenScene({
             fontStyle: 'italic',
           }}
         >
-          {memoryStars.length}{' '}
-          {memoryStars.length === 1 ? 'bloom in the garden' : 'blooms in the garden'}
+          {Math.min(memoryStars.length, 5)}{' '}
+          {Math.min(memoryStars.length, 5) === 1 ? 'bloom in the garden' : 'blooms in the garden'}
         </p>
       </motion.div>
 

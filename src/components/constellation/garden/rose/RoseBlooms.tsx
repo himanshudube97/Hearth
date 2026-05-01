@@ -12,24 +12,21 @@ interface RoseBloomsProps {
   getMoodColor: (mood: number) => string
 }
 
+// Five blooms clustered around the trellis: 3 along the arch + 2 flanking the posts.
 const DESKTOP_ANCHORS: { x: number; y: number }[] = [
   { x: 38, y: 32 },
   { x: 50, y: 26 },
   { x: 62, y: 32 },
-  { x: 18, y: 62 },
-  { x: 30, y: 70 },
-  { x: 70, y: 70 },
-  { x: 82, y: 62 },
+  { x: 30, y: 50 },
+  { x: 70, y: 50 },
 ]
 
 const MOBILE_ANCHORS: { x: number; y: number }[] = [
   { x: 32, y: 36 },
   { x: 50, y: 30 },
   { x: 68, y: 36 },
-  { x: 18, y: 70 },
-  { x: 38, y: 76 },
-  { x: 62, y: 76 },
-  { x: 82, y: 70 },
+  { x: 24, y: 54 },
+  { x: 76, y: 54 },
 ]
 
 function useIsMobile(): boolean {
