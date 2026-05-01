@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { MemoryStar } from '../../ConstellationRenderer'
 import { RoseSVG } from './RoseSVG'
 import { roseColorForId, roseSizeForId } from './roseHash'
@@ -12,27 +12,49 @@ interface RoseBloomsProps {
   getMoodColor: (mood: number) => string
 }
 
-// Anchor positions for up to 7 blooms, in viewport-percentage coords.
-// Index 0..2 → on the trellis arch; 3..6 → flanking bushes.
-const ANCHORS: { x: number; y: number }[] = [
-  { x: 38, y: 32 }, // arch left
-  { x: 50, y: 26 }, // arch top
-  { x: 62, y: 32 }, // arch right
-  { x: 18, y: 62 }, // bush far-left
-  { x: 30, y: 70 }, // bush mid-left
-  { x: 70, y: 70 }, // bush mid-right
-  { x: 82, y: 62 }, // bush far-right
+const DESKTOP_ANCHORS: { x: number; y: number }[] = [
+  { x: 38, y: 32 },
+  { x: 50, y: 26 },
+  { x: 62, y: 32 },
+  { x: 18, y: 62 },
+  { x: 30, y: 70 },
+  { x: 70, y: 70 },
+  { x: 82, y: 62 },
 ]
 
+const MOBILE_ANCHORS: { x: number; y: number }[] = [
+  { x: 32, y: 36 },
+  { x: 50, y: 30 },
+  { x: 68, y: 36 },
+  { x: 18, y: 70 },
+  { x: 38, y: 76 },
+  { x: 62, y: 76 },
+  { x: 82, y: 70 },
+]
+
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 600)
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+  return isMobile
+}
+
 export function RoseBlooms({ memoryStars, onSelect, getMoodColor }: RoseBloomsProps) {
+  const isMobile = useIsMobile()
+  const anchors = isMobile ? MOBILE_ANCHORS : DESKTOP_ANCHORS
+
   const placed = useMemo(() => {
-    return memoryStars.slice(0, ANCHORS.length).map((star, i) => ({
+    return memoryStars.slice(0, anchors.length).map((star, i) => ({
       star,
-      anchor: ANCHORS[i],
+      anchor: anchors[i],
       color: roseColorForId(star.id),
-      size: roseSizeForId(star.id),
+      size: roseSizeForId(star.id) * (isMobile ? 0.7 : 1),
     }))
-  }, [memoryStars])
+  }, [memoryStars, anchors, isMobile])
 
   return (
     <div className="absolute inset-0">
