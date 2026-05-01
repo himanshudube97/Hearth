@@ -33,11 +33,11 @@ interface ButterflyAnchor {
  * removed AmbientDrift butterflies (default, warm, magenta, rosy, lime).
  */
 const HOMES: ButterflyAnchor[] = [
-  { x: 18, y: 28, loopW: 14, loopH: 9,  size: 38, hueRotate: 0,   saturate: 0.9,  loopDuration: 22, flapDuration: 0.35 },
-  { x: 36, y: 38, loopW: 16, loopH: 10, size: 32, hueRotate: -55, saturate: 1.0,  loopDuration: 26, flapDuration: 0.40 },
-  { x: 52, y: 26, loopW: 13, loopH: 8,  size: 28, hueRotate: 200, saturate: 1.05, loopDuration: 19, flapDuration: 0.32 },
-  { x: 66, y: 44, loopW: 18, loopH: 11, size: 30, hueRotate: 280, saturate: 1.1,  loopDuration: 24, flapDuration: 0.42 },
-  { x: 80, y: 32, loopW: 12, loopH: 9,  size: 26, hueRotate: 95,  saturate: 1.0,  loopDuration: 28, flapDuration: 0.30 },
+  { x: 18, y: 28, loopW: 14, loopH: 9,  size: 50, hueRotate: 0,   saturate: 0.9,  loopDuration: 22, flapDuration: 0.35 },
+  { x: 36, y: 38, loopW: 16, loopH: 10, size: 44, hueRotate: -55, saturate: 1.0,  loopDuration: 26, flapDuration: 0.40 },
+  { x: 52, y: 26, loopW: 13, loopH: 8,  size: 40, hueRotate: 200, saturate: 1.05, loopDuration: 19, flapDuration: 0.32 },
+  { x: 66, y: 44, loopW: 18, loopH: 11, size: 42, hueRotate: 280, saturate: 1.1,  loopDuration: 24, flapDuration: 0.42 },
+  { x: 80, y: 32, loopW: 12, loopH: 9,  size: 38, hueRotate: 95,  saturate: 1.0,  loopDuration: 28, flapDuration: 0.30 },
 ]
 
 interface MeadowMemoryButterfliesProps {
