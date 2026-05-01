@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
+import { isEntryLocked, utcInstantForLocalDate, localDatePartsNow } from '@/lib/entry-lock'
+import { parseStyle } from '@/lib/entry-style'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string | null | undefined, maxLength = 150): string {
@@ -38,24 +41,26 @@ export async function GET(request: NextRequest) {
     const includeDoodles = searchParams.get('includeDoodles') !== 'false'
     const includePhotos = searchParams.get('includePhotos') !== 'false'
 
-    // Build date range filter
+    // Build date range filter. Compute boundaries in the user's tz, not the
+    // server's, so an entry written at midnight in the user's local time lands
+    // in the right month/day window even when the server runs in UTC.
+    const userTz = request.headers.get('x-user-tz') ?? 'UTC'
     let dateFilter: { gte?: Date; lt?: Date } | undefined
 
     if (today) {
-      const todayStart = new Date()
-      todayStart.setHours(0, 0, 0, 0)
-      const todayEnd = new Date()
-      todayEnd.setHours(23, 59, 59, 999)
+      const { year: ty, month0: tm, day: td } = localDatePartsNow(userTz)
+      const todayStart = utcInstantForLocalDate(ty, tm, td, userTz)
+      const todayEnd = utcInstantForLocalDate(ty, tm, td + 1, userTz)
       dateFilter = { gte: todayStart, lt: todayEnd }
     } else if (month) {
       const [y, m] = month.split('-').map(Number)
-      const monthStart = new Date(y, m - 1, 1)
-      const monthEnd = new Date(y, m, 1)
+      const monthStart = utcInstantForLocalDate(y, m - 1, 1, userTz)
+      const monthEnd = utcInstantForLocalDate(y, m, 1, userTz)
       dateFilter = { gte: monthStart, lt: monthEnd }
     } else if (year) {
       const y = parseInt(year)
-      const yearStart = new Date(y, 0, 1)
-      const yearEnd = new Date(y + 1, 0, 1)
+      const yearStart = utcInstantForLocalDate(y, 0, 1, userTz)
+      const yearEnd = utcInstantForLocalDate(y + 1, 0, 1, userTz)
       dateFilter = { gte: yearStart, lt: yearEnd }
     }
 
@@ -129,6 +134,7 @@ export async function GET(request: NextRequest) {
         isArchived: entry.isArchived,
         encryptionType: entry.encryptionType,
         e2eeIV: entry.e2eeIV,
+        style: parseStyle(entry.style),
       }
     })
 
@@ -170,7 +176,38 @@ export async function POST(request: NextRequest) {
       encryptionType, e2eeIV,
       // New fields
       photos, spreads,
+      // New: per-entry style
+      style,
     } = body
+
+    // Enforce one-normal-entry-per-day. Letters and other special types
+    // are not subject to this rule. We look at the user's recent normal
+    // entries and use isEntryLocked() to determine "created today in the
+    // user's timezone" (false = today). A 2-day window is more than enough
+    // to cover any TZ.
+    const effectiveType = entryType || 'normal'
+    if (effectiveType === 'normal') {
+      const userTz = request.headers.get('x-user-tz') ?? 'UTC'
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+      const recentNormal = await prisma.journalEntry.findMany({
+        where: {
+          userId: user.id,
+          entryType: 'normal',
+          isArchived: false,
+          createdAt: { gte: twoDaysAgo },
+        },
+        select: { id: true, createdAt: true },
+      })
+      const todayExists = recentNormal.some(
+        (e) => !isEntryLocked(e.createdAt, userTz, { entryType: 'normal' })
+      )
+      if (todayExists) {
+        return NextResponse.json(
+          { error: 'An entry already exists for today. Edit that one instead.' },
+          { status: 409 }
+        )
+      }
+    }
 
     // Check if this is an E2EE entry
     const isE2EE = encryptionType === 'e2ee'
@@ -196,6 +233,7 @@ export async function POST(request: NextRequest) {
         mood: mood ?? 2,
         song: song || null,
         tags: tags ?? [],
+        style: style !== undefined ? (parseStyle(style) as Prisma.InputJsonValue) : Prisma.JsonNull,
         userId: user.id,
         entryType: entryType || 'normal',
         unlockDate: unlockDate ? new Date(unlockDate) : null,
@@ -248,6 +286,7 @@ export async function POST(request: NextRequest) {
       e2eeIV: entry.e2eeIV,
       spreads: entry.spreads,
       photos: entry.photos,
+      style: parseStyle(entry.style),
     }, { status: 201 })
   } catch (error) {
     console.error('Error creating entry:', error)

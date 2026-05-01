@@ -1,0 +1,560 @@
+'use client'
+
+import { useMemo } from 'react'
+import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { Theme } from '@/lib/themes'
+import { JournalEntry } from '@/store/journal'
+import { MemoryModal } from './MemoryModal'
+
+export interface MemoryStar {
+  id: string
+  x: number
+  y: number
+  size: number
+  entry: JournalEntry
+  delay: number
+}
+
+export interface ConstellationRendererProps {
+  loading: boolean
+  entries: JournalEntry[]
+  memoryStars: MemoryStar[]
+  selectedStar: MemoryStar | null
+  setSelectedStar: (s: MemoryStar | null) => void
+  theme: Theme
+}
+
+function ShootingStars() {
+  const [shootingStars, setShootingStars] = useState<{ id: number; x: number; y: number; angle: number; length: number }[]>([])
+
+  useEffect(() => {
+    const createShootingStar = () => {
+      const star = {
+        id: Date.now(),
+        x: Math.random() * 80 + 10,
+        y: Math.random() * 40,
+        angle: 25 + Math.random() * 20,
+        length: 80 + Math.random() * 120,
+      }
+      setShootingStars(prev => [...prev, star])
+      setTimeout(() => setShootingStars(prev => prev.filter(s => s.id !== star.id)), 1500)
+    }
+
+    const interval = setInterval(() => {
+      if (Math.random() > 0.75) createShootingStar()
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <>
+      {shootingStars.map(star => (
+        <motion.div
+          key={star.id}
+          className="absolute pointer-events-none"
+          style={{
+            left: `${star.x}%`,
+            top: `${star.y}%`,
+            width: star.length,
+            height: 1,
+            background: `linear-gradient(90deg, rgba(255,255,255,0.8), transparent)`,
+            transform: `rotate(${star.angle}deg)`,
+            transformOrigin: 'left center',
+          }}
+          initial={{ scaleX: 0, opacity: 0 }}
+          animate={{ scaleX: 1, opacity: [0, 0.6, 0], x: star.length }}
+          transition={{ duration: 1, ease: 'easeOut' }}
+        />
+      ))}
+    </>
+  )
+}
+
+// Generate cosmos background stars - different layers for depth
+function CosmosBackground({ theme }: { theme: Theme }) {
+  const layers = useMemo(() => {
+    // Layer 1: Distant tiny stars (slowest drift)
+    const distant = Array.from({ length: 200 }, (_, i) => ({
+      x: (i * 47 + 13) % 100,
+      y: (i * 31 + 7) % 100,
+      size: 1,
+      opacity: 0.2 + ((i * 17) % 30) / 100,
+      twinkle: i % 5 === 0,
+    }))
+
+    // Layer 2: Medium distance stars
+    const medium = Array.from({ length: 50 }, (_, i) => ({
+      x: (i * 73 + 29) % 100,
+      y: (i * 59 + 41) % 100,
+      size: 1.5,
+      opacity: 0.3 + ((i * 23) % 25) / 100,
+      twinkle: i % 3 === 0,
+    }))
+
+    // Layer 3: Slightly closer stars (fastest drift)
+    const closer = Array.from({ length: 20 }, (_, i) => ({
+      x: (i * 89 + 17) % 100,
+      y: (i * 67 + 23) % 100,
+      size: 2,
+      opacity: 0.4 + ((i * 19) % 20) / 100,
+      twinkle: true,
+    }))
+
+    return { distant, medium, closer }
+  }, [])
+
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {/* Distant stars - slowest drift */}
+      <motion.div
+        className="absolute inset-0"
+        animate={{
+          x: [0, 15, 0, -15, 0],
+          y: [0, -10, 0, 10, 0],
+        }}
+        transition={{
+          duration: 120,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+      >
+        {layers.distant.map((star, i) => (
+          <motion.div
+            key={`d-${i}`}
+            className="absolute rounded-full"
+            style={{
+              left: `${star.x}%`,
+              top: `${star.y}%`,
+              width: star.size,
+              height: star.size,
+              background: 'rgba(255, 255, 255, 1)',
+              opacity: star.opacity,
+            }}
+            animate={star.twinkle ? {
+              opacity: [star.opacity, star.opacity * 1.5, star.opacity],
+            } : undefined}
+            transition={star.twinkle ? {
+              duration: 3 + (i % 3),
+              repeat: Infinity,
+              ease: 'easeInOut',
+            } : undefined}
+          />
+        ))}
+      </motion.div>
+
+      {/* Medium stars - medium drift */}
+      <motion.div
+        className="absolute inset-0"
+        animate={{
+          x: [0, -20, 0, 20, 0],
+          y: [0, 15, 0, -15, 0],
+        }}
+        transition={{
+          duration: 90,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+      >
+        {layers.medium.map((star, i) => (
+          <motion.div
+            key={`m-${i}`}
+            className="absolute rounded-full"
+            style={{
+              left: `${star.x}%`,
+              top: `${star.y}%`,
+              width: star.size,
+              height: star.size,
+              background: 'rgba(255, 255, 255, 1)',
+              opacity: star.opacity,
+            }}
+            animate={star.twinkle ? {
+              opacity: [star.opacity, star.opacity * 1.5, star.opacity],
+            } : undefined}
+            transition={star.twinkle ? {
+              duration: 2.5 + (i % 3),
+              repeat: Infinity,
+              ease: 'easeInOut',
+            } : undefined}
+          />
+        ))}
+      </motion.div>
+
+      {/* Closer stars - slightly faster drift */}
+      <motion.div
+        className="absolute inset-0"
+        animate={{
+          x: [0, 25, 0, -25, 0],
+          y: [0, -20, 0, 20, 0],
+        }}
+        transition={{
+          duration: 70,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+      >
+        {layers.closer.map((star, i) => (
+          <motion.div
+            key={`c-${i}`}
+            className="absolute rounded-full"
+            style={{
+              left: `${star.x}%`,
+              top: `${star.y}%`,
+              width: star.size,
+              height: star.size,
+              background: 'rgba(255, 255, 255, 1)',
+              opacity: star.opacity,
+            }}
+            animate={{
+              opacity: [star.opacity, star.opacity * 1.5, star.opacity],
+            }}
+            transition={{
+              duration: 2 + (i % 3),
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+        ))}
+      </motion.div>
+
+      {/* Subtle nebula glow - also drifts slowly */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        animate={{
+          x: [0, 30, 0, -30, 0],
+          y: [0, -20, 0, 20, 0],
+        }}
+        transition={{
+          duration: 150,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+      >
+        <div
+          className="absolute rounded-full blur-3xl"
+          style={{
+            left: '10%',
+            top: '20%',
+            width: '30%',
+            height: '30%',
+            background: `radial-gradient(circle, ${theme.moods[4]}08 0%, transparent 70%)`,
+          }}
+        />
+        <div
+          className="absolute rounded-full blur-3xl"
+          style={{
+            right: '15%',
+            bottom: '30%',
+            width: '25%',
+            height: '25%',
+            background: `radial-gradient(circle, ${theme.moods[2]}06 0%, transparent 70%)`,
+          }}
+        />
+      </motion.div>
+    </div>
+  )
+}
+
+function MemoryStarSVG({
+  star,
+  color,
+  onClick,
+}: {
+  star: MemoryStar
+  color: string
+  onClick: () => void
+}) {
+  // SVG viewBox is -50..50; size scales the rendered pixels.
+  const px = Math.round(star.size * 22)
+  const uid = star.id
+
+  return (
+    <motion.div
+      className="absolute cursor-pointer"
+      style={{
+        left: `${star.x}%`,
+        top: `${star.y}%`,
+        width: px,
+        height: px,
+        transform: 'translate(-50%, -50%)',
+      }}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ delay: 0.5 + star.delay, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+      onClick={onClick}
+      whileHover={{ scale: 1.3 }}
+    >
+      {/* Slow breathing pulse */}
+      <motion.div
+        className="absolute inset-0"
+        animate={{ scale: [1, 1.06, 1], opacity: [0.92, 1, 0.92] }}
+        transition={{
+          duration: 3.2 + star.delay * 0.4,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      >
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="-50 -50 100 100"
+          style={{ overflow: 'visible', display: 'block' }}
+        >
+          <defs>
+            {/* Soft outer halo */}
+            <radialGradient id={`halo-${uid}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor={color} stopOpacity="0.55" />
+              <stop offset="25%" stopColor={color} stopOpacity="0.18" />
+              <stop offset="60%" stopColor={color} stopOpacity="0.04" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </radialGradient>
+
+            {/* Inner bright bloom (white→color) */}
+            <radialGradient id={`bloom-${uid}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+              <stop offset="20%" stopColor="#ffffff" stopOpacity="0.85" />
+              <stop offset="55%" stopColor={color} stopOpacity="0.45" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </radialGradient>
+
+            {/* Diffraction spike — fades at both tips */}
+            <linearGradient id={`spikeH-${uid}`} x1="0%" y1="50%" x2="100%" y2="50%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="40%" stopColor={color} stopOpacity="0.6" />
+              <stop offset="50%" stopColor="#ffffff" stopOpacity="1" />
+              <stop offset="60%" stopColor={color} stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id={`spikeV-${uid}`} x1="50%" y1="0%" x2="50%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="40%" stopColor={color} stopOpacity="0.6" />
+              <stop offset="50%" stopColor="#ffffff" stopOpacity="1" />
+              <stop offset="60%" stopColor={color} stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {/* Outer halo */}
+          <circle cx="0" cy="0" r="50" fill={`url(#halo-${uid})`} />
+
+          {/* Diffraction spikes (4-point) — render below bloom so they tuck under it */}
+          <motion.g
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{
+              duration: 2.6 + star.delay * 0.3,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          >
+            <rect x="-46" y="-0.4" width="92" height="0.8" fill={`url(#spikeH-${uid})`} />
+            <rect x="-0.4" y="-46" width="0.8" height="92" fill={`url(#spikeV-${uid})`} />
+          </motion.g>
+
+          {/* Inner bloom */}
+          <circle cx="0" cy="0" r="14" fill={`url(#bloom-${uid})`} />
+
+          {/* Hot pinpoint core */}
+          <motion.circle
+            cx="0"
+            cy="0"
+            r="2.2"
+            fill="#ffffff"
+            animate={{ r: [2.2, 2.6, 2.2] }}
+            transition={{
+              duration: 2 + star.delay * 0.4,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+        </svg>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+export function ConstellationRenderer({
+  loading,
+  entries,
+  memoryStars,
+  selectedStar,
+  setSelectedStar,
+  theme,
+}: ConstellationRendererProps) {
+  const getMoodColor = (mood: number) => {
+    const colors = [
+      theme.moods[0],
+      theme.moods[1],
+      theme.moods[2],
+      theme.moods[3],
+      theme.moods[4],
+    ]
+    return colors[mood] || theme.accent.primary
+  }
+
+  if (loading) {
+    return (
+      <motion.div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{ background: theme.bg.primary }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="text-center"
+        >
+          <motion.div
+            className="text-2xl mb-2"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            style={{ color: theme.text.muted }}
+          >
+            ✦
+          </motion.div>
+          <p style={{ color: theme.text.muted }}>gazing into the cosmos...</p>
+        </motion.div>
+      </motion.div>
+    )
+  }
+
+  if (entries.length === 0) {
+    return (
+      <motion.div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{ background: theme.bg.primary }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <CosmosBackground theme={theme} />
+        <motion.div
+          className="text-center relative z-10"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className="text-3xl mb-4 opacity-50">✦</div>
+          <p style={{ color: theme.text.muted }}>
+            your sky is waiting for its first star
+          </p>
+          <p className="text-sm mt-2" style={{ color: theme.text.muted }}>
+            write something to begin
+          </p>
+        </motion.div>
+      </motion.div>
+    )
+  }
+
+  return (
+    <motion.div
+      className="fixed inset-0 overflow-hidden"
+      style={{ background: theme.bg.primary }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {/* Deep space background */}
+      <motion.div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse at 30% 20%, ${theme.bg.secondary} 0%, ${theme.bg.primary} 50%, #000 100%)`,
+        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
+      />
+
+      {/* Cosmos stars */}
+      <CosmosBackground theme={theme} />
+
+      {/* Shooting stars */}
+      <ShootingStars />
+
+      {/* Your memory stars */}
+      <div className="absolute inset-0">
+        {memoryStars.map((star) => (
+          <MemoryStarSVG
+            key={star.id}
+            star={star}
+            color={getMoodColor(star.entry.mood)}
+            onClick={() => setSelectedStar(star)}
+          />
+        ))}
+      </div>
+
+      {/* Title - more subtle */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute top-20 left-1/2 -translate-x-1/2 text-center pointer-events-none"
+      >
+        <div className="flex items-center justify-center gap-3 md:gap-5 px-4">
+          <motion.span
+            style={{
+              color: theme.accent.warm,
+              filter: `drop-shadow(0 0 14px ${theme.accent.warm})`,
+              fontSize: 'clamp(1rem, 2.4vw, 1.5rem)',
+              display: 'inline-block',
+            }}
+            animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.2, 1], rotate: [0, 12, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            ✦
+          </motion.span>
+          <p
+            style={{
+              color: theme.text.primary,
+              fontFamily: 'var(--font-serif)',
+              fontStyle: 'italic',
+              letterSpacing: '0.015em',
+              fontSize: 'clamp(1.125rem, 3vw, 1.875rem)',
+              textShadow: `0 2px 18px ${theme.accent.warm}55`,
+              lineHeight: 1.2,
+            }}
+          >
+            press a star to reveal its memory
+          </p>
+          <motion.span
+            style={{
+              color: theme.accent.warm,
+              filter: `drop-shadow(0 0 14px ${theme.accent.warm})`,
+              fontSize: 'clamp(1rem, 2.4vw, 1.5rem)',
+              display: 'inline-block',
+            }}
+            animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.2, 1], rotate: [0, -12, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          >
+            ✦
+          </motion.span>
+        </div>
+        <p className="text-sm mt-3" style={{ color: `${theme.text.muted}80`, fontStyle: 'italic' }}>
+          {memoryStars.length} {memoryStars.length === 1 ? 'memory' : 'memories'} surfaced tonight
+        </p>
+      </motion.div>
+
+      {/* Refresh hint */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2.5, duration: 1, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs pointer-events-none"
+        style={{ color: `${theme.text.muted}60` }}
+      >
+        refresh to discover different memories
+      </motion.p>
+
+      {/* Selected memory panel */}
+      <MemoryModal
+        selectedStar={selectedStar}
+        setSelectedStar={setSelectedStar}
+        theme={theme}
+        getMoodColor={getMoodColor}
+      />
+    </motion.div>
+  )
+}

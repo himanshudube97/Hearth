@@ -8,13 +8,17 @@
 html {
   /* Prevent layout shift - use overlay scrollbar */
   overflow-y: scroll;
+  /* Block the browser's two-finger horizontal swipe-back/forward gesture
+     so trackpad swipes only flip diary pages, never navigate history. */
+  overscroll-behavior-x: none;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Georgia, Palatino, serif;
+  font-family: var(--font-serif), 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
   overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 /* Auto-hiding scrollbar - hidden by default, shows on scroll */
@@ -98,38 +102,192 @@ textarea,
    tint comes from a CSS variable inherited from the book container, so
    per-theme color still applies without using inline style. */
 .diary-page {
-  /* The percentage on color-mix() is the page's true opacity:
-       100%  → fully opaque
-       0%    → fully transparent
-     A backdrop-filter blur gives the glass look behind the see-through
-     fraction. The mid-flip rule below still stacks an opaque base so the
-     curl reads as solid paper while turning. */
-  background-color: color-mix(in srgb, var(--page-bg-solid, rgb(20, 25, 22)) var(--diary-page-opacity, 95%), transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  background-color: var(--page-bg-solid, rgb(20, 25, 22));
 }
 
 /* Mid-flip opacity. The library marks resting pages with .--simple and
-   removes that class during the curl. Stack an opaque dark base under the
-   theme tint so each page face reads as solid paper while flipping (no
-   source content bleeding through the curling page or visible behind a
-   translucent destination). */
+   removes that class during the curl. Use the theme's own solid paper
+   color as the opaque base so each page reads as paper while flipping —
+   no dark bleed-through on light themes. */
 .stf__item:not(.--simple).diary-page {
-  background-color: rgba(20, 25, 22, 1);
+  background-color: var(--page-bg-solid, rgb(20, 25, 22));
   background-image: linear-gradient(var(--page-bg), var(--page-bg));
 }
 
 .diary-page--left {
   border-radius: 6px 0 0 6px;
-  box-shadow:
-    inset -4px 0 12px rgba(255, 255, 255, 0.06),
-    -10px 12px 40px rgba(0, 0, 0, 0.55);
+  box-shadow: -10px 12px 40px rgba(0, 0, 0, 0.55);
 }
 
 .diary-page--right {
   border-radius: 0 6px 6px 0;
-  box-shadow:
-    inset 4px 0 12px rgba(255, 255, 255, 0.06),
-    10px 12px 40px rgba(0, 0, 0, 0.55);
+  box-shadow: 10px 12px 40px rgba(0, 0, 0, 0.55);
 }
+
+/* react-pageflip's flip-time shadow overlays are flat black gradients.
+   On a colored page they read as silver/plastic instead of "shadow." Blending
+   them via multiply makes them darken the underlying color naturally — same
+   visual function as a real paper-curl shadow on a colored sheet. */
+.stf__outerShadow,
+.stf__innerShadow {
+  mix-blend-mode: multiply;
+}
+
+/* Hardcover frame that sits behind the open spread. Negative inset extends
+   the cover past the page edges so the pages read as set inside the book.
+   Theme-tinted via --book-cover-bg / --book-cover-border (set per-theme on
+   the wrapping element). Texture is a CSS cross-hatch (no images). */
+.book-cover {
+  position: absolute;
+  inset: -28px -48px;
+  border-radius: 10px;
+  background-color: var(--book-cover-bg, #c9b186);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 5px);
+  box-shadow:
+    0 30px 60px -18px rgba(0, 0, 0, 0.45),
+    0 12px 24px -10px rgba(0, 0, 0, 0.25),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Thin inset decorative border to mimic the gilded line on a hardback diary. */
+.book-cover::before {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border: 1px solid var(--book-cover-border, rgba(0, 0, 0, 0.25));
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* ---------- Scrapbook sticker idle animations ----------
+   Subtle motion to keep the page feeling alive. Each rule sets
+   transform-box: fill-box + transform-origin: center so the SVG
+   spins/scales around its visual middle, not the top-left. */
+.sb-anim {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+@keyframes sb-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+.sb-anim-pulse { animation: sb-pulse 2.4s ease-in-out infinite; }
+
+@keyframes sb-beat {
+  0%, 100% { transform: scale(1); }
+  20%      { transform: scale(1.08); }
+  40%      { transform: scale(1); }
+}
+.sb-anim-beat { animation: sb-beat 1.8s ease-in-out infinite; }
+
+@keyframes sb-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.sb-anim-spin { animation: sb-spin 28s linear infinite; }
+
+@keyframes sb-twinkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.92); }
+}
+.sb-anim-twinkle { animation: sb-twinkle 1.6s ease-in-out infinite; }
+
+@keyframes sb-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50%      { transform: rotate(4deg); }
+}
+.sb-anim-sway { animation: sb-sway 4.2s ease-in-out infinite; }
+
+@keyframes sb-drift {
+  0%, 100% { transform: translateX(-2px); }
+  50%      { transform: translateX(2px); }
+}
+.sb-anim-drift { animation: sb-drift 6s ease-in-out infinite; }
+
+@keyframes sb-bob {
+  0%, 100% { transform: translateY(-1.5px); }
+  50%      { transform: translateY(2px); }
+}
+.sb-anim-bob { animation: sb-bob 2.8s ease-in-out infinite; }
+
+@keyframes sb-flap {
+  0%, 100% { transform: scaleX(1); }
+  50%      { transform: scaleX(0.78); }
+}
+.sb-anim-flap { animation: sb-flap 0.85s ease-in-out infinite; }
+
+@keyframes sb-wobble {
+  0%, 100% { transform: rotate(0); }
+  25%      { transform: rotate(-3deg); }
+  75%      { transform: rotate(3deg); }
+}
+.sb-anim-wobble { animation: sb-wobble 5s ease-in-out infinite; }
+
+/* CD player vinyl spin — fast enough to read as a record but not jarring */
+@keyframes sb-vinyl-spin {
+  from { transform: rotate(0); }
+  to   { transform: rotate(360deg); }
+}
+.sb-vinyl-spin { animation: sb-vinyl-spin 3s linear infinite; }
+
+/* Vinyl shimmer — a conic gradient highlight that sweeps slower than the
+   disc itself, creating a "light reflection" feel */
+@keyframes sb-shimmer-spin {
+  from { transform: rotate(0); }
+  to   { transform: rotate(360deg); }
+}
+.sb-shimmer-spin { animation: sb-shimmer-spin 6s linear infinite; }
+
+/* Pulsing aura behind the vinyl when playing */
+@keyframes sb-glow-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50%      { opacity: 0.9;  transform: scale(1.12); }
+}
+.sb-glow-pulse { animation: sb-glow-pulse 2.2s ease-in-out infinite; }
+
+/* Equalizer bars — staggered animation per bar via inline animation-delay */
+@keyframes sb-eq-bar {
+  0%, 100% { transform: scaleY(0.3); }
+  20%      { transform: scaleY(0.95); }
+  40%      { transform: scaleY(0.55); }
+  60%      { transform: scaleY(0.85); }
+  80%      { transform: scaleY(0.4); }
+}
+.sb-eq-bar {
+  transform-origin: bottom center;
+  animation: sb-eq-bar 0.85s ease-in-out infinite;
+}
+
+/* Floating music notes that drift up and fade — looped, staggered via delay */
+@keyframes sb-note-float {
+  0%   { transform: translateY(4px) translateX(0) scale(0.7); opacity: 0; }
+  15%  { opacity: 1; transform: translateY(-2px) translateX(0) scale(1); }
+  70%  { opacity: 0.7; }
+  100% { transform: translateY(-32px) translateX(8px) scale(0.85); opacity: 0; }
+}
+.sb-note-float { animation: sb-note-float 3.2s ease-out infinite; }
+
+/* Butterfly wing flap — each wing pinches toward the body. */
+@keyframes sb-wing {
+  0%, 100% { transform: scaleX(1); }
+  50%      { transform: scaleX(0.55); }
+}
+.sb-wing-left {
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: sb-wing 0.7s ease-in-out infinite;
+}
+.sb-wing-right {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: sb-wing 0.7s ease-in-out infinite;
+}
+
+

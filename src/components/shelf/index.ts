@@ -1,0 +1,10 @@
+// src/components/shelf/index.ts
+export { default as ShelfScene } from './ShelfScene'
+export { default as ShelfHeader } from './ShelfHeader'
+export { default as YearTabs } from './YearTabs'
+export { default as Shelf } from './Shelf'
+export { default as WaxSealTag } from './WaxSealTag'
+export { default as BookSpine } from './BookSpine'
+export { default as EmptyMonthSpine } from './EmptyMonthSpine'
+export { default as PulledOutBook } from './PulledOutBook'
+export { default as ShelfBookSpread } from './ShelfBookSpread'

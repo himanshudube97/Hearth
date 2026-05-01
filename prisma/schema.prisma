@@ -17,6 +17,7 @@ model User {
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
   entries   JournalEntry[]
+  scrapbooks Scrapbook[]
 
   // Lemon Squeezy subscription fields
   lemonSqueezyCustomerId String?   @unique
@@ -51,6 +52,9 @@ model JournalEntry {
   isSealed    Boolean   @default(false)
   expiresAt   DateTime?
   tags        String[]  @default([])
+  // Per-entry display style (font / ink color / effect). Plain JSON, non-sensitive.
+  // null = all defaults (Caveat / theme text / no effect).
+  style       Json?
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -133,4 +137,17 @@ model Whisper {
   category String @default("generic") // generic, mood-specific, pattern-based
 
   @@map("whispers")
+}
+
+model Scrapbook {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?  // encrypted (AES-256-GCM, ciphertext format from src/lib/encryption.ts)
+  items     String   @db.Text // encrypted JSON blob (ScrapbookItem[])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("scrapbooks")
 }

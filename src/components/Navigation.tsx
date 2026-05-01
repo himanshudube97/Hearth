@@ -10,10 +10,10 @@ import { useProfileStore } from '@/store/profile'
 
 const tabs = [
   { href: '/write', label: 'Write', icon: '✎' },
+  { href: '/scrapbook', label: 'Scrapbook', icon: '✦' },
   { href: '/letters', label: 'Letters', icon: '✉' },
-  { href: '/timeline', label: 'Timeline', icon: '☰' },
-  { href: '/calendar', label: 'Calendar', icon: '▣' },
-  { href: '/constellation', label: 'Stars', icon: '✦' },
+  { href: '/shelf', label: 'Shelf', icon: '❒' },
+  { href: '/memory', label: 'Memory', icon: '★' },
 ]
 
 export default function Navigation() {

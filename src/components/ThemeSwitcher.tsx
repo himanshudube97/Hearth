@@ -6,25 +6,24 @@ import { useThemeStore } from '@/store/theme'
 import { themes, ThemeName } from '@/lib/themes'
 
 const themeIcons: Record<ThemeName, string> = {
-  winterSunset: '🌅',
   rivendell: '🌲',
-  hobbiton: '🏡',
-  cherryBlossom: '🌸',
-  northernLights: '🌌',
-  mistyMountains: '⛰️',
-  gentleRain: '🌧️',
-  cosmos: '✨',
-  candlelight: '🕯️',
-  oceanTwilight: '🌊',
-  quietSnow: '❄️',
-  warmPeaceful: '☀️',
+  hearth: '🔥',
+  rose: '🌸',
+  sage: '🌿',
+  ocean: '🌊',
+  postal: '✉️',
+  linen: '🕊️',
 }
 
 export default function ThemeSwitcher() {
   const [isOpen, setIsOpen] = useState(false)
   const { theme, themeName, setTheme } = useThemeStore()
 
-  const themeList = Object.entries(themes) as [ThemeName, typeof theme][]
+  // Themes hidden from the picker (still registered, just not offered).
+  // Hearth and Linen are temporarily hidden until their Memory views are polished.
+  const HIDDEN_THEMES: ThemeName[] = ['hearth', 'linen']
+  const themeList = (Object.entries(themes) as [ThemeName, typeof theme][])
+    .filter(([name]) => !HIDDEN_THEMES.includes(name))
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
@@ -89,10 +88,20 @@ export default function ThemeSwitcher() {
                 >
                   {themeIcons[name]}
                 </span>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
-                    {t.name}
-                  </p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
+                      {t.name}
+                    </p>
+                    <span
+                      className="text-xs opacity-60"
+                      style={{ color: theme.text.muted }}
+                      title={t.mode === 'light' ? 'Light theme' : 'Dark theme'}
+                      aria-label={t.mode === 'light' ? 'Light theme' : 'Dark theme'}
+                    >
+                      {t.mode === 'light' ? '☀' : '☾'}
+                    </span>
+                  </div>
                   <p className="text-xs" style={{ color: theme.text.muted }}>
                     {t.description}
                   </p>

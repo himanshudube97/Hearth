@@ -1,6 +1,6 @@
 'use client'
 
-import React, { memo, useState, useEffect, useCallback, useRef } from 'react'
+import React, { memo, useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react'
 import { motion } from 'framer-motion'
 import { getStroke } from 'perfect-freehand'
 import { useThemeStore } from '@/store/theme'
@@ -9,8 +9,13 @@ import { useJournalStore, StrokeData } from '@/store/journal'
 import { useDeskStore } from '@/store/desk'
 import { getRandomPrompt } from '@/lib/themes'
 import { JOURNAL } from '@/lib/journal-constants'
-import { htmlToPlainText, splitTextForSpread } from '@/lib/text-utils'
-import type { AutosaveStatus } from '@/hooks/useAutosaveEntry'
+import { htmlToSplitPlainText } from '@/lib/text-utils'
+import {
+  isCaretOnFirstVisualRow,
+  getCaretLeftOffset,
+  findPositionOnFirstRow,
+} from '@/lib/textarea-caret'
+import { resolveFontFamily, resolveFontSize, parseStyle, type EntryStyle } from '@/lib/entry-style'
 import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
 
@@ -47,6 +52,7 @@ interface Entry {
   photos?: Photo[]
   doodles?: Array<{ strokes: StrokeData[] }>
   createdAt: string
+  style?: EntryStyle | null
 }
 
 interface RightPageProps {
@@ -54,9 +60,15 @@ interface RightPageProps {
   isNewEntry: boolean
   photos?: Photo[]
   onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
-  autosaveStatus?: AutosaveStatus
-  focusTrigger?: number
-  onNavigateLeft?: () => void
+  onNavigateLeft?: (targetLeft?: number) => void
+  onBackspaceAcrossSpine?: () => void
+}
+
+export interface RightPageHandle {
+  focusAtEnd: () => void
+  focusAtStart: () => void
+  focusAtFirstRow: (targetLeft: number) => void
+  focusAtAfterPrepend: (prependLength: number) => void
 }
 
 // Doodle Preview for existing entries
@@ -113,15 +125,14 @@ const DoodlePreview = memo(function DoodlePreview({
   )
 })
 
-const RightPage = memo(function RightPage({
+const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function RightPage({
   entry,
   isNewEntry,
   photos = [],
   onPhotoAdd,
-  autosaveStatus = 'idle',
-  focusTrigger = 0,
   onNavigateLeft,
-}: RightPageProps) {
+  onBackspaceAcrossSpine,
+}: RightPageProps, ref) {
   const { theme } = useThemeStore()
   const colors = getGlassDiaryColors(theme)
   const { currentDoodleStrokes, setDoodleStrokes } = useJournalStore()
@@ -132,11 +143,22 @@ const RightPage = memo(function RightPage({
   const text = useDeskStore((s) => s.rightPageDraft)
   const leftPageText = useDeskStore((s) => s.leftPageDraft)
   const setRightPageDraft = useDeskStore((s) => s.setRightPageDraft)
+  // Subscribed here directly (not via prop from BookSpread) so save
+  // transitions don't re-render the flipbook and steal textarea focus.
+  const autosaveStatus = useDeskStore((s) => s.autosaveStatus)
   const setText = setRightPageDraft
 
   const accentColor = theme.accent.warm
   const textColor = colors.bodyText
   const mutedColor = theme.text.muted
+
+  const entryStyleDraft = useDeskStore((s) => s.entryStyleDraft)
+  const activeStyle: EntryStyle = isNewEntry
+    ? entryStyleDraft
+    : parseStyle(entry?.style ?? null)
+  const fontFamily = resolveFontFamily(activeStyle.font)
+  const fontSize = resolveFontSize(activeStyle.font, 20)
+
   const linePattern = `repeating-linear-gradient(
     180deg,
     transparent 0px,
@@ -149,26 +171,69 @@ const RightPage = memo(function RightPage({
     setPrompt(getRandomPrompt())
   }, [])
 
-  // Focus textarea when text overflows from left page
-  useEffect(() => {
-    if (focusTrigger > 0 && textareaRef.current) {
-      const textarea = textareaRef.current
-      textarea.focus()
-      const len = textarea.value.length
-      textarea.setSelectionRange(len, len)
-    }
-  }, [focusTrigger])
+  // Imperative focus API. Lives on the page component itself so the parent
+  // (BookSpread) doesn't have to hold focus state — any setState in BookSpread
+  // would re-render the flipbook, whose updateFromHtml destroys/recreates page
+  // DOM and kills focus.
+  useImperativeHandle(ref, () => ({
+    focusAtEnd: () => {
+      const t = textareaRef.current
+      if (!t) return
+      t.focus()
+      const len = t.value.length
+      t.setSelectionRange(len, len)
+    },
+    focusAtStart: () => {
+      const t = textareaRef.current
+      if (!t) return
+      t.focus()
+      t.setSelectionRange(0, 0)
+    },
+    focusAtFirstRow: (targetLeft: number) => {
+      const t = textareaRef.current
+      if (!t) return
+      t.focus()
+      const pos = findPositionOnFirstRow(t, targetLeft)
+      t.setSelectionRange(pos, pos)
+    },
+    focusAtAfterPrepend: (prependLength: number) => {
+      const t = textareaRef.current
+      if (!t) return
+      t.focus()
+      const pos = Math.min(prependLength, t.value.length)
+      t.setSelectionRange(pos, pos)
+    },
+  }))
 
-  // Arrow key navigation: only ArrowLeft at position 0 → left page
+  // Cross-spine navigation: when the caret is at the leading edge of the right
+  // textarea, arrow keys and backspace operate on the left page instead.
+  // - ArrowLeft / Backspace at position 0
+  // - ArrowUp on the visual first row (preserves visual column)
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget
+    const atStart =
+      textarea.selectionStart === 0 && textarea.selectionEnd === 0
     if (e.key === 'ArrowLeft') {
-      const textarea = e.currentTarget
-      if (textarea.selectionStart === 0 && textarea.selectionEnd === 0) {
+      if (atStart) {
         e.preventDefault()
         onNavigateLeft?.()
       }
+      return
     }
-  }, [onNavigateLeft])
+    if (e.key === 'Backspace') {
+      if (atStart) {
+        e.preventDefault()
+        onBackspaceAcrossSpine?.()
+      }
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      if (isCaretOnFirstVisualRow(textarea)) {
+        e.preventDefault()
+        onNavigateLeft?.(getCaretLeftOffset(textarea))
+      }
+    }
+  }, [onNavigateLeft, onBackspaceAcrossSpine])
 
   // Load doodle draft from localStorage
   useEffect(() => {
@@ -202,7 +267,7 @@ const RightPage = memo(function RightPage({
 
   const refreshPrompt = useCallback(() => {
     setPrompt(getRandomPrompt())
-  }, [])
+  }, [setPrompt])
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value
@@ -242,7 +307,7 @@ const RightPage = memo(function RightPage({
         <div className="mb-3 flex-shrink-0">
           <div
             className="text-[10px] uppercase tracking-[0.15em] mb-2 font-medium"
-            style={{ color: mutedColor }}
+            style={{ color: colors.sectionLabel }}
           >
             Add Photos
           </div>
@@ -258,7 +323,7 @@ const RightPage = memo(function RightPage({
           <div className="flex items-start gap-2 mb-1 flex-shrink-0">
             <div
               className="text-xs italic flex-1 leading-relaxed"
-              style={{ color: mutedColor }}
+              style={{ color: colors.prompt }}
             >
               {prompt}
             </div>
@@ -271,32 +336,34 @@ const RightPage = memo(function RightPage({
               ↻
             </button>
           </div>
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Begin writing..."
-            className="flex-1 min-h-0 w-full resize-none outline-none"
-            style={{
-              color: textColor,
-              fontFamily: 'var(--font-caveat), Georgia, serif',
-              fontSize: '20px',
-              lineHeight: `${LINE_HEIGHT}px`,
-              caretColor: accentColor,
-              backgroundColor: 'transparent',
-              backgroundImage: linePattern,
-              backgroundAttachment: 'local',
-              overflow: 'hidden',
-            }}
-          />
+          <div className="flex-1 min-h-0 relative">
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Begin writing..."
+              className="absolute inset-0 w-full h-full resize-none outline-none"
+              style={{
+                color: textColor,
+                fontFamily,
+                fontSize,
+                lineHeight: `${LINE_HEIGHT}px`,
+                caretColor: accentColor,
+                backgroundColor: 'transparent',
+                backgroundImage: linePattern,
+                backgroundAttachment: 'local',
+                overflow: 'hidden',
+              }}
+            />
+          </div>
         </div>
 
         {/* Doodle Area */}
         <div className="mt-2 flex-shrink-0" style={{ height: '140px' }}>
           <div
             className="text-[10px] uppercase tracking-[0.15em] mb-1 font-medium"
-            style={{ color: mutedColor }}
+            style={{ color: colors.sectionLabel }}
           >
             Draw
           </div>
@@ -328,10 +395,9 @@ const RightPage = memo(function RightPage({
     )
   }
 
-  // Viewing existing entry - dynamic split at render time
-  const fullText = entry?.text || ''
-  const fullPlainText = htmlToPlainText(fullText)
-  const [, rightPlainText] = splitTextForSpread(fullPlainText)
+  // Viewing existing entry — uses the persisted page-break marker when
+  // present so the boundary matches what the user saw while typing.
+  const [, rightPlainText] = htmlToSplitPlainText(entry?.text || '')
   const plainText = rightPlainText
 
   const entryPhotos = entry?.photos || []
@@ -370,7 +436,7 @@ const RightPage = memo(function RightPage({
       <div className="flex-1 min-h-0 flex flex-col">
         <div
           className="text-xs italic mb-1 flex-shrink-0 leading-relaxed"
-          style={{ color: mutedColor }}
+          style={{ color: colors.prompt }}
         >
           {prompt}
         </div>
@@ -378,8 +444,8 @@ const RightPage = memo(function RightPage({
           className="flex-1 min-h-0 w-full whitespace-pre-wrap overflow-hidden"
           style={{
             color: plainText ? textColor : mutedColor,
-            fontFamily: 'var(--font-caveat), Georgia, serif',
-            fontSize: '20px',
+            fontFamily,
+            fontSize,
             lineHeight: `${LINE_HEIGHT}px`,
             fontStyle: plainText ? 'normal' : 'italic',
             backgroundColor: 'transparent',
@@ -414,7 +480,7 @@ const RightPage = memo(function RightPage({
                 border: `1px solid ${colors.doodleBorder}`,
               }}
             >
-              <span className="text-[10px]" style={{ color: mutedColor, opacity: 0.5 }}>Draw here</span>
+              <span className="text-[10px]" style={{ color: colors.sectionLabel }}>Draw here</span>
             </div>
           )}
         </div>
@@ -436,6 +502,8 @@ const RightPage = memo(function RightPage({
       </div>
     </motion.div>
   )
-})
+}))
+
+RightPage.displayName = 'RightPage'
 
 export default RightPage

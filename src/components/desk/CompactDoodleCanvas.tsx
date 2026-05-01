@@ -50,12 +50,24 @@ const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
   const [currentPoints, setCurrentPoints] = useState<Point[]>([])
   const [activeBrush, setActiveBrush] = useState(1)
   const [selectedColor, setSelectedColor] = useState<string>(doodleColors[0])
+  const [isErasing, setIsErasing] = useState(false)
+
+  // Latest strokes mirror, so the eraser callback can read fresh values
+  // synchronously across rapid pointermove events without using a setState
+  // updater (calling onStrokesChange inside an updater would be a side
+  // effect during render and trigger React's setState-in-render warning).
+  const strokesRef = useRef(localStrokes)
+  strokesRef.current = localStrokes
 
   const brushes = [
     { name: 'S', size: 2 },
     { name: 'M', size: 4 },
     { name: 'L', size: 8 },
   ]
+
+  // Pointer-to-stroke distance threshold for the eraser. Any stroke that
+  // has a sample point within this many px of the pointer gets erased.
+  const ERASER_RADIUS = 14
 
   const getPointFromEvent = useCallback((e: React.PointerEvent): Point => {
     const rect = canvasRef.current?.getBoundingClientRect()
@@ -67,23 +79,71 @@ const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
     }
   }, [])
 
+  // Erase only the portion of each stroke that falls within ERASER_RADIUS
+  // of the pointer. A stroke split by an erase becomes multiple sub-strokes
+  // (e.g. erasing the middle of a line leaves the two ends behind).
+  const eraseAt = useCallback((point: Point) => {
+    const prev = strokesRef.current
+    let anyChange = false
+    const next: StrokeData[] = []
+    for (const stroke of prev) {
+      let touched = false
+      const segments: number[][][] = []
+      let current: number[][] = []
+      for (const p of stroke.points) {
+        const dist = Math.hypot(p[0] - point.x, p[1] - point.y)
+        if (dist <= ERASER_RADIUS) {
+          if (current.length >= 2) segments.push(current)
+          current = []
+          touched = true
+        } else {
+          current.push(p)
+        }
+      }
+      if (current.length >= 2) segments.push(current)
+
+      if (!touched) {
+        next.push(stroke)
+      } else {
+        anyChange = true
+        for (const seg of segments) {
+          next.push({ color: stroke.color, size: stroke.size, points: seg })
+        }
+      }
+    }
+    if (!anyChange) return
+    strokesRef.current = next
+    setLocalStrokes(next)
+    onStrokesChange(next)
+  }, [onStrokesChange])
+
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault()
+    const point = getPointFromEvent(e)
     setIsDrawing(true)
-    setCurrentPoints([getPointFromEvent(e)])
-  }, [getPointFromEvent])
+    if (isErasing) {
+      eraseAt(point)
+      return
+    }
+    setCurrentPoints([point])
+  }, [getPointFromEvent, isErasing, eraseAt])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDrawing) return
     e.preventDefault()
-    setCurrentPoints(prev => [...prev, getPointFromEvent(e)])
-  }, [isDrawing, getPointFromEvent])
+    const point = getPointFromEvent(e)
+    if (isErasing) {
+      eraseAt(point)
+      return
+    }
+    setCurrentPoints(prev => [...prev, point])
+  }, [isDrawing, getPointFromEvent, isErasing, eraseAt])
 
   const handlePointerUp = useCallback(() => {
     if (!isDrawing) return
     setIsDrawing(false)
 
-    if (currentPoints.length > 0) {
+    if (!isErasing && currentPoints.length > 0) {
       const brush = brushes[activeBrush]
       const newStroke: StrokeData = {
         points: currentPoints.map(p => [p.x, p.y, p.pressure || 0.5]),
@@ -96,7 +156,7 @@ const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
     }
 
     setCurrentPoints([])
-  }, [isDrawing, currentPoints, activeBrush, selectedColor, localStrokes, onStrokesChange, brushes])
+  }, [isDrawing, isErasing, currentPoints, activeBrush, selectedColor, localStrokes, onStrokesChange, brushes])
 
   const clearCanvas = () => {
     setLocalStrokes([])
@@ -133,22 +193,44 @@ const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
         {brushes.map((brush, index) => (
           <button
             key={brush.name}
-            onClick={() => setActiveBrush(index)}
+            onClick={() => { setActiveBrush(index); setIsErasing(false) }}
             className="w-6 h-6 rounded text-[10px] transition-all"
             style={{
-              background: activeBrush === index ? `${selectedColor}20` : 'rgba(0,0,0,0.03)',
-              border: activeBrush === index ? `1px solid ${selectedColor}` : '1px solid rgba(0,0,0,0.08)',
+              background: !isErasing && activeBrush === index ? `${selectedColor}20` : 'rgba(0,0,0,0.03)',
+              border: !isErasing && activeBrush === index ? `1px solid ${selectedColor}` : '1px solid rgba(0,0,0,0.08)',
               color: textColor,
             }}
           >
             {brush.name}
           </button>
         ))}
+        <button
+          onClick={() => setIsErasing((v) => !v)}
+          className="w-6 h-6 rounded text-[10px] transition-all flex items-center justify-center"
+          style={{
+            background: isErasing ? `${textColor}20` : 'rgba(0,0,0,0.03)',
+            border: isErasing ? `1px solid ${textColor}` : '1px solid rgba(0,0,0,0.08)',
+            color: textColor,
+          }}
+          title="Eraser"
+          aria-pressed={isErasing}
+        >
+          {/* Pencil-eraser nib */}
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path
+              d="M9.5 2L14 6.5L7.5 13H3V8.5L9.5 2Z"
+              stroke="currentColor"
+              strokeWidth="1.3"
+              strokeLinejoin="round"
+            />
+            <path d="M3 13H14" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+        </button>
         <div className="flex-1" />
         {doodleColors.slice(0, 4).map((color) => (
           <button
             key={color}
-            onClick={() => setSelectedColor(color)}
+            onClick={() => { setSelectedColor(color); setIsErasing(false) }}
             className="w-4 h-4 rounded-full transition-all"
             style={{
               background: color,
@@ -159,8 +241,10 @@ const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
         ))}
         <button
           onClick={clearCanvas}
-          className="text-[10px] ml-1"
-          style={{ color: mutedColor }}
+          className="ml-1 w-6 h-6 rounded flex items-center justify-center text-base leading-none transition-opacity opacity-70 hover:opacity-100"
+          style={{ color: mutedColor, background: 'rgba(0,0,0,0.03)' }}
+          title="Clear all"
+          aria-label="Clear all"
         >
           ×
         </button>
@@ -173,7 +257,7 @@ const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
         style={{
           background: canvasBackground,
           border: `1px solid ${canvasBorder}`,
-          cursor: 'crosshair',
+          cursor: isErasing ? 'cell' : 'crosshair',
           minHeight: '100px',
         }}
         onPointerDown={handlePointerDown}
@@ -187,7 +271,7 @@ const CompactDoodleCanvas = memo(function CompactDoodleCanvas({
         </svg>
         {localStrokes.length === 0 && !isDrawing && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-[10px]" style={{ color: mutedColor, opacity: 0.5 }}>Draw here</span>
+            <span className="text-sm italic" style={{ color: mutedColor, opacity: 0.65 }}>Draw here</span>
           </div>
         )}
       </div>

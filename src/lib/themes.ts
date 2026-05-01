@@ -1,10 +1,18 @@
 // Theme definitions for Hearth
 
-export type ThemeName = 'rivendell' | 'hobbiton' | 'winterSunset' | 'cherryBlossom' | 'northernLights' | 'mistyMountains' | 'gentleRain' | 'cosmos' | 'candlelight' | 'oceanTwilight' | 'quietSnow' | 'warmPeaceful'
+export type ThemeName =
+  | 'rivendell'
+  | 'hearth'
+  | 'rose'
+  | 'sage'
+  | 'ocean'
+  | 'postal'
+  | 'linen'
 
 export interface Theme {
   name: string
   description: string
+  mode: 'light' | 'dark'
   bg: {
     primary: string
     secondary: string
@@ -35,14 +43,19 @@ export interface Theme {
   }
   moodEmojis: string[]
   moodLabels: string[]
-  particles: 'fireflies' | 'snow' | 'sakura' | 'aurora' | 'mist' | 'rain' | 'stars' | 'dust' | 'foam' | 'snowflakes' | 'dandelion' | 'sunbeam'
-  ambience: 'forest' | 'sunset' | 'spring' | 'arctic' | 'mountains' | 'rainy' | 'cosmos' | 'candle' | 'ocean' | 'snowy' | 'shire'
+  particles: 'fireflies' | 'embers' | 'goldFlecks' | 'leaves' | 'sakura' | 'sunbeam' | 'foam' | 'mist' | 'dust'
+  ambience: 'forest' | 'firelight' | 'rose' | 'sage' | 'ocean' | 'postal' | 'linen'
+  /** Optional per-theme override for the hardcover frame around the
+   *  spread. When unset, the cover falls back to a darkened version
+   *  of `accent.primary`. */
+  cover?: string
 }
 
 // Rivendell Sunset - Forest greens with fireflies
 export const rivendellTheme: Theme = {
   name: 'Rivendell Sunset',
   description: 'Elvish forest at golden hour',
+  mode: 'dark',
   bg: {
     primary: '#081408',
     secondary: '#121C12',
@@ -77,437 +90,252 @@ export const rivendellTheme: Theme = {
   ambience: 'forest',
 }
 
-// Hobbiton - Sunny day in the Shire
-export const hobbitonTheme: Theme = {
-  name: 'Hobbiton',
-  description: 'A sunny day by the river in the Shire',
+// Hearth — firelight night (deep brown + amber + cream)
+export const hearthTheme: Theme = {
+  name: 'Hearth',
+  description: 'Firelight at the close of the day',
+  mode: 'dark',
   bg: {
-    primary: '#0D1A12',
-    secondary: '#142A1C',
-    gradient: 'linear-gradient(180deg, #1A3525 0%, #122A1A 30%, #0D1A12 70%, #0A1510 100%)',
+    primary: '#1A140E',
+    secondary: '#221A12',
+    gradient: 'linear-gradient(180deg, #221A12 0%, #1A140E 50%, #14100A 100%)',
   },
   text: {
-    primary: '#E8F5E0',
-    secondary: '#C0D8B0',
-    muted: '#7AA068',
+    primary: '#E8DCC8',
+    secondary: '#C8B898',
+    muted: '#8A7858',
   },
   accent: {
-    primary: '#60B060',
-    secondary: '#88C888',
-    warm: '#F0E070',
-    highlight: '#98D8E8',
+    primary: '#C8742C',
+    secondary: '#B0651F',
+    warm: '#E8A050',
+    highlight: '#FFD090',
   },
   glass: {
-    bg: 'rgba(20, 42, 28, 0.5)',
-    border: 'rgba(96, 176, 96, 0.15)',
-    blur: '28px',
-  },
-  moods: {
-    0: '#5A6858',
-    1: '#6A8860',
-    2: '#60B060',
-    3: '#88C888',
-    4: '#F0E070',
-  },
-  moodEmojis: ['🌧️', '🌱', '🌿', '☀️', '🌈'],
-  moodLabels: ['Cloudy', 'Growing', 'Fresh', 'Sunny', 'Blessed'],
-  particles: 'dandelion',
-  ambience: 'shire',
-}
-
-// Winter Sunset - Warm oranges and snow at dusk
-export const winterSunsetTheme: Theme = {
-  name: 'Winter Sunset',
-  description: 'Snow falling at golden hour',
-  bg: {
-    primary: '#1A1215',
-    secondary: '#2D1F24',
-    gradient: 'linear-gradient(180deg, #2D1F24 0%, #1A1215 40%, #151018 100%)',
-  },
-  text: {
-    primary: '#F5E6D3',
-    secondary: '#D4B896',
-    muted: '#9A7B5B',
-  },
-  accent: {
-    primary: '#E8945A',
-    secondary: '#D4A84B',
-    warm: '#F2C879',
-    highlight: '#FFD699',
-  },
-  glass: {
-    bg: 'rgba(45, 31, 36, 0.55)',
-    border: 'rgba(232, 148, 90, 0.15)',
-    blur: '28px',
-  },
-  moods: {
-    0: '#6B5A5A',
-    1: '#8B6B5A',
-    2: '#D4A84B',
-    3: '#E8945A',
-    4: '#F2C879',
-  },
-  moodEmojis: ['🌑', '🌘', '🌗', '🌖', '🌕'],
-  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
-  particles: 'snow',
-  ambience: 'sunset',
-}
-
-// Cherry Blossom - Soft pinks and falling sakura petals
-export const cherryBlossomTheme: Theme = {
-  name: 'Cherry Blossom',
-  description: 'Sakura petals in spring breeze',
-  bg: {
-    primary: '#1A1520',
-    secondary: '#251D2A',
-    gradient: 'linear-gradient(180deg, #2A2030 0%, #1A1520 50%, #151218 100%)',
-  },
-  text: {
-    primary: '#F8E8F0',
-    secondary: '#E0C4D4',
-    muted: '#A8899A',
-  },
-  accent: {
-    primary: '#E8A0B8',
-    secondary: '#F0B8C8',
-    warm: '#FFD4E0',
-    highlight: '#FFC8D8',
-  },
-  glass: {
-    bg: 'rgba(40, 28, 38, 0.55)',
-    border: 'rgba(232, 160, 184, 0.12)',
-    blur: '30px',
-  },
-  moods: {
-    0: '#7A6070',
-    1: '#9A7088',
-    2: '#C890A8',
-    3: '#E8A0B8',
-    4: '#FFD4E0',
-  },
-  moodEmojis: ['🥀', '🌸', '💮', '🌷', '🏵️'],
-  moodLabels: ['Wilting', 'Budding', 'Blooming', 'Radiant', 'Full Bloom'],
-  particles: 'sakura',
-  ambience: 'spring',
-}
-
-// Northern Lights - Arctic sky with flowing aurora
-export const northernLightsTheme: Theme = {
-  name: 'Northern Lights',
-  description: 'Aurora dancing in the arctic night',
-  bg: {
-    primary: '#0A0E1A',
-    secondary: '#0F1628',
-    gradient: 'linear-gradient(180deg, #0A0E1A 0%, #0F1628 40%, #0D1220 100%)',
-  },
-  text: {
-    primary: '#E8F4F8',
-    secondary: '#B8D4DC',
-    muted: '#6A8A94',
-  },
-  accent: {
-    primary: '#4ECCA3',
-    secondary: '#7B68EE',
-    warm: '#88D4AB',
-    highlight: '#A8E6CF',
-  },
-  glass: {
-    bg: 'rgba(15, 22, 40, 0.6)',
-    border: 'rgba(78, 204, 163, 0.15)',
-    blur: '32px',
-  },
-  moods: {
-    0: '#4A5568',
-    1: '#5B6B8A',
-    2: '#4ECCA3',
-    3: '#7B68EE',
-    4: '#88D4AB',
-  },
-  moodEmojis: ['🌑', '🌒', '🌓', '🌔', '🌟'],
-  moodLabels: ['Dark', 'Waning', 'Balanced', 'Bright', 'Radiant'],
-  particles: 'aurora',
-  ambience: 'arctic',
-}
-
-// Misty Mountains - Serene peaks with drifting fog
-export const mistyMountainsTheme: Theme = {
-  name: 'Misty Mountains',
-  description: 'Serene peaks veiled in gentle fog',
-  bg: {
-    primary: '#1A1D24',
-    secondary: '#252A33',
-    gradient: 'linear-gradient(180deg, #2A3040 0%, #1A1D24 40%, #151820 100%)',
-  },
-  text: {
-    primary: '#E8ECF0',
-    secondary: '#B8C4D0',
-    muted: '#7A8A9A',
-  },
-  accent: {
-    primary: '#8BA4B8',
-    secondary: '#A0B8C8',
-    warm: '#C8D8E8',
-    highlight: '#D0E0F0',
-  },
-  glass: {
-    bg: 'rgba(30, 35, 45, 0.6)',
-    border: 'rgba(139, 164, 184, 0.12)',
-    blur: '30px',
-  },
-  moods: {
-    0: '#4A5568',
-    1: '#5A6A7A',
-    2: '#7A8A9A',
-    3: '#8BA4B8',
-    4: '#C8D8E8',
-  },
-  moodEmojis: ['🌫️', '⛰️', '🏔️', '🌄', '✨'],
-  moodLabels: ['Foggy', 'Grounded', 'Rising', 'Clear', 'Transcendent'],
-  particles: 'mist',
-  ambience: 'mountains',
-}
-
-// Gentle Rain - Cozy rainfall at dusk
-export const gentleRainTheme: Theme = {
-  name: 'Gentle Rain',
-  description: 'Soft rainfall on a quiet evening',
-  bg: {
-    primary: '#12151A',
-    secondary: '#1A1E26',
-    gradient: 'linear-gradient(180deg, #1E2530 0%, #12151A 50%, #0E1115 100%)',
-  },
-  text: {
-    primary: '#D8E0E8',
-    secondary: '#A8B8C8',
-    muted: '#6A7A8A',
-  },
-  accent: {
-    primary: '#6B8FAD',
-    secondary: '#8AA8C0',
-    warm: '#A0C0D8',
-    highlight: '#B8D4E8',
-  },
-  glass: {
-    bg: 'rgba(26, 30, 38, 0.6)',
-    border: 'rgba(107, 143, 173, 0.12)',
-    blur: '30px',
-  },
-  moods: {
-    0: '#4A5A6A',
-    1: '#5A6A7A',
-    2: '#6B8FAD',
-    3: '#8AA8C0',
-    4: '#B8D4E8',
-  },
-  moodEmojis: ['🌧️', '🌦️', '☁️', '🌤️', '🌈'],
-  moodLabels: ['Stormy', 'Drizzle', 'Overcast', 'Clearing', 'Rainbow'],
-  particles: 'rain',
-  ambience: 'rainy',
-}
-
-// Cosmos - Deep space serenity
-export const cosmosTheme: Theme = {
-  name: 'Cosmos',
-  description: 'Drifting through infinite stars',
-  bg: {
-    primary: '#050510',
-    secondary: '#0A0A1A',
-    gradient: 'linear-gradient(180deg, #08081A 0%, #050510 50%, #030308 100%)',
-  },
-  text: {
-    primary: '#E8E8F8',
-    secondary: '#B8B8D8',
-    muted: '#7878A8',
-  },
-  accent: {
-    primary: '#9D8CFF',
-    secondary: '#7B68EE',
-    warm: '#C8B8FF',
-    highlight: '#E0D8FF',
-  },
-  glass: {
-    bg: 'rgba(10, 10, 26, 0.7)',
-    border: 'rgba(157, 140, 255, 0.1)',
-    blur: '35px',
-  },
-  moods: {
-    0: '#3A3A5A',
-    1: '#5A5A8A',
-    2: '#7B68EE',
-    3: '#9D8CFF',
-    4: '#E0D8FF',
-  },
-  moodEmojis: ['🌑', '🌒', '🌓', '🌔', '🌕'],
-  moodLabels: ['Void', 'Distant', 'Orbiting', 'Bright', 'Supernova'],
-  particles: 'stars',
-  ambience: 'cosmos',
-}
-
-// Candlelight - Warm intimate glow
-export const candlelightTheme: Theme = {
-  name: 'Candlelight',
-  description: 'Warm glow in the quiet hours',
-  bg: {
-    primary: '#14100C',
-    secondary: '#1E1812',
-    gradient: 'linear-gradient(180deg, #1E1812 0%, #14100C 50%, #0E0A08 100%)',
-  },
-  text: {
-    primary: '#F8E8D8',
-    secondary: '#D8C4A8',
-    muted: '#A08868',
-  },
-  accent: {
-    primary: '#E8A050',
-    secondary: '#F0B868',
-    warm: '#FFD090',
-    highlight: '#FFE0B0',
-  },
-  glass: {
-    bg: 'rgba(30, 24, 18, 0.6)',
-    border: 'rgba(232, 160, 80, 0.12)',
+    bg: 'rgba(34, 26, 18, 0.55)',
+    border: 'rgba(200, 116, 44, 0.15)',
     blur: '28px',
   },
   moods: {
     0: '#5A4A3A',
     1: '#7A6A50',
     2: '#A08050',
-    3: '#E8A050',
-    4: '#FFD090',
+    3: '#C8742C',
+    4: '#E8A050',
   },
-  moodEmojis: ['🕯️', '🔥', '✨', '💫', '🌟'],
-  moodLabels: ['Dim', 'Flickering', 'Steady', 'Warm', 'Glowing'],
-  particles: 'dust',
-  ambience: 'candle',
+  moodEmojis: ['🔥', '🕯️', '✨', '🌟', '💫'],
+  moodLabels: ['Embers', 'Flicker', 'Steady', 'Bright', 'Glowing'],
+  particles: 'embers',
+  ambience: 'firelight',
 }
 
-// Ocean Twilight - Peaceful waves at dusk
-export const oceanTwilightTheme: Theme = {
-  name: 'Ocean Twilight',
-  description: 'Gentle waves at the edge of night',
+// Rose — blush & cherry blossom paper
+export const roseTheme: Theme = {
+  name: 'Rose',
+  description: 'Blush paper and cherry blossom drift',
+  mode: 'light',
   bg: {
-    primary: '#0A1520',
-    secondary: '#142030',
-    gradient: 'linear-gradient(180deg, #1A2840 0%, #0A1520 50%, #081018 100%)',
+    primary: '#FFEAEA',
+    secondary: '#F8D8D0',
+    gradient: 'linear-gradient(180deg, #FFEEEC 0%, #F8DCD4 50%, #F2D0CC 100%)',
   },
   text: {
-    primary: '#E0F0F8',
-    secondary: '#A8C8D8',
-    muted: '#6090A8',
+    primary: '#3A2025',
+    secondary: '#6A4048',
+    muted: '#9A7078',
   },
   accent: {
-    primary: '#50A0C8',
-    secondary: '#70B8D8',
-    warm: '#90D0E8',
-    highlight: '#B0E0F0',
+    primary: '#9A4555',
+    secondary: '#843E4F',
+    warm: '#C2667A',
+    highlight: '#D88898',
   },
   glass: {
-    bg: 'rgba(20, 32, 48, 0.6)',
-    border: 'rgba(80, 160, 200, 0.12)',
-    blur: '32px',
-  },
-  moods: {
-    0: '#3A5A6A',
-    1: '#4A7A8A',
-    2: '#50A0C8',
-    3: '#70B8D8',
-    4: '#B0E0F0',
-  },
-  moodEmojis: ['🌊', '🐚', '🦋', '🐬', '🌅'],
-  moodLabels: ['Deep', 'Adrift', 'Floating', 'Surfacing', 'Horizon'],
-  particles: 'foam',
-  ambience: 'ocean',
-}
-
-// Quiet Snow - Peaceful evening snowfall
-export const quietSnowTheme: Theme = {
-  name: 'Quiet Snow',
-  description: 'Peaceful snowfall on a still evening',
-  bg: {
-    primary: '#0E1218',
-    secondary: '#161C24',
-    gradient: 'linear-gradient(180deg, #1A2230 0%, #0E1218 50%, #080C10 100%)',
-  },
-  text: {
-    primary: '#E8EEF4',
-    secondary: '#B8C8D8',
-    muted: '#6888A0',
-  },
-  accent: {
-    primary: '#88A8C8',
-    secondary: '#A0C0D8',
-    warm: '#C8D8E8',
-    highlight: '#E0EEF8',
-  },
-  glass: {
-    bg: 'rgba(22, 28, 36, 0.6)',
-    border: 'rgba(136, 168, 200, 0.1)',
-    blur: '30px',
-  },
-  moods: {
-    0: '#4A5A6A',
-    1: '#5A7088',
-    2: '#6888A0',
-    3: '#88A8C8',
-    4: '#C8D8E8',
-  },
-  moodEmojis: ['❄️', '🌨️', '☁️', '🌤️', '✨'],
-  moodLabels: ['Frozen', 'Snowy', 'Cloudy', 'Clearing', 'Peaceful'],
-  particles: 'snowflakes',
-  ambience: 'snowy',
-}
-
-// Warm & Peaceful - Bright cream afternoon (the only light theme)
-export const warmPeacefulTheme: Theme = {
-  name: 'Warm & Peaceful',
-  description: 'A gentle afternoon bathed in golden light',
-  bg: {
-    primary: '#FFF6E6',
-    secondary: '#FFE8D6',
-    gradient: 'linear-gradient(180deg, #FFF4D8 0%, #FFEAD0 35%, #FFE0D2 70%, #FBD8D8 100%)',
-  },
-  text: {
-    primary: '#3A2A20',
-    secondary: '#7A5A48',
-    muted: '#B59882',
-  },
-  accent: {
-    primary: '#E8704A',
-    secondary: '#F2A06B',
-    warm: '#F5C078',
-    highlight: '#FFD4A8',
-  },
-  glass: {
-    bg: 'rgba(255, 248, 235, 0.65)',
-    border: 'rgba(232, 112, 74, 0.18)',
+    bg: 'rgba(255, 234, 234, 0.7)',
+    border: 'rgba(154, 69, 85, 0.18)',
     blur: '24px',
   },
   moods: {
+    0: '#7A6068',
+    1: '#9A707A',
+    2: '#C2667A',
+    3: '#9A4555',
+    4: '#D88898',
+  },
+  moodEmojis: ['🥀', '🌸', '💮', '🌷', '🏵️'],
+  moodLabels: ['Wilting', 'Budding', 'Blooming', 'Radiant', 'Full Bloom'],
+  particles: 'sakura',
+  ambience: 'rose',
+  cover: '#B05878',
+}
+
+// Sage — matcha & cream
+export const sageTheme: Theme = {
+  name: 'Sage',
+  description: 'Matcha morning, cream paper',
+  mode: 'light',
+  bg: {
+    primary: '#E8E8CC',
+    secondary: '#D8DDB8',
+    gradient: 'linear-gradient(180deg, #ECECCE 0%, #DCE0BC 50%, #CED4AC 100%)',
+  },
+  text: {
+    primary: '#2F2D1F',
+    secondary: '#5A5A40',
+    muted: '#8A8868',
+  },
+  accent: {
+    primary: '#6B7A4B',
+    secondary: '#5A6840',
+    warm: '#8A9A65',
+    highlight: '#A8B888',
+  },
+  glass: {
+    bg: 'rgba(232, 232, 204, 0.7)',
+    border: 'rgba(107, 122, 75, 0.2)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#7A7858',
+    1: '#8A8868',
+    2: '#6B7A4B',
+    3: '#8A9A65',
+    4: '#A8B888',
+  },
+  moodEmojis: ['🍂', '🌱', '🌿', '🌾', '🍃'],
+  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
+  particles: 'leaves',
+  ambience: 'sage',
+  cover: '#5C6840',
+}
+
+// Ocean — misty seaside dawn
+export const oceanTheme: Theme = {
+  name: 'Ocean',
+  description: 'Pale dawn light on the harbour',
+  mode: 'light',
+  bg: {
+    primary: '#E8E8E0',
+    secondary: '#D8D8D0',
+    gradient: 'linear-gradient(180deg, #ECECE4 0%, #DCDCD4 50%, #CCCCCC 100%)',
+  },
+  text: {
+    primary: '#2A2820',
+    secondary: '#54584C',
+    muted: '#8A8A78',
+  },
+  accent: {
+    primary: '#2C5260',
+    secondary: '#1F4250',
+    warm: '#4A7080',
+    highlight: '#7090A0',
+  },
+  glass: {
+    bg: 'rgba(232, 232, 224, 0.7)',
+    border: 'rgba(44, 82, 96, 0.18)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#5A6868',
+    1: '#7A8888',
+    2: '#2C5260',
+    3: '#4A7080',
+    4: '#7090A0',
+  },
+  moodEmojis: ['🌫️', '🌊', '🐚', '🌅', '✨'],
+  moodLabels: ['Misty', 'Drifting', 'Surfacing', 'Clear', 'Radiant'],
+  particles: 'foam',
+  ambience: 'ocean',
+  cover: '#2A4858',
+}
+
+// Postal — letter office parchment with indigo + rust
+export const postalTheme: Theme = {
+  name: 'Postal',
+  description: 'A quiet letter office at dusk',
+  mode: 'light',
+  bg: {
+    primary: '#F0E5C8',
+    secondary: '#E8DBB6',
+    gradient: 'linear-gradient(180deg, #F4EACE 0%, #ECDFBC 50%, #E4D4AA 100%)',
+  },
+  text: {
+    primary: '#2A2418',
+    secondary: '#54482C',
+    muted: '#8A7A4A',
+  },
+  accent: {
+    primary: '#1F2750',
+    secondary: '#161D40',
+    warm: '#B04830',
+    highlight: '#D26845',
+  },
+  glass: {
+    bg: 'rgba(240, 229, 200, 0.7)',
+    border: 'rgba(31, 39, 80, 0.2)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#7A7050',
+    1: '#9A8858',
+    2: '#1F2750',
+    3: '#B04830',
+    4: '#D26845',
+  },
+  moodEmojis: ['✉️', '📮', '📬', '💌', '✨'],
+  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
+  particles: 'dust',
+  ambience: 'postal',
+  cover: '#6E4A30',
+}
+
+// Linen — minimal off-white linen with soft rust
+export const linenTheme: Theme = {
+  name: 'Linen',
+  description: 'Minimal calm on linen-textured paper',
+  mode: 'light',
+  bg: {
+    primary: '#F5EFE0',
+    secondary: '#EDE3D0',
+    gradient: 'linear-gradient(180deg, #F8F3E5 0%, #F0E7D5 50%, #E8DCC4 100%)',
+  },
+  text: {
+    primary: '#2A2520',
+    secondary: '#5A4F40',
+    muted: '#8A7C68',
+  },
+  accent: {
+    primary: '#A85530',
+    secondary: '#944525',
+    warm: '#C27050',
+    highlight: '#D88870',
+  },
+  glass: {
+    bg: 'rgba(245, 239, 224, 0.7)',
+    border: 'rgba(168, 85, 48, 0.16)',
+    blur: '22px',
+  },
+  moods: {
     0: '#8A7868',
-    1: '#B89888',
-    2: '#E8945A',
-    3: '#F08858',
-    4: '#F5C078',
+    1: '#A89080',
+    2: '#A85530',
+    3: '#C27050',
+    4: '#D88870',
   },
   moodEmojis: ['☁️', '🌤️', '☀️', '🌻', '🌅'],
   moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
-  particles: 'sunbeam',
-  ambience: 'spring',
+  particles: 'dust',
+  ambience: 'linen',
 }
 
 export const themes: Record<ThemeName, Theme> = {
   rivendell: rivendellTheme,
-  hobbiton: hobbitonTheme,
-  winterSunset: winterSunsetTheme,
-  cherryBlossom: cherryBlossomTheme,
-  northernLights: northernLightsTheme,
-  mistyMountains: mistyMountainsTheme,
-  gentleRain: gentleRainTheme,
-  cosmos: cosmosTheme,
-  candlelight: candlelightTheme,
-  oceanTwilight: oceanTwilightTheme,
-  quietSnow: quietSnowTheme,
-  warmPeaceful: warmPeacefulTheme,
+  hearth: hearthTheme,
+  rose: roseTheme,
+  sage: sageTheme,
+  ocean: oceanTheme,
+  postal: postalTheme,
+  linen: linenTheme,
 }
 
 // Time-based greetings

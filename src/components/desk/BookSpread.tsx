@@ -6,16 +6,19 @@ import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useDeskStore } from '@/store/desk'
 import { getGlassDiaryColors, GlassDiaryColors } from '@/lib/glassDiaryColors'
-import LeftPage from './LeftPage'
-import RightPage from './RightPage'
-import EntrySelector from './EntrySelector'
+import LeftPage, { type LeftPageHandle } from './LeftPage'
+import RightPage, { type RightPageHandle } from './RightPage'
 import { RibbonBookmark } from './interactive/RibbonBookmark'
+import RibbonTag from './interactive/RibbonTag'
 import ThemeOrnament from './decorations/ThemeOrnament'
 import WhisperFooter from './WhisperFooter'
+import SpineOrnaments from './SpineOrnaments'
+import DateTabRail from './DateTabRail'
 import { StrokeData, useJournalStore } from '@/store/journal'
 import { useAutosaveEntry, AutosaveDraft } from '@/hooks/useAutosaveEntry'
-import { isEntryLocked } from '@/lib/entry-lock-client'
-import { htmlToPlainText, splitTextForSpread } from '@/lib/text-utils'
+import { isEntryLocked, getClientTz } from '@/lib/entry-lock-client'
+import { parseStyle } from '@/lib/entry-style'
+import { htmlToSplitPlainText, PAGE_BREAK_MARKER } from '@/lib/text-utils'
 
 const HTMLFlipBook = dynamic(() => import('react-pageflip'), { ssr: false })
 
@@ -34,6 +37,7 @@ interface Entry {
   photos?: Photo[]
   doodles?: Array<{ strokes: StrokeData[] }>
   createdAt: string
+  style?: import('@/lib/entry-style').EntryStyle | null
 }
 
 // Fixed page dimensions for the flipbook
@@ -79,11 +83,14 @@ const PageWrapper = memo(
 )
 
 function combineDraftHtml(left: string, right: string): string {
-  // Mirrors the conversion the old handleSave did: plain newline-separated
-  // text per page → <p>-wrapped HTML, concatenated with no page-break marker.
+  // Plain newline-separated text per page → <p>-wrapped HTML, joined with a
+  // page-break marker. The marker preserves the exact left/right boundary
+  // chosen by live DOM-overflow measurement during typing — without it,
+  // reload would re-derive the split via a character-count formula that
+  // diverges from the actual rendered layout, reshuffling the user's text.
   const leftHtml = left.trim() ? `<p>${left.replace(/\n/g, '</p><p>')}</p>` : ''
   const rightHtml = right.trim() ? `<p>${right.replace(/\n/g, '</p><p>')}</p>` : ''
-  return leftHtml + rightHtml
+  return leftHtml + PAGE_BREAK_MARKER + rightHtml
 }
 
 export default function BookSpread() {
@@ -109,12 +116,20 @@ export default function BookSpread() {
   autosaveRef.current = autosave
 
   const [entries, setEntries] = useState<Entry[]>([])
-  const [todayEntries, setTodayEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
+  // True once react-pageflip has finished its internal init (which positions
+  // pages in 3D space via useEffect *after* HTMLFlipBook mounts). Until then
+  // the book frame would show the cover sitting on un-laid-out page divs —
+  // visible on refresh as "cover, then diary on top". Gating the fade-in on
+  // this prevents that.
+  const [bookReady, setBookReady] = useState(false)
   const [pendingPhotos, setPendingPhotos] = useState<Photo[]>([])
-  const [rightTextareaFocusTrigger, setRightTextareaFocusTrigger] = useState(0)
-  const [leftTextareaFocusTrigger, setLeftTextareaFocusTrigger] = useState(0)
+  // Focus is driven imperatively (refs) instead of via React state. Holding
+  // focus in BookSpread state would re-render the flipbook on every spine
+  // crossing, and react-pageflip's updateFromHtml destroys/recreates page
+  // DOM mid-update, blurring the focused textarea.
+  const leftPageRef = useRef<LeftPageHandle>(null)
+  const rightPageRef = useRef<RightPageHandle>(null)
 
   // Track pendingPhotos via ref so the autosave-trigger callback (which is
   // wired via store .subscribe outside React's render cycle) sees fresh data.
@@ -129,8 +144,27 @@ export default function BookSpread() {
     let cancelled = false
     const run = async () => {
       try {
-        const res = await fetch('/api/entries?limit=50')
-        if (!res.ok) return
+        // Kick off the react-pageflip chunk load in parallel with the
+        // entries fetch. Without this, `loading` flips to false the
+        // instant the API resolves, but `dynamic(() => import(...))` is
+        // still streaming the flipbook chunk over the network — so the
+        // book frame (cover + ribbon + ornaments) fades in alone for a
+        // tick before pages mount. That's the "cover blip" users see on
+        // first load and refresh.
+        const flipbookPromise = import('react-pageflip')
+
+        // One diary = one calendar month. Scope the fetch to the current
+        // month so navigation can never flip into last month's pages —
+        // past months live on the shelf, opened separately.
+        const now = new Date()
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+        const res = await fetch(`/api/entries?month=${currentMonth}&limit=50`, {
+          headers: { 'X-User-TZ': getClientTz() },
+        })
+        if (!res.ok) {
+          await flipbookPromise.catch(() => {})
+          return
+        }
         const data = await res.json()
         const fetched: Entry[] = data.entries || []
         if (cancelled) return
@@ -150,14 +184,13 @@ export default function BookSpread() {
         setEntries(remainder)
         setTotalSpreads(remainder.length + 1)
 
-        const todays = fetched.filter(isToday)
-        setTodayEntries(todays)
-
         if (active) {
-          // Hydrate active state from the entry.
-          const plain = htmlToPlainText(active.text || '')
-          const [leftPlain, rightPlain] = splitTextForSpread(plain)
+          // Hydrate active state from the entry. Uses the persisted page-break
+          // marker when present so the boundary matches what was visible the
+          // last time the user typed.
+          const [leftPlain, rightPlain] = htmlToSplitPlainText(active.text || '')
           useDeskStore.getState().setDrafts(leftPlain, rightPlain)
+          useDeskStore.getState().setEntryStyleDraft(parseStyle(active.style ?? null))
           setCurrentSong(active.song || '')
           setCurrentMood(active.mood ?? 2)
           const doodleStrokes = active.doodles?.[0]?.strokes ?? []
@@ -170,9 +203,13 @@ export default function BookSpread() {
             position: p.position,
           }))
           setPendingPhotos(activePhotos)
-          setCurrentEntryId(active.id)
           autosaveRef.current.reset(active.id)
         }
+
+        // Wait for the flipbook chunk too — only then flip `loading`,
+        // so motion.div mounts with the library already cached and pages
+        // render in the same frame as the cover.
+        await flipbookPromise.catch(() => {})
       } catch (error) {
         console.error('Failed to fetch entries:', error)
       } finally {
@@ -192,6 +229,14 @@ export default function BookSpread() {
     }
   }, [loading, entries.length, goToSpread])
 
+  // Safety net: if react-pageflip's onInit somehow doesn't fire, reveal the
+  // book anyway after a short grace period so it never gets stuck invisible.
+  useEffect(() => {
+    if (loading) return
+    const timer = setTimeout(() => setBookReady(true), 800)
+    return () => clearTimeout(timer)
+  }, [loading])
+
   // Build the current draft from all the places its parts live.
   const buildDraft = useCallback((): AutosaveDraft => {
     const desk = useDeskStore.getState()
@@ -210,6 +255,7 @@ export default function BookSpread() {
       doodles: journal.currentDoodleStrokes.length > 0
         ? [{ strokes: journal.currentDoodleStrokes, spread: 1 }]
         : [],
+      style: desk.entryStyleDraft,
     }
   }, [])
 
@@ -221,7 +267,8 @@ export default function BookSpread() {
     const unsubDesk = useDeskStore.subscribe((state, prev) => {
       if (
         state.leftPageDraft !== prev.leftPageDraft ||
-        state.rightPageDraft !== prev.rightPageDraft
+        state.rightPageDraft !== prev.rightPageDraft ||
+        state.entryStyleDraft !== prev.entryStyleDraft
       ) {
         autosaveRef.current.trigger(buildDraft())
       }
@@ -309,71 +356,51 @@ export default function BookSpread() {
     return () => el.removeEventListener('wheel', handler)
   }, [])
 
-  const handleLeftPageFull = useCallback((overflowText: string) => {
+  const handleLeftPageFull = useCallback((overflowText: string, cursorStaysOnLeft: boolean) => {
     if (overflowText) {
       useDeskStore.getState().setRightPageDraft((prev) => overflowText + prev)
     }
-    setRightTextareaFocusTrigger(prev => prev + 1)
-  }, [])
-
-  const handleNavigateRight = useCallback(() => {
-    setRightTextareaFocusTrigger(prev => prev + 1)
-  }, [])
-
-  const handleNavigateLeft = useCallback(() => {
-    setLeftTextareaFocusTrigger(prev => prev + 1)
-  }, [])
-
-  // Hydrate the new-entry spread with an existing entry's data so the user
-  // can keep editing it. Flushes any pending autosave for the previous
-  // active entry first, then re-targets autosave at the chosen entry.
-  const hydrateActive = useCallback(async (entry: Entry) => {
-    await autosaveRef.current.flush()
-    const plain = htmlToPlainText(entry.text || '')
-    const [leftPlain, rightPlain] = splitTextForSpread(plain)
-    useDeskStore.getState().setDrafts(leftPlain, rightPlain)
-    setCurrentSong(entry.song || '')
-    setCurrentMood(entry.mood ?? 2)
-    setDoodleStrokes(entry.doodles?.[0]?.strokes ?? [])
-    setPendingPhotos((entry.photos || []).map((p) => ({
-      id: p.id,
-      url: p.url,
-      rotation: p.rotation,
-      position: p.position,
-    })))
-    setCurrentEntryId(entry.id)
-    autosaveRef.current.reset(entry.id)
-  }, [setCurrentSong, setCurrentMood, setDoodleStrokes])
-
-  const handleEntrySelect = useCallback(async (entryId: string | null) => {
-    if (!entryId) return
-    const target = todayEntries.find((e) => e.id === entryId)
-      ?? entries.find((e) => e.id === entryId)
-    if (!target) return
-
-    if (!isEntryLocked(target.createdAt)) {
-      // Today entry, still editable → hydrate onto the new-entry spread.
-      await hydrateActive(target)
-      goToSpread(entries.length)
-      return
+    // Only follow the overflow with focus when the user's caret was actually
+    // in the spilled portion (e.g. typing past the right edge of the last
+    // line). When they were editing in the middle and the LAST line got
+    // pushed off, focus belongs on the left page — LeftPage restores its
+    // own selection.
+    if (!cursorStaysOnLeft) {
+      requestAnimationFrame(() => {
+        rightPageRef.current?.focusAtAfterPrepend(overflowText.length)
+      })
     }
-    // Locked entry → just navigate to its read-only spread.
-    setCurrentEntryId(entryId)
-    const idx = entries.findIndex((e) => e.id === entryId)
-    if (idx >= 0) goToSpread(idx)
-  }, [todayEntries, entries, hydrateActive, goToSpread])
+  }, [])
 
-  const handleNewEntry = useCallback(async () => {
-    await autosaveRef.current.flush()
-    autosaveRef.current.reset(null)
-    setCurrentEntryId(null)
-    useDeskStore.getState().clearDrafts()
-    setPendingPhotos([])
-    setCurrentSong('')
-    setCurrentMood(2)
-    setDoodleStrokes([])
-    goToSpread(entries.length)
-  }, [entries.length, goToSpread, setCurrentSong, setCurrentMood, setDoodleStrokes])
+  // ArrowRight (no targetLeft) lands at position 0 of the right page.
+  // ArrowDown passes the caret's left pixel offset so the destination caret
+  // lands on row 0 at the same visual horizontal column.
+  const handleNavigateRight = useCallback((targetLeft?: number) => {
+    if (typeof targetLeft === 'number') {
+      rightPageRef.current?.focusAtFirstRow(targetLeft)
+    } else {
+      rightPageRef.current?.focusAtStart()
+    }
+  }, [])
+
+  const handleNavigateLeft = useCallback((targetLeft?: number) => {
+    if (typeof targetLeft === 'number') {
+      leftPageRef.current?.focusAtLastRow(targetLeft)
+    } else {
+      leftPageRef.current?.focusAtEnd()
+    }
+  }, [])
+
+  // Backspace at right-page pos 0: continuous-document semantics — delete the
+  // last character of the left page and land caret at left's new end.
+  const handleBackspaceAcrossSpine = useCallback(() => {
+    useDeskStore.getState().setLeftPageDraft((prev) =>
+      prev.length > 0 ? prev.slice(0, -1) : prev,
+    )
+    requestAnimationFrame(() => {
+      leftPageRef.current?.focusAtEnd()
+    })
+  }, [])
 
   const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
     const rotation = position === 1 ? -8 + Math.floor(Math.random() * 6) : 5 + Math.floor(Math.random() * 6)
@@ -403,41 +430,32 @@ export default function BookSpread() {
         overscrollBehaviorX: 'contain',
       }}
     >
-      {/* Top controls */}
-      <motion.div
-        className="absolute -top-14 left-0 z-20 flex items-center gap-3"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
+
+      {/* Book frame: positions a decorative hardcover background behind the
+          spread so the pages read as set inside an open hardback diary.
+          inline-block shrink-wraps to the inner motion.div's size so the
+          cover's negative-inset extension is anchored to the page edges,
+          not the outer page width. */}
+      <div
+        className="relative inline-block"
+        style={{
+          ['--book-cover-bg' as string]: colors.cover,
+          ['--book-cover-border' as string]: colors.coverBorder,
+        } as React.CSSProperties}
       >
-        <div
-          className="px-4 py-2 rounded-full text-xs"
-          style={{
-            background: theme.glass.bg,
-            color: theme.text.muted,
-            border: `1px solid ${theme.glass.border}`,
-          }}
-        >
-          {isNewEntrySpread
-            ? 'New Entry'
-            : `Entry ${entries.length - globalCurrentSpread} of ${entries.length}`}
-        </div>
-
-        {(todayEntries.length > 0 || isNewEntrySpread) && (
-          <EntrySelector
-            entries={todayEntries}
-            currentEntryId={currentEntryId}
-            onEntrySelect={handleEntrySelect}
-            onNewEntry={handleNewEntry}
-          />
-        )}
-      </motion.div>
-
       {/* Book wrapper. Sized for the spread (1300x820), relative so chrome
           can be positioned absolutely on top. The --page-bg CSS variable is
           inherited by the .diary-page children so each page tints to the
           current theme without setting it inline (the library would wipe
-          inline styles mid-flip). */}
+          inline styles mid-flip).
+
+          Conditionally rendered on `!loading` so the cover and pages mount
+          together once entries are fetched. Anything rendered during the
+          fetch (cover frame, ribbon, ornaments) would pop in without its
+          flipbook contents, producing a visible blip on navigation/refresh.
+          Mounting after loading guarantees framer-motion's `initial` state
+          is the very first paint — no FOUC. */}
+      {!loading && (
       <motion.div
         className="relative"
         style={{
@@ -448,11 +466,16 @@ export default function BookSpread() {
           ['--page-bg-solid' as string]: colors.pageBgSolid,
         } as React.CSSProperties}
         initial={{ rotateX: 5, opacity: 0 }}
-        animate={{ rotateX: 0, opacity: 1 }}
+        animate={bookReady ? { rotateX: 0, opacity: 1 } : { rotateX: 5, opacity: 0 }}
         transition={{ duration: 0.6 }}
       >
-        {/* Ribbon bookmark */}
-        <RibbonBookmark color={colors.ribbon} />
+        {/* Hardcover frame, rendered as the first child so it sits behind
+            the pages and shares the open-animation with them. */}
+        <div className="book-cover" />
+        {/* Ribbon bookmark with brass swivel clasp + oval hangtag dangling beneath */}
+        <RibbonBookmark color={colors.ribbon}>
+          <RibbonTag date={spreadDate} colors={colors} />
+        </RibbonBookmark>
 
         {/* Whisper + ornaments below the spread */}
         <div className="absolute -bottom-12 left-0 right-0 flex items-center justify-center gap-4 pointer-events-none z-10">
@@ -461,27 +484,14 @@ export default function BookSpread() {
           <ThemeOrnament themeName={themeName} color={colors.ribbon} size={28} />
         </div>
 
-        {/* Date header */}
+        {/* Top flourish — chapter-opener ornament that adapts per theme.
+            Replaces the date pill (date now lives on the bookmark hangtag). */}
         <div
-          className="absolute -top-1 left-1/2 -translate-x-1/2 z-20 px-6 py-1.5 rounded-b-lg"
-          style={{
-            background: colors.pageBg,
-            backdropFilter: `blur(${colors.pageBlur})`,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            border: `1px solid ${colors.pageBorder}`,
-          }}
+          className="absolute -top-1 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 pointer-events-none"
         >
-          <span
-            className="text-sm font-serif"
-            style={{ color: colors.date }}
-          >
-            {spreadDate.toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </span>
+          <div style={{ width: '36px', height: '1px', background: colors.pageBorder }} />
+          <ThemeOrnament themeName={themeName} color={colors.ribbon} size={20} />
+          <div style={{ width: '36px', height: '1px', background: colors.pageBorder }} />
         </div>
 
         {/* Flipbook (only after entries are loaded so startPage is correct).
@@ -498,14 +508,15 @@ export default function BookSpread() {
             maxWidth={PAGE_WIDTH}
             minHeight={PAGE_HEIGHT}
             maxHeight={PAGE_HEIGHT}
-            drawShadow={false}
-            maxShadowOpacity={0}
+            drawShadow={true}
+            maxShadowOpacity={0.3}
             flippingTime={1200}
             useMouseEvents={false}
             mobileScrollSupport={false}
             showCover={false}
             startPage={entries.length * 2}
             onFlip={handleFlip}
+            onInit={() => setBookReady(true)}
             className=""
             style={{}}
             startZIndex={0}
@@ -538,35 +549,39 @@ export default function BookSpread() {
             {/* New-entry spread (always last) */}
             <PageWrapper key="new-L" side="left" colors={colors}>
               <LeftPage
+                ref={leftPageRef}
                 entry={null}
                 isNewEntry={true}
                 onPageFull={handleLeftPageFull}
                 onNavigateRight={handleNavigateRight}
-                focusTrigger={leftTextareaFocusTrigger}
               />
             </PageWrapper>
             <PageWrapper key="new-R" side="right" colors={colors}>
               <RightPage
+                ref={rightPageRef}
                 entry={null}
                 isNewEntry={true}
                 photos={pendingPhotos}
                 onPhotoAdd={handlePhotoAdd}
-                autosaveStatus={autosave.status}
-                focusTrigger={rightTextareaFocusTrigger}
                 onNavigateLeft={handleNavigateLeft}
+                onBackspaceAcrossSpine={handleBackspaceAcrossSpine}
               />
             </PageWrapper>
           </HTMLFlipBook>
         )}
 
-        {/* Binding spine: vertical shadow at the center of the spread */}
-        <div
-          className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
-          style={{
-            width: '14px',
-            background:
-              'linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0) 100%)',
-          }}
+        {/* Binding spine: slim kraft band + twine wrap + dated hangtag.
+            Rendered as a sibling of HTMLFlipBook so flip animation is untouched. */}
+        <SpineOrnaments colors={colors} />
+
+        {/* Day-tab index rail on the right edge. Lets the user jump directly
+            to any day in the visible month without flipping. */}
+        <DateTabRail
+          entries={entries}
+          visibleSpread={globalCurrentSpread}
+          newEntrySpreadIdx={entries.length}
+          onJumpToSpread={goToSpread}
+          colors={colors}
         />
 
         {/* Left edge clicker */}
@@ -592,12 +607,13 @@ export default function BookSpread() {
           </motion.div>
         )}
 
-        {/* Right edge clicker */}
+        {/* Right edge clicker — offset inward to clear the day-tab rail */}
         {globalCurrentSpread < totalSpreads - 1 && (
           <motion.div
             onClick={handleNextPage}
-            className="absolute right-0 top-0 bottom-0 w-14 cursor-pointer z-30 flex items-center justify-center"
+            className="absolute top-0 bottom-0 w-14 cursor-pointer z-30 flex items-center justify-center"
             style={{
+              right: '26px',
               background: 'linear-gradient(270deg, rgba(0,0,0,0.03) 0%, transparent 100%)',
             }}
             whileHover={{
@@ -616,15 +632,8 @@ export default function BookSpread() {
         )}
 
       </motion.div>
-
-      {/* Book shadow */}
-      <div
-        className="absolute -bottom-10 left-16 right-16 h-16 rounded-[50%]"
-        style={{
-          background: 'rgba(0,0,0,0.3)',
-          filter: 'blur(24px)',
-        }}
-      />
+      )}
+      </div>
     </div>
   )
 }

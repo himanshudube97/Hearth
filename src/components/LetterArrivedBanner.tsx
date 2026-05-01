@@ -26,18 +26,13 @@ interface LetterArrivedBannerProps {
 
 // Theme-specific stamps
 const themeStamps: Record<ThemeName, { icon: string; color: string }> = {
-  rivendell: { icon: '🍃', color: '#5E8B5A' },
-  hobbiton: { icon: '🌻', color: '#60B060' },
-  winterSunset: { icon: '❄️', color: '#E8945A' },
-  cherryBlossom: { icon: '🌸', color: '#E8A0B8' },
-  northernLights: { icon: '✨', color: '#4ECCA3' },
-  mistyMountains: { icon: '⛰️', color: '#8BA4B8' },
-  gentleRain: { icon: '🌧️', color: '#6B8FAD' },
-  cosmos: { icon: '🌟', color: '#9D8CFF' },
-  candlelight: { icon: '🕯️', color: '#E8A050' },
-  oceanTwilight: { icon: '🌊', color: '#50A0C8' },
-  quietSnow: { icon: '❄️', color: '#88A8C8' },
-  warmPeaceful: { icon: '☀️', color: '#E8704A' },
+  rivendell: { icon: '🌲', color: '#5E8B5A' },
+  hearth: { icon: '🔥', color: '#C8742C' },
+  rose: { icon: '🌸', color: '#9A4555' },
+  sage: { icon: '🌿', color: '#6B7A4B' },
+  ocean: { icon: '🌊', color: '#2C5260' },
+  postal: { icon: '✉️', color: '#1F2750' },
+  linen: { icon: '🕊️', color: '#A85530' },
 }
 
 // Floating sparkle particles for reading phase

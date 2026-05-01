@@ -83,7 +83,7 @@ function LoginForm() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <h1 className="font-[var(--font-playfair)] text-4xl text-[var(--text-primary)] mb-2">
+          <h1 className="font-[var(--font-serif)] text-4xl text-[var(--text-primary)] mb-2">
             Welcome to Hearth
           </h1>
           <p className="text-[var(--text-muted)]">

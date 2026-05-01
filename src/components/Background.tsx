@@ -61,47 +61,11 @@ const getFirefliesConfig = (): ISourceOptions => ({
   detectRetina: true,
 })
 
-// Snow configuration - gentle winter falling (very slow and calm)
-const getSnowConfig = (): ISourceOptions => ({
-  fullScreen: false,
-  background: { color: { value: 'transparent' } },
-  fpsLimit: 30,
-  particles: {
-    number: { value: 60, density: { enable: true } },
-    color: { value: ['#FFFAF5', '#FFF8F0', '#FFFFFF'] },
-    shape: { type: 'circle' },
-    opacity: {
-      value: { min: 0.3, max: 0.8 },
-    },
-    size: {
-      value: { min: 1, max: 3 },
-    },
-    move: {
-      enable: true,
-      speed: { min: 0.08, max: 0.25 },
-      direction: 'bottom' as const,
-      random: false,
-      straight: false,
-      outModes: { default: 'out' as const },
-      drift: { min: -0.15, max: 0.15 },
-    },
-    wobble: {
-      enable: true,
-      distance: 5,
-      speed: { min: -0.3, max: 0.3 },
-    },
-    shadow: {
-      enable: true,
-      color: '#FFFFFF',
-      blur: 3,
-      offset: { x: 0, y: 0 },
-    },
-  },
-  detectRetina: true,
-})
-
 // Sakura configuration - cherry blossom petals (very slow, dreamy falling)
-const getSakuraConfig = (): ISourceOptions => ({
+const getSakuraConfig = (mode: 'light' | 'dark' = 'dark'): ISourceOptions => {
+  const minOpacity = mode === 'light' ? 0.25 : 0.5
+  const maxOpacity = mode === 'light' ? 0.5 : 0.85
+  return {
   fullScreen: false,
   background: { color: { value: 'transparent' } },
   fpsLimit: 30,
@@ -121,7 +85,7 @@ const getSakuraConfig = (): ISourceOptions => ({
       },
     },
     opacity: {
-      value: { min: 0.5, max: 0.85 },
+      value: { min: minOpacity, max: maxOpacity },
     },
     size: {
       value: { min: 6, max: 12 },
@@ -157,52 +121,8 @@ const getSakuraConfig = (): ISourceOptions => ({
     },
   },
   detectRetina: true,
-})
-
-// Aurora stars configuration - twinkling night sky
-const getAuroraStarsConfig = (): ISourceOptions => ({
-  fullScreen: false,
-  background: { color: { value: 'transparent' } },
-  fpsLimit: 60,
-  particles: {
-    number: { value: 100, density: { enable: true } },
-    color: { value: '#FFFFFF' },
-    shape: { type: 'circle' },
-    opacity: {
-      value: { min: 0.1, max: 1 },
-      animation: {
-        enable: true,
-        speed: 1,
-        sync: false,
-        mode: 'random' as const,
-      },
-    },
-    size: {
-      value: { min: 0.5, max: 2.5 },
-      animation: {
-        enable: true,
-        speed: 2,
-        sync: false,
-      },
-    },
-    move: {
-      enable: true,
-      speed: 0.1,
-      direction: 'none' as const,
-      random: true,
-      straight: false,
-      outModes: { default: 'bounce' as const },
-    },
-    twinkle: {
-      particles: {
-        enable: true,
-        frequency: 0.05,
-        opacity: 1,
-      },
-    },
-  },
-  detectRetina: true,
-})
+  }
+}
 
 // Mist particles configuration (smaller, subtle wisps)
 const getMistConfig = (): ISourceOptions => ({
@@ -234,81 +154,10 @@ const getMistConfig = (): ISourceOptions => ({
   detectRetina: true,
 })
 
-// Rain configuration - gentle rainfall (very slow, calming)
-const getRainConfig = (): ISourceOptions => ({
-  fullScreen: false,
-  background: { color: { value: 'transparent' } },
-  fpsLimit: 30,
-  particles: {
-    number: { value: 80, density: { enable: true } },
-    color: { value: ['#8AA8C0', '#A0B8D0', '#B8D0E8'] },
-    shape: { type: 'circle' },
-    opacity: {
-      value: { min: 0.15, max: 0.4 },
-    },
-    size: {
-      value: { min: 1, max: 2 },
-    },
-    move: {
-      enable: true,
-      speed: { min: 0.8, max: 1.5 },
-      direction: 'bottom' as const,
-      straight: true,
-      outModes: { default: 'out' as const },
-    },
-    life: {
-      duration: { value: 0 },
-    },
-  },
-  detectRetina: true,
-})
-
-// Stars configuration - twinkling cosmos (very slow drift)
-const getStarsConfig = (): ISourceOptions => ({
-  fullScreen: false,
-  background: { color: { value: 'transparent' } },
-  fpsLimit: 30,
-  particles: {
-    number: { value: 120, density: { enable: true } },
-    color: { value: ['#FFFFFF', '#E8E8FF', '#FFE8F0', '#E8F0FF'] },
-    shape: { type: 'circle' },
-    opacity: {
-      value: { min: 0.1, max: 0.9 },
-      animation: {
-        enable: true,
-        speed: 0.3,
-        sync: false,
-        mode: 'random' as const,
-      },
-    },
-    size: {
-      value: { min: 0.5, max: 2 },
-      animation: {
-        enable: true,
-        speed: 0.5,
-        sync: false,
-      },
-    },
-    move: {
-      enable: true,
-      speed: 0.02,
-      direction: 'none' as const,
-      random: true,
-      outModes: { default: 'bounce' as const },
-    },
-    twinkle: {
-      particles: {
-        enable: true,
-        frequency: 0.03,
-        opacity: 1,
-      },
-    },
-  },
-  detectRetina: true,
-})
-
 // Dust motes configuration - floating particles near candlelight
-const getDustConfig = (): ISourceOptions => ({
+const getDustConfig = (mode: 'light' | 'dark' = 'dark'): ISourceOptions => {
+  const maxOpacity = mode === 'light' ? 0.3 : 0.4
+  return {
   fullScreen: false,
   background: { color: { value: 'transparent' } },
   fpsLimit: 30,
@@ -317,7 +166,7 @@ const getDustConfig = (): ISourceOptions => ({
     color: { value: ['#FFE0B0', '#FFD090', '#FFC070'] },
     shape: { type: 'circle' },
     opacity: {
-      value: { min: 0.1, max: 0.4 },
+      value: { min: 0.1, max: maxOpacity },
       animation: {
         enable: true,
         speed: 0.2,
@@ -343,10 +192,13 @@ const getDustConfig = (): ISourceOptions => ({
     },
   },
   detectRetina: true,
-})
+  }
+}
 
 // Foam configuration - floating sea foam/bubbles
-const getFoamConfig = (): ISourceOptions => ({
+const getFoamConfig = (mode: 'light' | 'dark' = 'dark'): ISourceOptions => {
+  const maxOpacity = mode === 'light' ? 0.35 : 0.5
+  return {
   fullScreen: false,
   background: { color: { value: 'transparent' } },
   fpsLimit: 30,
@@ -355,7 +207,7 @@ const getFoamConfig = (): ISourceOptions => ({
     color: { value: ['#B0E0F0', '#C8E8F8', '#E0F4FF'] },
     shape: { type: 'circle' },
     opacity: {
-      value: { min: 0.2, max: 0.5 },
+      value: { min: 0.2, max: maxOpacity },
       animation: {
         enable: true,
         speed: 0.15,
@@ -380,101 +232,13 @@ const getFoamConfig = (): ISourceOptions => ({
     },
   },
   detectRetina: true,
-})
-
-// Dandelion seeds configuration - soft blurry floating fluff
-const getDandelionConfig = (): ISourceOptions => ({
-  fullScreen: false,
-  background: { color: { value: 'transparent' } },
-  fpsLimit: 30,
-  particles: {
-    number: { value: 18, density: { enable: true } },
-    color: { value: ['#FFFFFF', '#FFF8E8', '#FFFDF5'] },
-    shape: { type: 'circle' },
-    opacity: {
-      value: { min: 0.2, max: 0.5 },
-    },
-    size: {
-      value: { min: 4, max: 10 },
-    },
-    move: {
-      enable: true,
-      speed: { min: 0.03, max: 0.1 },
-      direction: 'top-right' as const,
-      random: true,
-      straight: false,
-      outModes: { default: 'out' as const },
-      drift: { min: -0.1, max: 0.1 },
-    },
-    wobble: {
-      enable: true,
-      distance: 8,
-      speed: { min: -0.2, max: 0.2 },
-    },
-    shadow: {
-      enable: true,
-      color: '#FFFFFF',
-      blur: 8,
-      offset: { x: 0, y: 0 },
-    },
-  },
-  detectRetina: true,
-})
-
-// Snowflakes configuration - peaceful evening snowfall (very slow, straight down)
-const getSnowflakesConfig = (): ISourceOptions => ({
-  fullScreen: false,
-  background: { color: { value: 'transparent' } },
-  fpsLimit: 30,
-  particles: {
-    number: { value: 50, density: { enable: true } },
-    color: { value: '#FFFFFF' },
-    shape: {
-      type: 'image',
-      options: {
-        image: [
-          {
-            // 6-point snowflake
-            src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjRkZGRkZGIj48cGF0aCBkPSJNMTIgMnYyME0yIDEyaDIwTTQuOTMgNC45M2wxNC4xNCAxNC4xNE0xOS4wNyA0LjkzTDQuOTMgMTkuMDciIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjIiIGZpbGw9IiNGRkZGRkYiLz48L3N2Zz4=',
-            width: 24,
-            height: 24,
-          },
-          {
-            // Simple star snowflake
-            src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIj48cGF0aCBkPSJNMTAgMHYyME0wIDEwaDIwTTIuOTMgMi45M2wxNC4xNCAxNC4xNE0xNy4wNyAyLjkzTDIuOTMgMTcuMDciIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==',
-            width: 20,
-            height: 20,
-          },
-        ],
-      },
-    },
-    opacity: {
-      value: { min: 0.4, max: 0.85 },
-    },
-    size: {
-      value: { min: 4, max: 8 },
-    },
-    move: {
-      enable: true,
-      speed: { min: 0.2, max: 0.5 },
-      direction: 'bottom' as const,
-      straight: true,
-      outModes: { default: 'out' as const },
-    },
-    rotate: {
-      value: { min: 0, max: 360 },
-      animation: {
-        enable: true,
-        speed: 0.3,
-        sync: false,
-      },
-    },
-  },
-  detectRetina: true,
-})
+  }
+}
 
 // Sunbeam configuration - warm pollen-like motes drifting in afternoon light
-const getSunbeamConfig = (): ISourceOptions => ({
+const getSunbeamConfig = (mode: 'light' | 'dark' = 'dark'): ISourceOptions => {
+  const maxOpacity = mode === 'light' ? 0.4 : 0.5
+  return {
   fullScreen: false,
   background: { color: { value: 'transparent' } },
   fpsLimit: 30,
@@ -483,7 +247,7 @@ const getSunbeamConfig = (): ISourceOptions => ({
     color: { value: ['#F5C078', '#E8945A', '#FFD4A8', '#F2A06B'] },
     shape: { type: 'circle' },
     opacity: {
-      value: { min: 0.15, max: 0.5 },
+      value: { min: 0.15, max: maxOpacity },
       animation: {
         enable: true,
         speed: 0.3,
@@ -513,6 +277,140 @@ const getSunbeamConfig = (): ISourceOptions => ({
       color: '#F5C078',
       blur: 6,
       offset: { x: 0, y: 0 },
+    },
+  },
+  detectRetina: true,
+  }
+}
+
+// Embers configuration - rising warm embers for Hearth theme
+const getEmbersConfig = (): ISourceOptions => ({
+  fullScreen: false,
+  background: { color: { value: 'transparent' } },
+  fpsLimit: 30,
+  particles: {
+    number: { value: 40, density: { enable: true } },
+    color: { value: ['#E8A050', '#FFD090', '#C8742C'] },
+    shape: { type: 'circle' },
+    opacity: {
+      value: { min: 0.2, max: 0.7 },
+      animation: {
+        enable: true,
+        speed: 0.4,
+        sync: false,
+        mode: 'random' as const,
+      },
+    },
+    size: {
+      value: { min: 1.5, max: 4 },
+    },
+    move: {
+      enable: true,
+      speed: { min: 0.15, max: 0.4 },
+      direction: 'top' as const,
+      random: true,
+      straight: false,
+      outModes: { default: 'out' as const },
+      drift: { min: -0.15, max: 0.15 },
+    },
+    shadow: {
+      enable: true,
+      color: '#E8A050',
+      blur: 8,
+      offset: { x: 0, y: 0 },
+    },
+  },
+  detectRetina: true,
+})
+
+// Gold flecks configuration - drifting gold leaf flakes for Midnight theme
+const getGoldFlecksConfig = (): ISourceOptions => ({
+  fullScreen: false,
+  background: { color: { value: 'transparent' } },
+  fpsLimit: 30,
+  particles: {
+    number: { value: 25, density: { enable: true } },
+    color: { value: ['#C9A04A', '#F2D488', '#E0BC68'] },
+    shape: { type: 'square' },
+    opacity: {
+      value: { min: 0.15, max: 0.5 },
+      animation: {
+        enable: true,
+        speed: 0.2,
+        sync: false,
+        mode: 'random' as const,
+      },
+    },
+    size: {
+      value: { min: 2, max: 5 },
+    },
+    move: {
+      enable: true,
+      speed: { min: 0.08, max: 0.2 },
+      direction: 'bottom' as const,
+      random: true,
+      straight: false,
+      outModes: { default: 'out' as const },
+      drift: { min: -0.1, max: 0.1 },
+    },
+    rotate: {
+      value: { min: 0, max: 360 },
+      animation: {
+        enable: true,
+        speed: 4,
+        sync: false,
+      },
+    },
+    shadow: {
+      enable: true,
+      color: '#C9A04A',
+      blur: 4,
+      offset: { x: 0, y: 0 },
+    },
+  },
+  detectRetina: true,
+})
+
+// Leaves configuration - gently falling leaves for Sage and Garden themes
+const getLeavesConfig = (color: string, count: number): ISourceOptions => ({
+  fullScreen: false,
+  background: { color: { value: 'transparent' } },
+  fpsLimit: 30,
+  particles: {
+    number: { value: count, density: { enable: true } },
+    color: { value: [color] },
+    shape: {
+      type: 'image',
+      options: {
+        image: [
+          {
+            src: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTQiIHZpZXdCb3g9IjAgMCAxMCAxNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNSwxIEMyLDMgMSw3IDUsMTMgQzksNyA4LDMgNSwxIFoiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
+            width: 10,
+            height: 14,
+          },
+        ],
+      },
+    },
+    opacity: {
+      value: { min: 0.2, max: 0.4 },
+    },
+    size: {
+      value: { min: 5, max: 10 },
+    },
+    move: {
+      enable: true,
+      speed: { min: 0.1, max: 0.3 },
+      direction: 'bottom' as const,
+      outModes: { default: 'out' as const },
+      drift: { min: -0.3, max: 0.3 },
+    },
+    rotate: {
+      value: { min: 0, max: 360 },
+      animation: {
+        enable: true,
+        speed: 3,
+        sync: false,
+      },
     },
   },
   detectRetina: true,
@@ -884,33 +782,27 @@ function BackgroundComponent() {
   const particlesLoaded = useCallback(async () => {}, [])
 
   const particleConfig = useMemo(() => {
+    const mode = theme.mode
     if (theme.particles === 'fireflies') return getFirefliesConfig()
-    if (theme.particles === 'snow') return getSnowConfig()
-    if (theme.particles === 'sakura') return getSakuraConfig()
-    if (theme.particles === 'aurora') return getAuroraStarsConfig()
+    if (theme.particles === 'sakura') return getSakuraConfig(mode)
     if (theme.particles === 'mist') return getMistConfig()
-    if (theme.particles === 'rain') return getRainConfig()
-    if (theme.particles === 'stars') return getStarsConfig()
-    if (theme.particles === 'dust') return getDustConfig()
-    if (theme.particles === 'foam') return getFoamConfig()
-    if (theme.particles === 'snowflakes') return getSnowflakesConfig()
-    if (theme.particles === 'dandelion') return getDandelionConfig()
-    if (theme.particles === 'sunbeam') return getSunbeamConfig()
+    if (theme.particles === 'dust') return getDustConfig(mode)
+    if (theme.particles === 'foam') return getFoamConfig(mode)
+    if (theme.particles === 'sunbeam') return getSunbeamConfig(mode)
+    if (theme.particles === 'embers') return getEmbersConfig()
+    if (theme.particles === 'goldFlecks') return getGoldFlecksConfig()
+    if (theme.particles === 'leaves') {
+      return getLeavesConfig(theme.accent.primary, 18)
+    }
     return getFirefliesConfig()
-  }, [theme.particles, themeName])
+  }, [theme.particles, theme.mode, theme.accent.primary])
 
   if (!mounted) return null
 
-  const isNorthernLights = theme.particles === 'aurora'
   const isMistyMountains = theme.particles === 'mist'
   const isCherryBlossom = theme.particles === 'sakura'
-  const isWinterSunset = theme.particles === 'snow'
-  const isGentleRain = theme.particles === 'rain'
-  const isCosmos = theme.particles === 'stars'
   const isCandlelight = theme.particles === 'dust'
   const isOceanTwilight = theme.particles === 'foam'
-  const isQuietSnow = theme.particles === 'snowflakes'
-  const isHobbiton = theme.particles === 'dandelion'
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -921,33 +813,6 @@ function BackgroundComponent() {
       {animationsEnabled && (
       <>
       {/* Theme-specific ambient effects */}
-      {isNorthernLights && (
-        <>
-          {/* CSS-based aurora (calm, elegant) */}
-          <CssAurora />
-
-          {/* Ambient glow */}
-          <motion.div
-            className="absolute"
-            style={{
-              top: '5%',
-              left: '20%',
-              width: '60%',
-              height: '40%',
-              background: 'radial-gradient(ellipse at 50% 50%, rgba(78, 204, 163, 0.12) 0%, transparent 70%)',
-              filter: 'blur(40px)',
-            }}
-            animate={{ opacity: [0.5, 0.8, 0.5], scale: [1, 1.1, 1] }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Shooting stars */}
-          <ShootingStar delay={3} />
-          <ShootingStar delay={12} />
-          <ShootingStar delay={25} />
-        </>
-      )}
-
       {isMistyMountains && (
         <>
           {/* Ambient mountain glow */}
@@ -1013,33 +878,6 @@ function BackgroundComponent() {
         </>
       )}
 
-      {isWinterSunset && (
-        <>
-          {/* Warm sunset glow */}
-          <motion.div
-            className="absolute"
-            style={{
-              top: '-15%',
-              right: '-15%',
-              width: '75%',
-              height: '65%',
-              background: 'radial-gradient(ellipse at center, rgba(242, 200, 121, 0.22) 0%, rgba(232, 148, 90, 0.12) 45%, transparent 70%)',
-            }}
-            animate={{ opacity: [0.7, 1, 0.7], scale: [1, 1.05, 1] }}
-            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Horizon warmth */}
-          <div
-            className="absolute bottom-0 left-0 right-0"
-            style={{
-              height: '35%',
-              background: 'linear-gradient(180deg, transparent 0%, rgba(232, 148, 90, 0.06) 50%, rgba(242, 200, 121, 0.1) 100%)',
-            }}
-          />
-        </>
-      )}
-
       {/* Rivendell forest glow (default) */}
       {theme.particles === 'fireflies' && (
         <>
@@ -1081,206 +919,6 @@ function BackgroundComponent() {
             <ellipse cx="160" cy="80" rx="7" ry="11" fill="#5E8B5A" transform="rotate(30, 160, 80)" />
             <ellipse cx="145" cy="60" rx="6" ry="9" fill="#5E8B5A" transform="rotate(-20, 145, 60)" />
           </motion.svg>
-        </>
-      )}
-
-      {/* Hobbiton/Shire ambience - sunny day */}
-      {isHobbiton && (
-        <>
-          {/* Sunny sky glow */}
-          <motion.div
-            className="absolute"
-            style={{
-              top: '-15%',
-              left: '20%',
-              width: '60%',
-              height: '45%',
-              background: 'radial-gradient(ellipse at center, rgba(135, 206, 235, 0.12) 0%, rgba(176, 226, 255, 0.06) 40%, transparent 70%)',
-            }}
-            animate={{ opacity: [0.6, 0.8, 0.6] }}
-            transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Warm sunlight from top-right */}
-          <motion.div
-            className="absolute"
-            style={{
-              top: '-10%',
-              right: '-5%',
-              width: '50%',
-              height: '40%',
-              background: 'radial-gradient(ellipse at center, rgba(255, 245, 180, 0.15) 0%, rgba(255, 240, 150, 0.06) 50%, transparent 70%)',
-            }}
-            animate={{ opacity: [0.7, 0.9, 0.7], scale: [1, 1.03, 1] }}
-            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Rolling green hills */}
-          <svg className="absolute bottom-0 left-0 w-full h-[40%]" viewBox="0 0 100 40" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="hill-sunny-1" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#2D5A30" stopOpacity="0.5" />
-                <stop offset="100%" stopColor="#1A3A1C" stopOpacity="0.7" />
-              </linearGradient>
-              <linearGradient id="hill-sunny-2" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#264D28" stopOpacity="0.65" />
-                <stop offset="100%" stopColor="#153518" stopOpacity="0.85" />
-              </linearGradient>
-              <linearGradient id="hill-sunny-3" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#1F4020" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#0F2510" stopOpacity="1" />
-              </linearGradient>
-            </defs>
-            {/* Back hill - lighter */}
-            <path d="M0,28 Q18,16 35,22 T65,18 T90,24 L100,22 L100,40 L0,40 Z" fill="url(#hill-sunny-1)" />
-            {/* Middle hill */}
-            <path d="M0,34 Q22,22 45,28 T75,24 T100,30 L100,40 L0,40 Z" fill="url(#hill-sunny-2)" />
-            {/* Front hill */}
-            <path d="M0,40 Q28,30 55,35 T85,32 L100,36 L100,40 L0,40 Z" fill="url(#hill-sunny-3)" />
-          </svg>
-
-          {/* River shimmer at bottom */}
-          <motion.div
-            className="absolute"
-            style={{
-              bottom: '5%',
-              left: '0%',
-              width: '100%',
-              height: '12%',
-              background: 'linear-gradient(90deg, transparent 0%, rgba(100, 180, 220, 0.08) 20%, rgba(120, 200, 240, 0.12) 50%, rgba(100, 180, 220, 0.08) 80%, transparent 100%)',
-              filter: 'blur(15px)',
-            }}
-            animate={{ opacity: [0.4, 0.7, 0.4], x: [-10, 10, -10] }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* River sparkles */}
-          <motion.div
-            className="absolute"
-            style={{
-              bottom: '8%',
-              left: '30%',
-              width: '40%',
-              height: '6%',
-              background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.06) 75%, transparent 100%)',
-              filter: 'blur(8px)',
-            }}
-            animate={{ opacity: [0.3, 0.6, 0.3], scaleX: [1, 1.1, 1] }}
-            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Distant green glow - meadow feel */}
-          <motion.div
-            className="absolute"
-            style={{
-              bottom: '20%',
-              left: '10%',
-              width: '80%',
-              height: '25%',
-              background: 'radial-gradient(ellipse at 50% 80%, rgba(100, 180, 100, 0.06) 0%, transparent 60%)',
-              filter: 'blur(30px)',
-            }}
-            animate={{ opacity: [0.4, 0.6, 0.4] }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        </>
-      )}
-
-      {/* Gentle Rain ambience */}
-      {isGentleRain && (
-        <>
-          {/* Distant lightning glow (very subtle, occasional) */}
-          <motion.div
-            className="absolute"
-            style={{
-              top: '0%',
-              left: '0%',
-              width: '100%',
-              height: '50%',
-              background: 'radial-gradient(ellipse at 30% 20%, rgba(180, 200, 220, 0.08) 0%, transparent 60%)',
-              filter: 'blur(60px)',
-            }}
-            animate={{ opacity: [0, 0, 0.15, 0.05, 0, 0, 0, 0, 0, 0] }}
-            transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Ambient overcast glow */}
-          <motion.div
-            className="absolute"
-            style={{
-              top: '-10%',
-              left: '-10%',
-              width: '120%',
-              height: '40%',
-              background: 'linear-gradient(180deg, rgba(107, 143, 173, 0.1) 0%, rgba(107, 143, 173, 0.03) 100%)',
-              filter: 'blur(40px)',
-            }}
-            animate={{ opacity: [0.5, 0.7, 0.5] }}
-            transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Window condensation effect - subtle */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'radial-gradient(ellipse at 50% 100%, rgba(107, 143, 173, 0.04) 0%, transparent 50%)',
-            }}
-          />
-        </>
-      )}
-
-      {/* Cosmos ambience */}
-      {isCosmos && (
-        <>
-          {/* Nebula glow - purple/blue */}
-          <motion.div
-            className="absolute"
-            style={{
-              top: '10%',
-              right: '-5%',
-              width: '50%',
-              height: '45%',
-              background: 'radial-gradient(ellipse at center, rgba(123, 104, 238, 0.08) 0%, rgba(157, 140, 255, 0.04) 40%, transparent 70%)',
-              filter: 'blur(60px)',
-            }}
-            animate={{ opacity: [0.4, 0.7, 0.4], scale: [1, 1.1, 1], x: [0, 10, 0] }}
-            transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Nebula glow - pink hint */}
-          <motion.div
-            className="absolute"
-            style={{
-              top: '25%',
-              left: '5%',
-              width: '40%',
-              height: '35%',
-              background: 'radial-gradient(ellipse at center, rgba(255, 140, 180, 0.05) 0%, transparent 60%)',
-              filter: 'blur(50px)',
-            }}
-            animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.05, 1] }}
-            transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut', delay: 5 }}
-          />
-
-          {/* Distant galaxy band */}
-          <motion.div
-            className="absolute"
-            style={{
-              top: '35%',
-              left: '-10%',
-              width: '120%',
-              height: '15%',
-              background: 'linear-gradient(90deg, transparent 0%, rgba(200, 180, 255, 0.03) 30%, rgba(200, 180, 255, 0.05) 50%, rgba(200, 180, 255, 0.03) 70%, transparent 100%)',
-              filter: 'blur(20px)',
-              transform: 'rotate(-5deg)',
-            }}
-            animate={{ opacity: [0.4, 0.6, 0.4] }}
-            transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Shooting star - rare */}
-          <ShootingStar delay={8} />
-          <ShootingStar delay={30} />
         </>
       )}
 
@@ -1397,72 +1035,6 @@ function BackgroundComponent() {
             }}
             animate={{ opacity: [0.6, 0.8, 0.6], scale: [1, 1.05, 1] }}
             transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        </>
-      )}
-
-      {/* Quiet Snow ambience */}
-      {isQuietSnow && (
-        <>
-          {/* Soft moonlight from above */}
-          <motion.div
-            className="absolute"
-            style={{
-              top: '-10%',
-              left: '30%',
-              width: '40%',
-              height: '35%',
-              background: 'radial-gradient(ellipse at center, rgba(200, 216, 232, 0.1) 0%, rgba(200, 216, 232, 0.04) 40%, transparent 70%)',
-              filter: 'blur(50px)',
-            }}
-            animate={{ opacity: [0.5, 0.7, 0.5] }}
-            transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Distant treeline silhouette hint */}
-          <div
-            className="absolute bottom-0 left-0 right-0"
-            style={{
-              height: '20%',
-              background: 'linear-gradient(180deg, transparent 0%, rgba(14, 18, 24, 0.4) 100%)',
-            }}
-          />
-
-          {/* Snow ground reflection */}
-          <motion.div
-            className="absolute"
-            style={{
-              bottom: '0%',
-              left: '-5%',
-              width: '110%',
-              height: '25%',
-              background: 'linear-gradient(180deg, transparent 0%, rgba(200, 216, 232, 0.04) 50%, rgba(224, 238, 248, 0.08) 100%)',
-            }}
-            animate={{ opacity: [0.6, 0.8, 0.6] }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Occasional soft glow (like distant window) */}
-          <motion.div
-            className="absolute"
-            style={{
-              bottom: '15%',
-              right: '10%',
-              width: '30px',
-              height: '40px',
-              background: 'radial-gradient(ellipse at center, rgba(255, 220, 160, 0.12) 0%, transparent 70%)',
-              filter: 'blur(8px)',
-            }}
-            animate={{ opacity: [0.3, 0.5, 0.3] }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Cold atmosphere overlay */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'radial-gradient(ellipse at 50% 30%, rgba(136, 168, 200, 0.03) 0%, transparent 60%)',
-            }}
           />
         </>
       )}
