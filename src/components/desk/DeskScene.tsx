@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useLayoutMode } from '@/hooks/useMediaQuery'
-import BookSpread from './BookSpread'
+import BookSpread, { type BookSpreadHandle } from './BookSpread'
 import { useDiaryCover } from '@/hooks/useDiaryCover'
+import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 
 // Pre-generate random particle data at module level to keep render pure
 const DUST_PARTICLES = Array.from({ length: 12 }, () => ({
@@ -26,7 +27,8 @@ export default function DeskScene() {
   const { theme } = useThemeStore()
   const layoutMode = useLayoutMode()
   const [scaleForTablet, setScaleForTablet] = useState(1)
-  const { coverState, markOpen: _markOpen, closeCover } = useDiaryCover()
+  const { coverState, markOpen, closeCover } = useDiaryCover()
+  const bookSpreadRef = useRef<BookSpreadHandle | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -44,6 +46,22 @@ export default function DeskScene() {
   const handleMobileClose = useCallback(() => {
     window.history.back()
   }, [])
+
+  const colors = getGlassDiaryColors(theme)
+
+  // Minimal v1 cover — solid theme-derived color matching the open
+  // book's hardcover frame. Decorations come later.
+  const coverContent = (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background: colors.cover,
+        border: `1px solid ${colors.coverBorder}`,
+        borderRadius: 4,
+      }}
+    />
+  )
 
   if (!mounted) return null
 
@@ -120,7 +138,18 @@ export default function DeskScene() {
               transformOrigin: 'center center',
             }}
           >
-            <BookSpread />
+            <BookSpread
+              ref={bookSpreadRef}
+              coverContent={coverContent}
+              coverInitiallyShown={coverState === 'closed'}
+              onCoverFlipped={(toCover) => {
+                if (toCover) {
+                  closeCover()
+                } else {
+                  markOpen()
+                }
+              }}
+            />
           </motion.div>
 
           {/* Floating dust particles */}
@@ -154,7 +183,12 @@ export default function DeskScene() {
 
           {coverState === 'open' && (
             <button
-              onClick={closeCover}
+              onClick={() => {
+                bookSpreadRef.current?.flipToCover()
+                // Safety: also flip state directly in case the library is already on page 0
+                // and onCoverFlipped doesn't re-fire.
+                closeCover()
+              }}
               aria-label="Close diary"
               title="Close diary"
               style={{
