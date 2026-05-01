@@ -1,0 +1,2671 @@
+<!doctype html>
+<html lang="en" data-theme="rose">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>hearth · letters · themed (rose · sage · ocean)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     THEME TOKENS — driven by data-theme on <html>
+     Values copied verbatim from src/lib/themes.ts
+     ============================================================ */
+  :root[data-theme="rose"] {
+    --bg-1: #FFEEEC; --bg-2: #F8DCD4; --bg-3: #F2D0CC;
+    --text-primary: #3A2025;
+    --text-secondary: #6A4048;
+    --text-muted: #9A7078;
+    --accent-primary: #9A4555;
+    --accent-secondary: #843E4F;
+    --accent-warm: #C2667A;
+    --accent-highlight: #D88898;
+    --particle: #D88898;
+    --paper-1: #FFF6F2;
+    --paper-2: #FBE6DD;
+    --paper-album: #FBE6DD;
+    --shelf: #B05878;
+    --postbox-1: #C2667A;
+    --postbox-2: #9A4555;
+    --postbox-3: #6A2D3A;
+  }
+  :root[data-theme="sage"] {
+    --bg-1: #ECECCE; --bg-2: #DCE0BC; --bg-3: #CED4AC;
+    --text-primary: #2F2D1F;
+    --text-secondary: #5A5A40;
+    --text-muted: #8A8868;
+    --accent-primary: #6B7A4B;
+    --accent-secondary: #5A6840;
+    --accent-warm: #8A9A65;
+    --accent-highlight: #A8B888;
+    --particle: #8A9A65;
+    --paper-1: #F4F0D8;
+    --paper-2: #E2E1C0;
+    --paper-album: #E8E5C8;
+    --shelf: #5C6840;
+    --postbox-1: #8A9A65;
+    --postbox-2: #6B7A4B;
+    --postbox-3: #3F4A28;
+  }
+  :root[data-theme="ocean"] {
+    --bg-1: #ECECE4; --bg-2: #DCDCD4; --bg-3: #CCCCCC;
+    --text-primary: #2A2820;
+    --text-secondary: #54584C;
+    --text-muted: #8A8A78;
+    --accent-primary: #2C5260;
+    --accent-secondary: #1F4250;
+    --accent-warm: #4A7080;
+    --accent-highlight: #7090A0;
+    --particle: #7090A0;
+    --paper-1: #F2F0E8;
+    --paper-2: #DCDDD2;
+    --paper-album: #E0DED2;
+    --shelf: #2A4858;
+    --postbox-1: #4A7080;
+    --postbox-2: #2C5260;
+    --postbox-3: #16323C;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background .8s ease;
+  }
+
+  /* ========== TAB NAV ========== */
+  .nav {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--paper-1);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    padding: 5px;
+    border-radius: 999px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    border: 1px solid var(--paper-2);
+  }
+  .nav button {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 7px 22px 9px;
+    border-radius: 999px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    letter-spacing: 0.6px;
+    cursor: pointer;
+    transition: background .25s, color .25s;
+    text-transform: lowercase;
+  }
+  .nav button:hover { color: var(--text-primary); background: var(--paper-2); }
+  .nav button.active {
+    background: var(--accent-primary);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+    font-weight: 500;
+  }
+
+  /* theme switcher */
+  .theme-switch {
+    position: fixed;
+    top: 18px;
+    right: 22px;
+    z-index: 80;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    background: var(--paper-1);
+    border: 1px solid var(--paper-2);
+    padding: 6px 8px;
+    border-radius: 999px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.10);
+  }
+  .theme-switch span {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: lowercase;
+    margin: 0 6px 0 4px;
+  }
+  .theme-switch button {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: transform .2s, border-color .2s;
+  }
+  .theme-switch button[data-t="rose"]  { background: linear-gradient(135deg, #F8DCD4, #C2667A); }
+  .theme-switch button[data-t="sage"]  { background: linear-gradient(135deg, #DCE0BC, #8A9A65); }
+  .theme-switch button[data-t="ocean"] { background: linear-gradient(135deg, #DCDCD4, #4A7080); }
+  .theme-switch button:hover { transform: scale(1.1); }
+  .theme-switch button.active { border-color: var(--text-primary); }
+
+  .helper {
+    position: fixed;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--paper-1);
+    color: var(--text-secondary);
+    padding: 7px 16px 8px;
+    border-radius: 999px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    z-index: 200;
+    border: 1px solid var(--paper-2);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.10);
+  }
+
+  /* persistent top hint just below the nav */
+  .top-hint {
+    position: absolute;
+    top: 76px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9;
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--text-secondary);
+    letter-spacing: 0.6px;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+  }
+  .top-hint .new-badge {
+    display: inline-block;
+    margin-right: 8px;
+    background: var(--accent-primary);
+    color: #fff;
+    font-style: normal;
+    font-family: 'Caveat', cursive;
+    font-size: 14px;
+    padding: 2px 10px 3px;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    vertical-align: middle;
+    animation: badgePulse 2.4s ease-in-out infinite;
+  }
+  @keyframes badgePulse {
+    0%, 100% { transform: scale(1);    box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
+    50%      { transform: scale(1.06); box-shadow: 0 4px 12px color-mix(in oklab, var(--accent-primary) 60%, transparent); }
+  }
+
+  /* dangling "new" tag from the postbox slot */
+  .new-tag {
+    position: absolute;
+    top: 134px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity .4s ease;
+  }
+  .new-tag.show { opacity: 1; }
+  .new-tag .string {
+    width: 1px;
+    height: 16px;
+    background: rgba(0,0,0,0.5);
+  }
+  .new-tag .label {
+    background: var(--accent-primary);
+    color: #fff;
+    padding: 3px 9px 4px;
+    border-radius: 2px;
+    font-family: 'Caveat', cursive;
+    font-size: 13px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+    transform: rotate(-3deg);
+    border: 1px solid color-mix(in oklab, var(--accent-secondary) 60%, transparent);
+    white-space: nowrap;
+    animation: tagSway 4s ease-in-out infinite;
+    transform-origin: top center;
+  }
+  @keyframes tagSway {
+    0%, 100% { transform: rotate(-3deg); }
+    50%      { transform: rotate(3deg); }
+  }
+
+  /* a soft glow on unread letters when they emerge */
+  .fan-letter.unread {
+    box-shadow:
+      0 8px 24px rgba(0,0,0,0.30),
+      0 0 0 2px color-mix(in oklab, var(--accent-primary) 40%, transparent),
+      0 0 24px color-mix(in oklab, var(--accent-highlight) 50%, transparent);
+    animation: unreadGlow 2.4s ease-in-out infinite;
+  }
+  @keyframes unreadGlow {
+    0%, 100% { filter: brightness(1); }
+    50%      { filter: brightness(1.06); }
+  }
+  .fan-letter.unread .seal {
+    animation: sealPulse 2s ease-in-out infinite;
+  }
+  @keyframes sealPulse {
+    0%, 100% { transform: translate(-50%,-30%) scale(1); }
+    50%      { transform: translate(-50%,-30%) scale(1.12); }
+  }
+
+  /* ============ FIRST-TIME LETTER REVEAL ============ */
+  .reveal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 220;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(ellipse at center, rgba(50, 30, 18, 0.55) 0%, rgba(15, 10, 6, 0.94) 90%);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    perspective: 1600px;
+  }
+  .reveal-overlay.open { display: flex; }
+  .reveal-stage {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    transform-style: preserve-3d;
+  }
+  .reveal-meta {
+    color: rgba(255, 240, 210, 0.85);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 14px;
+    letter-spacing: 2.4px;
+    text-transform: lowercase;
+    text-align: center;
+    opacity: 0;
+    animation: fadeIn 1s ease 0.3s forwards;
+  }
+  .reveal-meta .from {
+    color: var(--accent-glow, #ffd29e);
+    font-family: 'Caveat', cursive;
+    font-size: 18px;
+    font-style: normal;
+    margin: 0 4px;
+    letter-spacing: 0;
+  }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  .reveal-env {
+    position: relative;
+    width: 320px;
+    height: 220px;
+    transform-style: preserve-3d;
+    cursor: pointer;
+    opacity: 0;
+    animation: floatUp 1s cubic-bezier(.2, .9, .3, 1) 0.5s forwards;
+  }
+  @keyframes floatUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .reveal-env::before {
+    /* warm halo */
+    content: '';
+    position: absolute;
+    inset: -60px;
+    background: radial-gradient(circle,
+      rgba(255, 220, 160, 0.35) 0%,
+      rgba(255, 200, 130, 0.15) 35%,
+      transparent 65%);
+    pointer-events: none;
+    animation: haloPulse 4s ease-in-out infinite;
+    z-index: -1;
+  }
+  @keyframes haloPulse {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.08); }
+  }
+
+  .env-back {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(135deg,
+        #f8edd2 0%, #f4ead0 40%, #ead9b0 100%);
+    border-radius: 4px;
+    box-shadow:
+      0 20px 50px rgba(0,0,0,0.55),
+      0 4px 8px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.4);
+    border: 1px solid rgba(80,60,40,0.25);
+  }
+  .env-flap {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 56%;
+    background:
+      linear-gradient(180deg, #f0e2bc, #d8c890 90%);
+    clip-path: polygon(0 0, 50% 100%, 100% 0);
+    border-bottom: 1px solid rgba(80,60,40,0.25);
+    transform-origin: top center;
+    transition: transform 1s cubic-bezier(.5, 0, .3, 1);
+    z-index: 3;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+  .env-flap.opened {
+    transform: rotateX(-178deg);
+  }
+
+  .env-seal {
+    position: absolute;
+    left: 50%; top: 56%;
+    width: 56px; height: 56px;
+    margin-left: -28px;
+    margin-top: -28px;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .env-seal .wax-half {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 50%;
+    background: radial-gradient(circle at 30% 30%, #c44a36, #8b3a2a 70%);
+    box-shadow:
+      inset 0 1px 1px rgba(255,200,180,0.4),
+      inset 0 -3px 4px rgba(0,0,0,0.3),
+      0 1px 3px rgba(0,0,0,0.4);
+    transition: transform 1s cubic-bezier(.4, 0, .2, 1),
+                opacity 1s ease;
+  }
+  .env-seal .wax-half.left {
+    left: 0;
+    border-radius: 50% 0 0 50% / 50% 0 0 50%;
+    transform-origin: right center;
+  }
+  .env-seal .wax-half.right {
+    right: 0;
+    border-radius: 0 50% 50% 0 / 0 50% 50% 0;
+    transform-origin: left center;
+  }
+  .env-seal .wax-half.broken.left {
+    transform: translateX(-50px) translateY(20px) rotate(-30deg);
+    opacity: 0;
+  }
+  .env-seal .wax-half.broken.right {
+    transform: translateX(50px) translateY(20px) rotate(30deg);
+    opacity: 0;
+  }
+  .env-seal .seal-mark {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: rgba(255, 220, 200, 0.6);
+    font-size: 22px;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  .env-seal.broken .seal-mark { opacity: 0; }
+
+  /* tiny wax particles */
+  .wax-particle {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: #8b3a2a;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .wax-particle.fly {
+    animation: particleFly 0.9s ease-out forwards;
+  }
+  @keyframes particleFly {
+    0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.4); }
+  }
+
+  /* the letter itself, hidden inside the envelope */
+  .env-letter {
+    position: absolute;
+    left: 8%; right: 8%;
+    bottom: 8%;
+    height: 70%;
+    background:
+      repeating-linear-gradient(transparent, transparent 22px,
+        rgba(120,90,50,0.15) 22px, rgba(120,90,50,0.15) 23px),
+      var(--paper-cream, #f4ead0);
+    border-radius: 2px;
+    padding: 14px 16px 12px;
+    font-family: 'Caveat', cursive;
+    color: #1f2750;
+    text-align: left;
+    line-height: 23px;
+    overflow: hidden;
+    transform-origin: bottom center;
+    transform: translateY(0) scale(0.85);
+    opacity: 0;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+    transition:
+      transform 1.1s cubic-bezier(.3, .8, .3, 1) 0.6s,
+      opacity 0.8s ease 0.6s,
+      width 0.6s ease 0.6s;
+    z-index: 2;
+  }
+  .env-letter.shown {
+    z-index: 10;
+    opacity: 1;
+    transform: translateY(-220px) scale(2.2);
+    pointer-events: auto;
+  }
+  .env-letter .letter-salutation {
+    font-size: 15px;
+    margin-bottom: 5px;
+  }
+  .env-letter .letter-body {
+    font-size: 11px;
+    line-height: 17px;
+  }
+  .env-letter .letter-sig {
+    margin-top: 8px;
+    font-size: 12px;
+    text-align: right;
+  }
+
+  .reveal-prompt {
+    color: rgba(255, 240, 210, 0.7);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    animation: bob 2.2s ease-in-out infinite;
+    transition: opacity 0.5s ease;
+  }
+  .reveal-prompt.gone { opacity: 0; pointer-events: none; }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); opacity: 0.6; }
+    50%      { transform: translateY(-3px); opacity: 1; }
+  }
+
+  .reveal-close {
+    position: fixed;
+    top: 18px; right: 22px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255, 240, 210, 0.3);
+    color: rgba(255, 240, 210, 0.85);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 230;
+    font-size: 16px;
+    line-height: 1;
+  }
+  .helper b {
+    font-style: normal;
+    color: var(--accent-primary);
+    font-family: 'Caveat', cursive;
+    font-size: 15px;
+  }
+
+  /* ========== VIEWS ========== */
+  .view { display: none; min-height: 100vh; position: relative; }
+  .view.active { display: block; }
+
+  /* ============================================================
+     INBOX VIEW — postbox scene in theme palette
+     ============================================================ */
+  .inbox {
+    background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 50%, var(--bg-3) 100%);
+    overflow: hidden;
+    position: relative;
+    transition: background .8s ease;
+  }
+
+  /* sun-glow — soft horizon light, theme-tinted */
+  .sun {
+    position: absolute;
+    top: 12%;
+    left: 22%;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+      var(--accent-highlight) 0%,
+      color-mix(in oklab, var(--accent-warm) 60%, transparent) 40%,
+      transparent 75%);
+    filter: blur(2px);
+    opacity: 0.9;
+    pointer-events: none;
+    animation: sun-pulse 8s ease-in-out infinite;
+  }
+  @keyframes sun-pulse {
+    0%,100% { opacity: 0.85; transform: scale(1); }
+    50%     { opacity: 1; transform: scale(1.04); }
+  }
+
+  /* far hills silhouette */
+  .hills {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 16%;
+    height: 90px;
+    background: var(--shelf);
+    -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 90' preserveAspectRatio='none'><path d='M0 80 L0 56 Q40 38 80 50 Q120 62 160 42 Q200 22 240 36 Q280 50 320 30 Q360 16 400 32 Q440 48 480 34 Q520 22 560 40 Q600 56 640 42 Q680 26 720 38 Q760 50 800 38 L800 80 Z'/></svg>");
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 90' preserveAspectRatio='none'><path d='M0 80 L0 56 Q40 38 80 50 Q120 62 160 42 Q200 22 240 36 Q280 50 320 30 Q360 16 400 32 Q440 48 480 34 Q520 22 560 40 Q600 56 640 42 Q680 26 720 38 Q760 50 800 38 L800 80 Z'/></svg>");
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    opacity: 0.30;
+    pointer-events: none;
+  }
+  /* small village rooftops on the hills */
+  .village {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: calc(16% + 22px);
+    height: 36px;
+    background: var(--shelf);
+    -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 36' preserveAspectRatio='none'><path d='M0 36 L0 24 L60 24 L60 16 L80 8 L100 16 L100 24 L160 24 L160 12 L180 4 L200 12 L200 24 L260 24 L260 18 L280 12 L300 18 L300 24 L380 24 L380 14 L400 6 L420 14 L420 24 L500 24 L500 16 L520 8 L540 16 L540 24 L620 24 L620 18 L640 10 L660 18 L660 24 L720 24 L720 12 L740 4 L760 12 L760 24 L800 24 L800 36 Z'/></svg>");
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 36' preserveAspectRatio='none'><path d='M0 36 L0 24 L60 24 L60 16 L80 8 L100 16 L100 24 L160 24 L160 12 L180 4 L200 12 L200 24 L260 24 L260 18 L280 12 L300 18 L300 24 L380 24 L380 14 L400 6 L420 14 L420 24 L500 24 L500 16 L520 8 L540 16 L540 24 L620 24 L620 18 L640 10 L660 18 L660 24 L720 24 L720 12 L740 4 L760 12 L760 24 L800 24 L800 36 Z'/></svg>");
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  /* tiny window-glows */
+  .village-windows {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: calc(16% + 26px);
+    height: 12px;
+    background-image:
+      radial-gradient(circle at 10% 60%, var(--accent-warm) 1.4px, transparent 2px),
+      radial-gradient(circle at 23% 50%, var(--accent-warm) 1.2px, transparent 2px),
+      radial-gradient(circle at 38% 60%, var(--accent-warm) 1.4px, transparent 2px),
+      radial-gradient(circle at 52% 50%, var(--accent-warm) 1.5px, transparent 2px),
+      radial-gradient(circle at 68% 60%, var(--accent-warm) 1.2px, transparent 2px),
+      radial-gradient(circle at 82% 55%, var(--accent-warm) 1.4px, transparent 2px),
+      radial-gradient(circle at 92% 60%, var(--accent-warm) 1.2px, transparent 2px);
+    opacity: 0.7;
+    pointer-events: none;
+    filter: drop-shadow(0 0 3px var(--accent-warm));
+  }
+
+  /* ground line */
+  .ground-line {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 16%;
+    height: 1px;
+    background: color-mix(in oklab, var(--text-primary) 30%, transparent);
+    pointer-events: none;
+  }
+
+  /* drifting particles (theme-aware: petals/leaves/foam) */
+  .particle {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0;
+    animation: drift 22s linear infinite;
+  }
+  @keyframes drift {
+    0%   { transform: translate(0, -10vh) rotate(0deg); opacity: 0; }
+    10%  { opacity: 0.8; }
+    100% { transform: translate(-120px, 110vh) rotate(180deg); opacity: 0; }
+  }
+
+  /* scene */
+  .scene {
+    position: relative;
+    z-index: 5;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 8%;
+  }
+
+  .prompt {
+    position: absolute;
+    top: 24%;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: var(--text-primary);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 22px;
+    letter-spacing: 0.6px;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.6);
+    z-index: 6;
+    pointer-events: none;
+    transition: opacity .4s;
+  }
+  .prompt small {
+    display: block;
+    font-size: 13px;
+    margin-top: 6px;
+    opacity: 0.65;
+    letter-spacing: 1px;
+  }
+  .prompt.dim { opacity: 0; }
+
+  /* write card + lamp + postbox row · right side gets more space */
+  .anchor {
+    position: relative;
+    margin-bottom: 70px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 60px;
+    z-index: 7;
+    width: 100%;
+    padding: 0 80px;
+  }
+  /* the write card on the left — narrower zone */
+  .anchor > .write-card {
+    flex: 0 0 360px;
+    text-align: left;
+    margin-bottom: 60px;
+  }
+  /* lamp + postbox on the right — gets the wider zone */
+  .postbox-group {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 80px;
+  }
+
+  /* ============== WRITING DESK (left side) ============== */
+  .desk-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 7;
+  }
+  .desk {
+    position: relative;
+    width: 320px;
+    height: 240px;
+    background:
+      /* wood grain */
+      repeating-linear-gradient(180deg,
+        transparent 0 6px,
+        rgba(80,50,20,0.06) 6px 6.5px),
+      linear-gradient(180deg,
+        color-mix(in oklab, var(--shelf) 30%, var(--paper-2)) 0%,
+        color-mix(in oklab, var(--shelf) 50%, var(--paper-2)) 100%);
+    border: 1px solid color-mix(in oklab, var(--shelf) 55%, transparent);
+    border-radius: 4px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      inset 0 -3px 8px rgba(0,0,0,0.15),
+      0 16px 30px rgba(0,0,0,0.18);
+  }
+  /* desk halo / candle warmth */
+  .desk::before {
+    content: '';
+    position: absolute;
+    inset: -40px;
+    background: radial-gradient(circle at 12% 20%,
+      color-mix(in oklab, var(--accent-warm) 22%, transparent) 0%,
+      transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+  }
+  /* paper sheet on desk */
+  .desk-paper {
+    position: absolute;
+    top: 26%; left: 22%;
+    width: 60%; height: 62%;
+    background: var(--paper-1);
+    border-radius: 1px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.5),
+      0 6px 14px rgba(0,0,0,0.18),
+      0 1px 2px rgba(0,0,0,0.10);
+    transform: rotate(-3.5deg);
+    background-image:
+      repeating-linear-gradient(transparent 0 17px,
+        color-mix(in oklab, var(--shelf) 25%, transparent) 17px 17.5px);
+    padding: 14px 16px;
+    overflow: hidden;
+  }
+  .desk-paper .pen-line {
+    font-family: 'Caveat', cursive;
+    color: var(--text-primary);
+    font-size: 17px;
+    line-height: 17.5px;
+    margin-bottom: 8px;
+  }
+  .desk-paper .pen-line em {
+    font-style: italic;
+    text-decoration: underline dotted;
+    text-decoration-color: color-mix(in oklab, var(--text-primary) 50%, transparent);
+  }
+  .desk-paper .pen-line.short { color: color-mix(in oklab, var(--text-primary) 60%, transparent); }
+  .desk-paper::after {
+    /* dog-ear corner */
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 14px; height: 14px;
+    background: linear-gradient(135deg, transparent 50%, color-mix(in oklab, var(--shelf) 25%, transparent) 50%);
+  }
+  /* fountain pen */
+  .desk-pen {
+    position: absolute;
+    bottom: 14%; right: 6%;
+    width: 92px; height: 8px;
+    background:
+      linear-gradient(90deg,
+        #c8a672 0%,
+        #4a3a28 8%,
+        #1a1410 50%,
+        #c8a672 88%,
+        var(--accent-primary) 95%,
+        transparent 100%);
+    border-radius: 4px;
+    transform: rotate(-22deg);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      0 3px 5px rgba(0,0,0,0.25);
+    z-index: 4;
+  }
+  .desk-pen::after {
+    /* nib */
+    content: '';
+    position: absolute;
+    right: -3px; top: 50%;
+    transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 5px solid var(--accent-primary);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+  /* candle */
+  .desk-candle {
+    position: absolute;
+    top: 22px;
+    left: 20px;
+    width: 14px;
+    height: 38px;
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--paper-1) 70%, white) 0%,
+      var(--paper-1) 50%,
+      var(--paper-2) 100%);
+    border-radius: 2px 2px 1px 1px;
+    box-shadow:
+      inset -2px 0 2px rgba(0,0,0,0.10),
+      inset 2px 0 2px rgba(255,255,255,0.5),
+      0 2px 3px rgba(0,0,0,0.15);
+    z-index: 4;
+  }
+  .desk-candle::before {
+    /* wick */
+    content: '';
+    position: absolute;
+    top: -5px; left: 50%;
+    transform: translateX(-50%);
+    width: 1.5px; height: 5px;
+    background: #2a1f15;
+  }
+  .desk-flame {
+    position: absolute;
+    top: -16px; left: 27px;
+    width: 8px; height: 14px;
+    background: radial-gradient(ellipse at 50% 70%,
+      #fff5e0 0%, #ffd29e 35%, #ff9248 70%, transparent 95%);
+    border-radius: 50% 50% 50% 50% / 70% 70% 30% 30%;
+    filter: blur(0.4px);
+    z-index: 5;
+    transform-origin: bottom center;
+    animation: flicker 1.6s ease-in-out infinite alternate;
+  }
+  @keyframes flicker {
+    0%   { transform: scale(1)         translateY(0)    rotate(-2deg); opacity: 0.92; }
+    35%  { transform: scale(1.05, 0.96) translateY(-1px) rotate(2deg);  opacity: 1; }
+    70%  { transform: scale(0.96, 1.05) translateY(0)    rotate(-1deg); opacity: 0.95; }
+    100% { transform: scale(1.03)       translateY(-1px) rotate(1deg);  opacity: 1; }
+  }
+  .desk-flame::after {
+    /* warm halo around flame */
+    content: '';
+    position: absolute;
+    inset: -22px;
+    background: radial-gradient(circle,
+      color-mix(in oklab, var(--accent-warm) 50%, transparent) 0%,
+      transparent 65%);
+    pointer-events: none;
+  }
+  /* wax stick */
+  .desk-wax {
+    position: absolute;
+    bottom: 20%; left: 8%;
+    width: 28px; height: 6px;
+    background: linear-gradient(90deg,
+      var(--wax) 0%,
+      #b94824 60%,
+      #6a2818 100%);
+    border-radius: 2px;
+    transform: rotate(8deg);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.2);
+    z-index: 4;
+  }
+  .desk-wax::after {
+    content: '';
+    position: absolute;
+    right: -4px; top: 50%;
+    transform: translateY(-50%);
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #d34c3a, var(--wax));
+  }
+
+  .desk-cta {
+    margin-top: 24px;
+    background: var(--accent-primary);
+    color: #fff;
+    border: none;
+    padding: 11px 28px 13px;
+    border-radius: 999px;
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.20);
+    letter-spacing: 0.5px;
+    transition: filter .25s, transform .25s;
+  }
+  .desk-cta:hover {
+    filter: brightness(1.07);
+    transform: translateY(-2px);
+  }
+  .desk-cta-hint {
+    margin-top: 10px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  .desk-cta-hint strong {
+    color: var(--text-primary);
+    font-style: normal;
+    font-family: 'Caveat', cursive;
+    font-size: 15px;
+    margin: 0 2px;
+  }
+
+  /* ========== LAMP — copy of LeftLamp.tsx, ported to inline SVG ========== */
+  .lamp {
+    position: relative;
+    width: 180px;
+    height: 580px;
+    pointer-events: none;
+  }
+  .lamp .halo-1 {
+    position: absolute;
+    left: 50%;
+    top: 5%;
+    width: 280px;
+    height: 280px;
+    margin-left: -140px;
+    background: radial-gradient(circle,
+      color-mix(in oklab, var(--accent-highlight) 33%, transparent) 0%,
+      color-mix(in oklab, var(--accent-warm) 20%, transparent) 25%,
+      color-mix(in oklab, var(--accent-warm) 7%, transparent) 50%,
+      transparent 75%);
+    filter: blur(4px);
+    animation: halo-1 5s ease-in-out infinite 1.2s;
+  }
+  .lamp .halo-2 {
+    position: absolute;
+    left: 50%;
+    top: 8%;
+    width: 140px;
+    height: 140px;
+    margin-left: -70px;
+    background: radial-gradient(circle,
+      color-mix(in oklab, var(--accent-highlight) 53%, transparent) 0%,
+      color-mix(in oklab, var(--accent-highlight) 13%, transparent) 50%,
+      transparent 75%);
+    animation: halo-2 3s ease-in-out infinite 0.6s;
+  }
+  @keyframes halo-1 {
+    0%,100% { opacity: 0.7; transform: scale(1); }
+    50%     { opacity: 1; transform: scale(1.05); }
+  }
+  @keyframes halo-2 {
+    0%,100% { opacity: 0.85; }
+    50%     { opacity: 1; }
+  }
+  .lamp svg { position: absolute; inset: 0; }
+
+  /* ========== POSTBOX (theme-aware) ========== */
+  .postbox-wrap {
+    position: relative;
+    cursor: pointer;
+  }
+  .postbox-wrap::after {
+    content: '';
+    position: absolute;
+    left: -20%; right: -20%;
+    bottom: -8px;
+    height: 14px;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.30), transparent 70%);
+    pointer-events: none;
+  }
+  .postbox {
+    position: relative;
+    width: 154px;
+    height: 420px;
+    transition: transform .35s cubic-bezier(.25,.8,.4,1);
+  }
+  .postbox-wrap:hover .postbox { transform: translateY(-3px); }
+
+  /* the two engraved placards on the postbox face */
+  .pb-controls {
+    position: absolute;
+    top: 246px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 4;
+    width: 102px;
+  }
+  .pb-pill {
+    display: flex;
+    align-items: stretch;
+    background:
+      linear-gradient(180deg,
+        rgba(0,0,0,0.42) 0%,
+        rgba(0,0,0,0.30) 50%,
+        rgba(0,0,0,0.42) 100%);
+    border: 1px solid rgba(0,0,0,0.55);
+    border-top-color: rgba(255,255,255,0.18);
+    border-radius: 3px;
+    box-shadow:
+      inset 0 1px 2px rgba(0,0,0,0.55),
+      inset 0 -1px 0 rgba(255,255,255,0.10),
+      0 1px 0 rgba(255,255,255,0.18);
+    height: 26px;
+    overflow: hidden;
+  }
+  .pb-arrow {
+    background: transparent;
+    border: none;
+    color: rgba(255, 230, 200, 0.55);
+    cursor: pointer;
+    font-size: 10px;
+    padding: 0 7px;
+    line-height: 1;
+    transition: color .15s, background .15s;
+    user-select: none;
+  }
+  .pb-arrow:hover {
+    color: var(--accent-highlight);
+    background: rgba(255, 220, 180, 0.05);
+  }
+  .pb-arrow:disabled {
+    color: rgba(255, 230, 200, 0.18);
+    cursor: not-allowed;
+    background: transparent;
+  }
+  .pb-value {
+    flex: 1;
+    text-align: center;
+    align-self: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    color: rgba(255, 240, 220, 0.95);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow:
+      0 -1px 0 rgba(0,0,0,0.55),
+      0 0 6px color-mix(in oklab, var(--accent-highlight) 35%, transparent);
+    transition: opacity .2s, transform .2s;
+    white-space: nowrap;
+  }
+  .pb-value.flip {
+    animation: pbFlip 0.32s ease;
+  }
+  @keyframes pbFlip {
+    0%   { opacity: 1; transform: translateY(0); }
+    50%  { opacity: 0; transform: translateY(-6px); }
+    51%  { transform: translateY(6px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* caption beneath the postbox — replaces the old dial caption */
+  .postbox-caption {
+    position: relative;
+    z-index: 8;
+    margin-top: 8px;
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 1.2px;
+    color: var(--text-secondary);
+    min-height: 18px;
+  }
+  .postbox-caption .count {
+    color: var(--accent-primary);
+    font-style: normal;
+    font-family: 'Caveat', cursive;
+    font-size: 18px;
+    margin: 0 4px;
+  }
+
+  /* ── Indian-pillar postbox parts ── */
+
+  /* Domed top */
+  .postbox .dome {
+    position: absolute;
+    top: 0; left: 4px; right: 4px;
+    height: 60px;
+    background:
+      radial-gradient(ellipse at 35% 28%,
+        color-mix(in oklab, var(--postbox-1) 70%, white) 0%,
+        var(--postbox-1) 28%,
+        var(--postbox-2) 70%,
+        var(--postbox-3) 100%);
+    border-radius: 60% 60% 6px 6px / 100% 100% 6px 6px;
+    box-shadow:
+      inset 0 5px 10px rgba(255,255,255,0.22),
+      inset 0 -3px 4px rgba(0,0,0,0.30),
+      0 4px 8px rgba(0,0,0,0.28);
+    z-index: 2;
+  }
+  /* Flat black brim/lip just under the dome */
+  .postbox .brim {
+    position: absolute;
+    top: 54px; left: -8px; right: -8px;
+    height: 14px;
+    background:
+      linear-gradient(180deg,
+        #161210 0%,
+        #2a221c 30%,
+        #1a1410 70%,
+        #050505 100%);
+    border-radius: 3px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.18),
+      inset 0 -2px 0 rgba(0,0,0,0.55),
+      0 4px 6px rgba(0,0,0,0.30);
+    z-index: 3;
+  }
+  /* Cylindrical body — horizontal gradient gives roundness */
+  .postbox .body {
+    position: absolute;
+    left: 0; right: 0;
+    top: 64px;
+    bottom: 0;
+    background:
+      linear-gradient(90deg,
+        var(--postbox-3) 0%,
+        var(--postbox-2) 12%,
+        var(--postbox-1) 32%,
+        color-mix(in oklab, var(--postbox-1) 88%, white) 50%,
+        var(--postbox-1) 68%,
+        var(--postbox-2) 88%,
+        var(--postbox-3) 100%);
+    border-radius: 4px 4px 6px 6px;
+    box-shadow:
+      inset 0 0 18px rgba(0,0,0,0.22),
+      0 12px 28px rgba(0,0,0,0.30);
+  }
+
+  /* Arched plate above the slot — "letters" sign */
+  .postbox .slot-hood {
+    position: absolute;
+    top: 86px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 96px;
+    height: 36px;
+    background: linear-gradient(180deg, #2c3236 0%, #0e1112 100%);
+    border-radius: 4px 4px 22px 22px / 4px 4px 16px 16px;
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.20),
+      inset 0 -3px 5px rgba(0,0,0,0.55),
+      0 1px 2px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 4px;
+    z-index: 3;
+  }
+  .postbox .slot-hood span {
+    font-family: 'Caveat', cursive;
+    font-style: italic;
+    color: rgba(225, 225, 220, 0.9);
+    font-size: 17px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  /* The actual slot opening — beneath the hood */
+  .postbox .slot {
+    position: absolute;
+    top: 124px; left: 50%;
+    transform: translateX(-50%);
+    width: 80px; height: 7px;
+    background: #050505;
+    border-radius: 1.5px;
+    box-shadow:
+      inset 0 2px 4px rgba(0,0,0,0.95),
+      0 1px 0 rgba(255,255,255,0.15);
+    z-index: 3;
+  }
+  /* Pin-code-style label below the slot */
+  .postbox .pincode {
+    position: absolute;
+    top: 140px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 240, 220, 0.65);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    z-index: 3;
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.4);
+  }
+  /* Middle horizontal black band */
+  .postbox .band-mid {
+    position: absolute;
+    top: 168px;
+    left: -6px; right: -6px;
+    height: 16px;
+    background:
+      linear-gradient(180deg, #1a1310 0%, #0a0606 60%, #0a0606 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.10),
+      inset 0 -1px 0 rgba(255,255,255,0.05),
+      0 1px 2px rgba(0,0,0,0.4);
+    z-index: 3;
+  }
+  /* Swoosh logo + "hearth post" label */
+  .postbox .swoosh-area {
+    position: absolute;
+    top: 196px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    z-index: 3;
+  }
+  .postbox .swoosh-area svg {
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+  }
+  .postbox .swoosh-area .label {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: rgba(255, 240, 220, 0.82);
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: lowercase;
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.4);
+  }
+  /* Bottom black base ring */
+  .postbox .band-base {
+    position: absolute;
+    bottom: 0;
+    left: -6px; right: -6px;
+    height: 22px;
+    background:
+      linear-gradient(180deg, #1a1310 0%, #0a0606 50%, #0a0606 100%);
+    border-radius: 0 0 6px 6px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.08),
+      0 6px 10px rgba(0,0,0,0.35);
+    z-index: 3;
+  }
+  /* pulse on the slot to invite clicking */
+  .postbox-wrap .pulse {
+    position: absolute;
+    left: 50%; top: 124px;
+    width: 80px; height: 7px;
+    transform: translateX(-50%);
+    border-radius: 2px;
+    box-shadow: 0 0 0 0 var(--accent-highlight);
+    pointer-events: none;
+    animation: pulse 3s ease-out infinite;
+    z-index: 4;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0   color-mix(in oklab, var(--accent-highlight) 50%, transparent); }
+    80%  { box-shadow: 0 0 0 16px color-mix(in oklab, var(--accent-highlight) 0%, transparent); }
+    100% { box-shadow: 0 0 0 0   color-mix(in oklab, var(--accent-highlight) 0%, transparent); }
+  }
+
+  /* ================ POSTAGE DIAL ================ */
+  .dial-wrap {
+    position: relative;
+    z-index: 8;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .dial {
+    position: relative;
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    /* brass/aged-paper plate */
+    background:
+      radial-gradient(circle at 30% 26%,
+        color-mix(in oklab, var(--paper-1) 90%, white) 0%,
+        var(--paper-1) 30%,
+        var(--paper-2) 70%,
+        color-mix(in oklab, var(--accent-warm) 25%, var(--paper-2)) 100%);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklab, var(--accent-secondary) 30%, transparent),
+      inset 0 0 24px rgba(0,0,0,0.10),
+      0 1px 0 color-mix(in oklab, white 70%, transparent),
+      0 12px 30px rgba(0,0,0,0.18);
+  }
+  /* engraved outer ring */
+  .dial::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    border: 1px solid color-mix(in oklab, var(--accent-secondary) 35%, transparent);
+    pointer-events: none;
+  }
+  /* engraved inner ring (separates months from center year) */
+  .dial::after {
+    content: '';
+    position: absolute;
+    inset: 56px;
+    border-radius: 50%;
+    border: 1px dashed color-mix(in oklab, var(--text-muted) 45%, transparent);
+    pointer-events: none;
+  }
+
+  /* fixed pointer at 12 o'clock */
+  .dial-pointer {
+    position: absolute;
+    top: -3px; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 14px solid var(--accent-primary);
+    z-index: 6;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35));
+  }
+  .dial-pointer::after {
+    content: '';
+    position: absolute;
+    top: -3px; left: 50%;
+    transform: translateX(-50%);
+    width: 12px; height: 6px;
+    background: var(--accent-primary);
+    border-radius: 1px 1px 0 0;
+  }
+
+  /* tick marks around the dial */
+  .dial-ticks {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .dial-ticks i {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 1.5px; height: 6px;
+    background: color-mix(in oklab, var(--text-muted) 60%, transparent);
+    transform-origin: center;
+    transform: translate(-50%, -50%) rotate(var(--a)) translateY(-110px);
+  }
+  .dial-ticks i.major { height: 9px; width: 2px; background: color-mix(in oklab, var(--text-primary) 70%, transparent); }
+
+  /* the rotating disc with months */
+  .dial-rotor {
+    position: absolute;
+    inset: 0;
+    transition: transform 0.85s cubic-bezier(.4, 1.5, .45, 1);
+    transform: rotate(var(--rotor-angle, 0deg));
+  }
+  .dial-month {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform-origin: center;
+    transform:
+      translate(-50%, -50%)
+      rotate(var(--angle))
+      translateY(-92px);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 12px;
+    letter-spacing: 2.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color .25s, font-size .25s, font-weight .25s, text-shadow .25s;
+    padding: 4px 6px;
+    user-select: none;
+  }
+  .dial-month:hover { color: var(--text-primary); }
+  .dial-month.active {
+    color: var(--accent-primary);
+    font-weight: 700;
+    font-size: 14px;
+    text-shadow: 0 0 6px color-mix(in oklab, var(--accent-highlight) 60%, transparent);
+  }
+  .dial-month.has-letters .ind {
+    display: block;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--accent-warm);
+    margin: 3px auto 0;
+    box-shadow: 0 0 3px var(--accent-warm);
+  }
+  .dial-month .ind { display: none; }
+  .dial-month.future {
+    color: color-mix(in oklab, var(--text-muted) 35%, transparent);
+    pointer-events: none;
+  }
+
+  /* center year display */
+  .dial-center {
+    position: absolute;
+    inset: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 30%,
+        color-mix(in oklab, white 60%, var(--paper-1)) 0%,
+        var(--paper-1) 70%);
+    box-shadow:
+      inset 0 1px 2px rgba(255,255,255,0.6),
+      inset 0 -2px 6px rgba(0,0,0,0.06);
+  }
+  .year-arrow {
+    background: transparent;
+    border: none;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    pointer-events: auto;
+    padding: 2px 12px;
+    line-height: 1;
+    transition: color .2s, transform .2s;
+    user-select: none;
+  }
+  .year-arrow:hover {
+    color: var(--accent-primary);
+    transform: scale(1.25);
+  }
+  .year-arrow:disabled {
+    color: color-mix(in oklab, var(--text-muted) 30%, transparent);
+    cursor: not-allowed;
+    transform: none;
+  }
+  .year-num {
+    font-family: 'Caveat', cursive;
+    font-size: 36px;
+    color: var(--text-primary);
+    font-weight: 500;
+    letter-spacing: 1px;
+    line-height: 1;
+    margin: 2px 0;
+    transition: opacity .2s;
+  }
+  .year-num.flip {
+    animation: yearFlip 0.4s ease;
+  }
+  @keyframes yearFlip {
+    0%   { opacity: 1; transform: translateY(0); }
+    50%  { opacity: 0; transform: translateY(-10px); }
+    51%  { transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .year-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.7;
+    margin-top: -2px;
+  }
+
+  /* caption beneath the dial */
+  .dial-caption {
+    margin-top: 14px;
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 1.2px;
+    color: var(--text-secondary);
+  }
+  .dial-caption .count {
+    color: var(--accent-primary);
+    font-style: normal;
+    font-family: 'Caveat', cursive;
+    font-size: 16px;
+    margin: 0 4px;
+  }
+
+  /* fanout */
+  .fanout {
+    position: absolute;
+    left: 50%;
+    bottom: 28%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    z-index: 9;
+    pointer-events: none;
+  }
+  .fan-letter {
+    position: absolute;
+    width: 130px; height: 86px;
+    border-radius: 3px;
+    background: var(--paper-1);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.5);
+    border: 1px solid var(--paper-2);
+    transform-origin: bottom center;
+    opacity: 0;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: filter .25s, transform .35s;
+  }
+  .fan-letter:hover { filter: brightness(1.05); }
+  .fan-letter .seal {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 18px; height: 18px;
+    transform: translate(-50%,-30%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, var(--accent-warm), var(--accent-secondary) 70%);
+    box-shadow: 0 1px 1px rgba(0,0,0,0.3);
+  }
+  .fan-letter .addr {
+    position: absolute;
+    left: 12px; top: 14px;
+    font-family: 'Caveat', cursive;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+  .fan-letter .addr small {
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    letter-spacing: 0.4px;
+  }
+  .fan-letter .arrived {
+    position: absolute;
+    bottom: 6px; right: 8px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 9px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--accent-secondary);
+    opacity: 0.7;
+  }
+
+  /* ============================================================
+     SENT VIEW — stamp album in theme palette · single page, no scroll
+     ============================================================ */
+  .sent {
+    background:
+      radial-gradient(ellipse at 50% 0%, var(--paper-1), transparent 60%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    height: 100vh;
+    overflow: hidden;
+    padding: 90px 56px 40px;
+    position: relative;
+    transition: background .8s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  .sent::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+      radial-gradient(rgba(0,0,0,0.03) 1px, transparent 1px);
+    background-size: 4px 4px, 7px 7px;
+    background-position: 0 0, 1px 2px;
+    pointer-events: none;
+  }
+
+  .sent-header {
+    max-width: 1100px;
+    margin: 0 auto 16px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+  .sent-header h2 {
+    margin: 0;
+    font-family: 'Caveat', cursive;
+    font-weight: 500;
+    font-size: 36px;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+  }
+  .sent-header p {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 13px;
+    opacity: 0.85;
+    letter-spacing: 0.3px;
+  }
+  .sent-header p em { color: var(--text-primary); font-style: italic; }
+
+  /* year tabs */
+  .year-tabs {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 0 auto 14px;
+    background: var(--paper-1);
+    border: 1px solid var(--paper-2);
+    padding: 5px;
+    border-radius: 999px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    z-index: 2;
+    width: fit-content;
+  }
+  .year-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 7px 18px 8px;
+    border-radius: 999px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: background .25s, color .25s;
+    white-space: nowrap;
+  }
+  .year-tab:hover { color: var(--text-primary); background: var(--paper-2); }
+  .year-tab.active {
+    background: var(--accent-primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .year-tab .yt-count {
+    font-family: 'Caveat', cursive;
+    font-size: 16px;
+    margin-left: 6px;
+    opacity: 0.85;
+  }
+
+  .album {
+    flex: 1;
+    max-width: 1180px;
+    width: 100%;
+    margin: 0 auto;
+    background:
+      repeating-linear-gradient(
+        180deg,
+        transparent 0 39px,
+        color-mix(in oklab, var(--text-primary) 6%, transparent) 39px 40px),
+      var(--paper-album);
+    border: 1px solid color-mix(in oklab, var(--text-primary) 18%, transparent);
+    border-radius: 4px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.4) inset,
+      0 20px 40px rgba(0,0,0,0.10),
+      0 4px 12px rgba(0,0,0,0.06);
+    padding: 30px 32px 24px;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+  .album::before {
+    content: '— sealed letters —';
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--text-muted);
+    opacity: 0.55;
+    text-transform: lowercase;
+  }
+
+  .stamp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    gap: 22px 14px;
+    padding: 14px 0 6px;
+  }
+
+  .mount {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform .25s ease;
+  }
+  .mount:hover { transform: translateY(-3px); }
+  .mount .corner {
+    position: absolute;
+    width: 12px; height: 12px;
+    background: color-mix(in oklab, var(--paper-1) 75%, transparent);
+    border: 1px solid color-mix(in oklab, var(--text-muted) 50%, transparent);
+    pointer-events: none;
+    z-index: 4;
+  }
+  .mount .corner.tl { top: -3px; left: 6px; transform: rotate(45deg); }
+  .mount .corner.tr { top: -3px; right: 6px; transform: rotate(45deg); }
+  .mount .corner.bl { bottom: 26px; left: 6px; transform: rotate(45deg); }
+  .mount .corner.br { bottom: 26px; right: 6px; transform: rotate(45deg); }
+
+  .stamp {
+    position: relative;
+    width: 100px; height: 130px;
+    background: var(--paper-1);
+    -webkit-mask:
+      radial-gradient(circle at 6px 0, transparent 4px, #000 4.5px) 0 0/12px 100%,
+      radial-gradient(circle at 6px 100%, transparent 4px, #000 4.5px) 0 0/12px 100%,
+      radial-gradient(circle at 0 6px, transparent 4px, #000 4.5px) 0 0/100% 12px,
+      radial-gradient(circle at 100% 6px, transparent 4px, #000 4.5px) 0 0/100% 12px,
+      linear-gradient(#000, #000);
+    -webkit-mask-composite: source-in, source-in, source-in, source-in, source-over;
+    mask:
+      radial-gradient(circle at 6px 0, transparent 4px, #000 4.5px) 0 0/12px 100%,
+      radial-gradient(circle at 6px 100%, transparent 4px, #000 4.5px) 0 0/12px 100%,
+      radial-gradient(circle at 0 6px, transparent 4px, #000 4.5px) 0 0/100% 12px,
+      radial-gradient(circle at 100% 6px, transparent 4px, #000 4.5px) 0 0/100% 12px,
+      linear-gradient(#000, #000);
+    mask-composite: intersect;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.10);
+    overflow: hidden;
+    transform: rotate(var(--tilt, 0deg));
+  }
+  .stamp .frame {
+    position: absolute;
+    inset: 8px;
+    border: 1.5px solid color-mix(in oklab, var(--text-primary) 60%, transparent);
+    border-radius: 2px;
+    padding: 6px 6px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .stamp .denom {
+    align-self: flex-start;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+  }
+  .stamp .icon {
+    font-size: 26px;
+    color: var(--accent-primary);
+    margin: 4px 0;
+    filter: drop-shadow(0 1px 0 rgba(255,255,255,0.4));
+  }
+  .stamp .country {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 7px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .stamp .denom-bottom {
+    font-family: 'Caveat', cursive;
+    font-size: 14px;
+    color: var(--accent-secondary);
+    line-height: 1;
+  }
+  .stamp.delivered .frame::after {
+    content: 'DELIVERED';
+    position: absolute;
+    bottom: 26px;
+    right: -10px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: color-mix(in oklab, var(--text-primary) 60%, transparent);
+    border: 1.5px solid color-mix(in oklab, var(--text-primary) 60%, transparent);
+    padding: 3px 6px;
+    border-radius: 50%;
+    transform: rotate(-12deg);
+    pointer-events: none;
+  }
+  .stamp.delivered::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(15deg, transparent 40%, color-mix(in oklab, var(--text-primary) 35%, transparent) 40%, color-mix(in oklab, var(--text-primary) 35%, transparent) 41.5%, transparent 41.5%),
+      linear-gradient(15deg, transparent 56%, color-mix(in oklab, var(--text-primary) 35%, transparent) 56%, color-mix(in oklab, var(--text-primary) 35%, transparent) 57.5%, transparent 57.5%);
+    pointer-events: none;
+  }
+
+  /* stamp tints — alternate among theme paper variants */
+  .stamp.s-1 { background: var(--paper-1); }
+  .stamp.s-2 { background: var(--paper-2); }
+  .stamp.s-3 { background: color-mix(in oklab, var(--accent-highlight) 18%, var(--paper-1) 82%); }
+  .stamp.s-4 { background: color-mix(in oklab, var(--accent-warm)      14%, var(--paper-1) 86%); }
+
+  .mount .caption {
+    margin-top: 10px;
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.35;
+    max-width: 110px;
+  }
+  .mount .caption strong {
+    display: block;
+    font-style: normal;
+    font-family: 'Caveat', cursive;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin-bottom: 1px;
+  }
+
+  /* receipt modal */
+  .receipt-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 14, 28, 0.45);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+  .receipt-overlay.open { display: flex; }
+  .receipt {
+    background: var(--paper-1);
+    border: 1px dashed color-mix(in oklab, var(--text-muted) 50%, transparent);
+    padding: 28px 32px 26px;
+    border-radius: 3px;
+    width: min(360px, 90vw);
+    box-shadow: 0 30px 70px rgba(0,0,0,0.4);
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    color: var(--text-primary);
+    font-style: italic;
+    position: relative;
+  }
+  .receipt::before {
+    content: '— receipt —';
+    display: block;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--text-muted);
+    opacity: 0.65;
+    margin-bottom: 14px;
+    text-transform: lowercase;
+  }
+  .receipt h3 {
+    font-style: normal;
+    font-family: 'Caveat', cursive;
+    font-size: 28px;
+    margin: 0 0 8px;
+    color: var(--text-primary);
+  }
+  .receipt .field {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin: 6px 2px;
+    border-bottom: 1px dotted color-mix(in oklab, var(--text-muted) 40%, transparent);
+    padding-bottom: 4px;
+  }
+  .receipt .field span:first-child {
+    color: var(--text-muted);
+    text-transform: lowercase;
+    letter-spacing: 1px;
+    font-size: 11px;
+  }
+  .receipt .field span:last-child {
+    color: var(--text-primary);
+    font-style: normal;
+  }
+  .receipt .seal-status {
+    margin-top: 18px;
+    color: var(--accent-primary);
+    font-style: italic;
+    font-size: 13px;
+  }
+  .receipt .seal-status.delivered { color: var(--accent-secondary); }
+  .receipt .peek {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    opacity: 0.65;
+    cursor: pointer;
+    text-decoration: underline dotted;
+  }
+  .receipt .close-btn {
+    position: absolute;
+    top: 10px; right: 12px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+
+  /* ========== WRITE ========== */
+  .write {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-3));
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 32px;
+    text-align: center;
+    transition: background .8s ease;
+  }
+  .write-card {
+    max-width: 540px;
+    color: var(--text-primary);
+  }
+  .write-card .icon-row {
+    font-size: 56px;
+    color: var(--accent-primary);
+    margin-bottom: 14px;
+    letter-spacing: 14px;
+  }
+  .write-card h2 {
+    font-family: 'Caveat', cursive;
+    font-weight: 500;
+    font-size: 44px;
+    margin: 0 0 8px;
+  }
+  .write-card p {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0 0 30px;
+  }
+  .write-cta {
+    background: var(--accent-primary);
+    color: #fff;
+    border: none;
+    padding: 12px 28px 14px;
+    border-radius: 999px;
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.18);
+    letter-spacing: 0.5px;
+  }
+  .write-card .or {
+    margin-top: 30px;
+    font-size: 13px;
+    color: var(--text-muted);
+    opacity: 0.85;
+    font-style: italic;
+  }
+  .write-card .or strong {
+    color: var(--text-primary);
+    font-style: normal;
+    font-family: 'Caveat', cursive;
+    font-size: 16px;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <button class="active" onclick="showView('inbox', this)">letters</button>
+  <button onclick="showView('sent', this)">sent</button>
+</div>
+
+<div class="theme-switch">
+  <span>theme</span>
+  <button data-t="rose" class="active" title="Rose"></button>
+  <button data-t="sage" title="Sage"></button>
+  <button data-t="ocean" title="Ocean"></button>
+</div>
+
+<div class="helper">demo · pick a month at the bottom · switch theme top-right</div>
+
+<!-- ============ INBOX ============ -->
+<section class="view inbox active" id="view-inbox">
+  <div class="sun"></div>
+  <div class="hills"></div>
+  <div class="village"></div>
+  <div class="village-windows"></div>
+  <div class="ground-line"></div>
+
+  <!-- persistent top hint -->
+  <div class="top-hint" id="topHint">
+    <span class="new-badge" id="newBadge">2 new</span>
+    click the postbox to reveal your letters
+  </div>
+
+  <div class="prompt" id="prompt" style="display:none">
+    open the letterbox to find your post
+    <small>· click a month, or click the box ·</small>
+  </div>
+
+  <div class="scene">
+    <div class="anchor">
+
+      <!-- LEFT: begin-a-letter card (original write content) -->
+      <div class="write-card">
+        <div class="icon-row">✉ ✦ ✉</div>
+        <h2>start a letter</h2>
+        <p>address the envelope, turn it over to write — then fold &amp; seal.<br>
+        a stamp will land in your album. the letter will arrive on its day.</p>
+        <button class="write-cta" onclick="beginLetter()">begin a letter →</button>
+        <div class="or">or pick a recipient: <strong>future me · someone close</strong></div>
+      </div>
+
+      <!-- RIGHT: lamp + postbox grouped together -->
+      <div class="postbox-group">
+      <!-- LAMP — ported from src/components/constellation/garden/LeftLamp.tsx -->
+      <div class="lamp">
+        <div class="halo-1"></div>
+        <div class="halo-2"></div>
+        <svg viewBox="0 0 220 800" width="100%" height="100%" preserveAspectRatio="xMidYMax meet">
+          <defs>
+            <linearGradient id="ll-pole" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#1a1a1a" />
+              <stop offset="48%" stop-color="#3a3530" />
+              <stop offset="52%" stop-color="#3a3530" />
+              <stop offset="100%" stop-color="#0a0a0a" />
+            </linearGradient>
+            <linearGradient id="ll-glass" x1="50%" y1="0%" x2="50%" y2="100%">
+              <stop offset="0%"   stop-color="var(--accent-highlight)" stop-opacity="1" />
+              <stop offset="50%"  stop-color="var(--accent-warm)"      stop-opacity="0.95" />
+              <stop offset="100%" stop-color="var(--accent-warm)"      stop-opacity="0.6" />
+            </linearGradient>
+            <radialGradient id="ll-bulb" cx="50%" cy="40%" r="50%">
+              <stop offset="0%"   stop-color="#FFFCEC" stop-opacity="1" />
+              <stop offset="40%"  stop-color="var(--accent-highlight)" stop-opacity="0.95" />
+              <stop offset="100%" stop-color="var(--accent-warm)"      stop-opacity="0.7" />
+            </radialGradient>
+          </defs>
+
+          <ellipse cx="110" cy="794" rx="50" ry="5" fill="#000" opacity="0.18" />
+          <rect x="92" y="780" width="36" height="14" fill="url(#ll-pole)" />
+          <rect x="86" y="772" width="48" height="10" fill="url(#ll-pole)" />
+          <rect x="98" y="760" width="24" height="14" fill="url(#ll-pole)" />
+          <rect x="106" y="180" width="8" height="582" fill="url(#ll-pole)" />
+          <rect x="100" y="600" width="20" height="6" fill="url(#ll-pole)" />
+          <rect x="100" y="400" width="20" height="6" fill="url(#ll-pole)" />
+          <ellipse cx="110" cy="220" rx="11" ry="6" fill="url(#ll-pole)" />
+          <ellipse cx="110" cy="208" rx="14" ry="5" fill="url(#ll-pole)" />
+
+          <path d="M110,180 Q86,170 80,150 M110,180 Q134,170 140,150" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round" />
+          <circle cx="80" cy="150" r="3" fill="#1a1a1a" />
+          <circle cx="140" cy="150" r="3" fill="#1a1a1a" />
+          <path d="M100,156 Q110,148 120,156" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M86,158 L86,166 L134,166 L134,158 Z" fill="#1a1a1a" />
+          <path d="M82,158 L110,128 L138,158 Z" fill="#1a1a1a" />
+          <rect x="108" y="120" width="4" height="8" fill="#1a1a1a" />
+          <circle cx="110" cy="118" r="3" fill="#1a1a1a" />
+
+          <path d="M86,166 L86,222 L96,234 L124,234 L134,222 L134,166 Z" fill="url(#ll-glass)" stroke="#1a1a1a" stroke-width="2.2" />
+          <line x1="100" y1="166" x2="100" y2="234" stroke="#1a1a1a" stroke-width="1.4" opacity="0.85" />
+          <line x1="120" y1="166" x2="120" y2="234" stroke="#1a1a1a" stroke-width="1.4" opacity="0.85" />
+          <line x1="86"  y1="200" x2="134" y2="200" stroke="#1a1a1a" stroke-width="1.2" opacity="0.7" />
+
+          <circle cx="110" cy="200" r="14" fill="url(#ll-bulb)">
+            <animate attributeName="opacity" values="0.92;1;0.95;1;0.92" dur="3.2s" repeatCount="indefinite" />
+            <animate attributeName="r" values="13.5;14.5;14;14.5;13.5" dur="3.2s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="110" cy="198" r="5" fill="#FFFCEC">
+            <animate attributeName="opacity" values="0.85;1;0.85" dur="3.2s" repeatCount="indefinite" />
+          </circle>
+
+          <path d="M96,234 L102,244 L118,244 L124,234 Z" fill="#1a1a1a" />
+          <circle cx="110" cy="248" r="3" fill="#1a1a1a" />
+        </svg>
+      </div>
+
+      <div class="postbox-wrap">
+        <div class="postbox" onclick="dropFromBox()">
+          <div class="dome"></div>
+          <div class="brim"></div>
+          <div class="body"></div>
+
+          <!-- arched plate above the slot -->
+          <div class="slot-hood"><span>letters</span></div>
+          <div class="slot"></div>
+          <div class="pincode">HEARTH · 1</div>
+
+          <!-- mid black band -->
+          <div class="band-mid"></div>
+
+          <!-- swoosh + "hearth post" -->
+          <div class="swoosh-area">
+            <svg viewBox="0 0 56 16" width="44" height="13" aria-hidden="true">
+              <path d="M3,11 Q11,2 19,9 Q27,15 35,5 Q43,1 53,9"
+                    stroke="var(--accent-warm)"
+                    stroke-width="3"
+                    fill="none"
+                    stroke-linecap="round"
+                    stroke-linejoin="round" />
+              <circle cx="53" cy="9" r="2.2" fill="var(--accent-warm)" />
+            </svg>
+            <span class="label">hearth post</span>
+          </div>
+
+          <!-- two engraved date placards on the box face -->
+          <div class="pb-controls" onclick="event.stopPropagation()">
+            <div class="pb-pill">
+              <button class="pb-arrow" id="yPrev" onclick="changeYear(-1)" title="earlier">◁</button>
+              <span class="pb-value" id="pbYear">2026</span>
+              <button class="pb-arrow" id="yNext" onclick="changeYear(1)" title="later">▷</button>
+            </div>
+            <div class="pb-pill">
+              <button class="pb-arrow" id="mPrev" onclick="changeMonth(-1)">◁</button>
+              <span class="pb-value" id="pbMonth">MAY</span>
+              <button class="pb-arrow" id="mNext" onclick="changeMonth(1)">▷</button>
+            </div>
+          </div>
+
+          <!-- bottom black base -->
+          <div class="band-base"></div>
+        </div>
+        <div class="pulse"></div>
+
+        <!-- "new" tag dangling from the postbox slot when month has unread -->
+        <div class="new-tag" id="newTag">
+          <div class="string"></div>
+          <div class="label" id="newTagLabel">2 new ✦</div>
+        </div>
+      </div>
+      </div><!-- /postbox-group -->
+
+    </div>
+
+    <div class="postbox-caption" id="postboxCaption">
+      — may · 2026 · <span class="count">2</span> letters arrived —
+    </div>
+  </div>
+
+  <div class="fanout" id="fanout"></div>
+</section>
+
+<!-- ============ SENT ============ -->
+<section class="view sent" id="view-sent">
+  <div class="sent-header">
+    <h2>letters i&rsquo;ve sent</h2>
+    <p id="sentSummary">27 sealed · 9 delivered · the rest <em>are still on their way</em></p>
+  </div>
+
+  <div class="year-tabs" id="yearTabs">
+    <button class="year-tab active" data-year="2026">2026 <span class="yt-count">8</span></button>
+    <button class="year-tab" data-year="2025">2025 <span class="yt-count">5</span></button>
+    <button class="year-tab" data-year="2024">2024 <span class="yt-count">3</span></button>
+  </div>
+
+  <div class="album">
+    <div class="stamp-grid" id="stampGrid"></div>
+  </div>
+</section>
+
+<!-- write view removed — merged into inbox (left side desk) -->
+
+<!-- first-time letter reveal modal -->
+<div class="reveal-overlay" id="revealOverlay">
+  <button class="reveal-close" onclick="closeReveal()">×</button>
+  <div class="reveal-stage">
+    <div class="reveal-meta" id="revealMeta">
+      a letter <span class="from">from past you</span> · sealed —
+    </div>
+
+    <div class="reveal-env" id="revealEnv">
+      <div class="env-back"></div>
+      <div class="env-letter" id="revealLetter">
+        <div class="letter-salutation" id="letterSalutation">Dear future me,</div>
+        <div class="letter-body" id="letterBody"></div>
+        <div class="letter-sig">yours, <span style="text-decoration: underline dotted;">me</span></div>
+      </div>
+      <div class="env-flap" id="envFlap"></div>
+      <div class="env-seal" id="envSeal">
+        <div class="wax-half left" data-side="left"></div>
+        <div class="wax-half right" data-side="right"></div>
+        <div class="seal-mark">✦</div>
+      </div>
+    </div>
+
+    <div class="reveal-prompt" id="revealPrompt">tap to break the seal</div>
+  </div>
+</div>
+
+<!-- receipt modal -->
+<div class="receipt-overlay" id="receiptOverlay" onclick="closeReceipt(event)">
+  <div class="receipt" onclick="event.stopPropagation()">
+    <button class="close-btn" onclick="closeReceipt(event)">×</button>
+    <h3 id="receiptTitle">to future me</h3>
+    <div id="receiptFields"></div>
+    <div class="seal-status" id="receiptStatus">✦ still sealed</div>
+    <div class="peek" onclick="peekConfirm()">peek at this letter ·  breaks the seal</div>
+  </div>
+</div>
+
+<script>
+  // theme switching
+  const root = document.documentElement;
+  document.querySelectorAll('.theme-switch button').forEach(b => {
+    b.addEventListener('click', () => {
+      const t = b.getAttribute('data-t');
+      root.setAttribute('data-theme', t);
+      document.querySelectorAll('.theme-switch button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      // re-spawn particles for new theme
+      respawnParticles();
+    });
+  });
+
+  function showView(name, btn) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (name !== 'inbox') clearFanout();
+  }
+
+  // ---- particles by theme ----
+  function particleEl(theme) {
+    const el = document.createElement('div');
+    el.className = 'particle';
+    if (theme === 'rose') {
+      // sakura petal
+      el.style.cssText += `
+        width: 10px; height: 12px;
+        background: var(--accent-highlight);
+        border-radius: 80% 20% 70% 30% / 60% 40% 60% 40%;
+        box-shadow: 0 0 4px rgba(216,136,152,0.4);
+      `;
+    } else if (theme === 'sage') {
+      // leaf
+      el.style.cssText += `
+        width: 14px; height: 8px;
+        background: var(--accent-warm);
+        border-radius: 0 100% 0 100%;
+        opacity: 0.7;
+      `;
+    } else {
+      // ocean foam
+      el.style.cssText += `
+        width: 6px; height: 6px;
+        background: var(--accent-highlight);
+        border-radius: 50%;
+        opacity: 0.5;
+        filter: blur(0.5px);
+      `;
+    }
+    el.style.left = (Math.random() * 100) + 'vw';
+    el.style.top = (-10 + Math.random() * 30) + 'vh';
+    el.style.animationDelay = (-Math.random() * 22) + 's';
+    el.style.animationDuration = (16 + Math.random() * 14) + 's';
+    return el;
+  }
+
+  function respawnParticles() {
+    document.querySelectorAll('.particle').forEach(p => p.remove());
+    const theme = root.getAttribute('data-theme');
+    const inbox = document.getElementById('view-inbox');
+    for (let i = 0; i < 12; i++) inbox.appendChild(particleEl(theme));
+  }
+
+  // ---- inbox month → fanout (now per-year) ----
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const MONTH_NAMES = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+
+  // demo data: year → month → letters
+  // unread: true means this letter has unlocked but never been opened — gets the reveal ceremony
+  const lettersByYear = {
+    2026: {
+      'May': [
+        { id: 'l-may-1', addr: 'future me', sub: 'arrived May 1', tilt: -3,
+          unread: true, sealedDate: 'May 1, 2025',
+          body: "you sealed me a year ago. it's been one year of you trying. don't forget how scared you were last spring — you did it anyway. that's what i wanted to remind you of." },
+        { id: 'l-may-2', addr: 'to mum', sub: "arrived Mother's Day", tilt: 4,
+          unread: true, sealedDate: 'Apr 30, 2026', from: 'from you, last week',
+          body: "i don't say it enough — thank you for the way you held us together. i hope this finds you on a good morning." },
+      ],
+      'Apr': [
+        { id: 'l-apr-1', addr: 'to dad', sub: 'arrived Apr 14', tilt: -5,
+          unread: false, sealedDate: 'Sep 14, 2025',
+          body: "i wrote this on the train, six months ago. i don't remember what i was going to say but i remember meaning it." },
+        { id: 'l-apr-2', addr: 'to t.', sub: 'arrived Apr 1', tilt: 2,
+          unread: false, sealedDate: 'Jul 1, 2025',
+          body: "ten months. you'd be proud — i kept walking." },
+        { id: 'l-apr-3', addr: 'future me', sub: 'arrived Apr 8', tilt: -1,
+          unread: false, sealedDate: 'Apr 8, 2025',
+          body: "small thing — when you read this, please notice the light in your kitchen at 7pm. it's the best light in the house. i kept forgetting to look." },
+      ],
+      'Feb': [
+        { id: 'l-feb-1', addr: 'to k.', sub: 'arrived Feb 21', tilt: 3,
+          unread: false, sealedDate: 'Aug 21, 2025',
+          body: "happy birthday, six months late. i'm sorry i missed it. i wanted you to know i thought of you that day." },
+      ],
+    },
+    2025: {
+      'Dec': [
+        { id: 'l-dec-1', addr: 'future me', sub: 'arrived Dec 31', tilt: -2,
+          unread: false, sealedDate: 'Dec 31, 2024',
+          body: "well — did you do the things? were you kind? i hope so. i'm rooting for you." },
+      ],
+      'Oct': [
+        { id: 'l-oct-1', addr: 'to amma', sub: 'arrived Oct 4', tilt: 3, unread: false, sealedDate: 'Apr 4, 2025',
+          body: "amma, i wanted to tell you about the day i —" },
+        { id: 'l-oct-2', addr: 'future me', sub: 'arrived Oct 9', tilt: -3, unread: false, sealedDate: 'Oct 9, 2024',
+          body: "one year ago today i was very tired. just so you remember." },
+      ],
+      'Jun': [
+        { id: 'l-jun-1', addr: 'to dad', sub: 'arrived Jun 12', tilt: 2, unread: false, sealedDate: 'Mar 12, 2025',
+          body: "you said something at dinner that i kept thinking about for weeks. i wanted you to know." },
+      ],
+      'Mar': [
+        { id: 'l-mar-1', addr: 'future me', sub: 'arrived Mar 15', tilt: -1, unread: false, sealedDate: 'Mar 15, 2024',
+          body: "a year ago i thought i wouldn't make it through the spring. here you are. you made it." },
+        { id: 'l-mar-2', addr: 'to z.', sub: 'arrived Mar 1', tilt: 4, unread: false, sealedDate: 'Sep 1, 2024',
+          body: "z., you were right." },
+      ],
+    },
+    2024: {
+      'Nov': [{ id: 'l-2024n-1', addr: 'future me', sub: 'arrived Nov 22', tilt: -2, unread: false, sealedDate: 'May 22, 2024',
+          body: "an old letter. it doesn't say much. i think i was just practicing." }],
+      'May': [{ id: 'l-2024m-1', addr: 'to dad', sub: 'arrived May 6', tilt: 3, unread: false, sealedDate: 'Nov 6, 2023',
+          body: "from a long time ago." }],
+      'Jan': [{ id: 'l-2024j-1', addr: 'future me', sub: 'arrived Jan 1', tilt: -4, unread: false, sealedDate: 'Jan 1, 2023',
+          body: "one of the first letters. you were just starting out." }],
+    },
+  };
+
+  // current state
+  const YEAR_MIN = 2024, YEAR_MAX = 2026;
+  const NOW_MONTH = 4; // May (in current year)
+  let currentYear = 2026;
+  let currentMonthIdx = 4; // May
+
+  function clearFanout() {
+    document.getElementById('fanout').innerHTML = '';
+  }
+
+  // animate a value flip on the postbox placards
+  function flipValue(el, newText) {
+    el.classList.remove('flip');
+    void el.offsetWidth;
+    el.classList.add('flip');
+    setTimeout(() => { el.textContent = newText; }, 160);
+  }
+
+  // refresh which arrows are enabled + caption + active month
+  function refreshControls() {
+    document.getElementById('yPrev').disabled = currentYear <= YEAR_MIN;
+    document.getElementById('yNext').disabled = currentYear >= YEAR_MAX;
+    document.getElementById('mPrev').disabled = currentMonthIdx <= 0;
+    // last selectable month: if current real year, cap at NOW_MONTH; else Dec
+    const maxMonth = (currentYear === YEAR_MAX) ? NOW_MONTH : 11;
+    document.getElementById('mNext').disabled = currentMonthIdx >= maxMonth;
+    updateCaption();
+  }
+
+  function changeYear(delta) {
+    const next = currentYear + delta;
+    if (next < YEAR_MIN || next > YEAR_MAX) return;
+    currentYear = next;
+    flipValue(document.getElementById('pbYear'), String(currentYear));
+    // clamp month if we land on current year and were past now-month
+    const maxMonth = (currentYear === YEAR_MAX) ? NOW_MONTH : 11;
+    if (currentMonthIdx > maxMonth) {
+      currentMonthIdx = maxMonth;
+      flipValue(document.getElementById('pbMonth'), MONTHS[currentMonthIdx].toUpperCase());
+    }
+    refreshControls();
+    fanCurrentMonth();
+  }
+
+  function changeMonth(delta) {
+    const maxMonth = (currentYear === YEAR_MAX) ? NOW_MONTH : 11;
+    const next = currentMonthIdx + delta;
+    if (next < 0 || next > maxMonth) return;
+    currentMonthIdx = next;
+    flipValue(document.getElementById('pbMonth'), MONTHS[currentMonthIdx].toUpperCase());
+    refreshControls();
+    fanCurrentMonth();
+  }
+
+  function unreadCount() {
+    let n = 0;
+    Object.values(lettersByYear).forEach(year => {
+      Object.values(year).forEach(month => {
+        month.forEach(l => { if (l.unread) n++; });
+      });
+    });
+    return n;
+  }
+
+  function unreadInCurrent() {
+    const yearData = lettersByYear[currentYear] || {};
+    const letters = yearData[MONTHS[currentMonthIdx]] || [];
+    return letters.filter(l => l.unread).length;
+  }
+
+  function updateCaption() {
+    const yearData = lettersByYear[currentYear] || {};
+    const letters = yearData[MONTHS[currentMonthIdx]] || [];
+    const monthName = MONTH_NAMES[currentMonthIdx];
+    const newCount = letters.filter(l => l.unread).length;
+    let countText;
+    if (letters.length === 0) {
+      countText = `the box was empty`;
+    } else if (newCount > 0 && newCount === letters.length) {
+      countText = `<span class="count">${newCount}</span> new letter${newCount === 1 ? '' : 's'} ✦ unread`;
+    } else if (newCount > 0) {
+      countText = `<span class="count">${newCount}</span> new · ${letters.length - newCount} read`;
+    } else {
+      countText = `<span class="count">${letters.length}</span> letter${letters.length === 1 ? '' : 's'} arrived`;
+    }
+    document.getElementById('postboxCaption').innerHTML =
+      `— ${monthName} · ${currentYear} · ${countText} —`;
+
+    // update top hint badge + dangling new tag
+    const totalNew = unreadCount();
+    const badge = document.getElementById('newBadge');
+    if (totalNew > 0) {
+      badge.textContent = `${totalNew} new`;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+      document.getElementById('topHint').innerHTML = 'click the postbox · pick a month with the arrows';
+    }
+    const tag = document.getElementById('newTag');
+    if (newCount > 0) {
+      document.getElementById('newTagLabel').textContent = `${newCount} new ✦`;
+      tag.classList.add('show');
+    } else {
+      tag.classList.remove('show');
+    }
+  }
+
+  function fanCurrentMonth() {
+    clearFanout();
+    const yearData = lettersByYear[currentYear] || {};
+    const letters = yearData[MONTHS[currentMonthIdx]] || [];
+    const fan = document.getElementById('fanout');
+    if (letters.length === 0) return;
+
+    letters.forEach((l, i) => {
+      const el = document.createElement('div');
+      el.className = 'fan-letter' + (l.unread ? ' unread' : '');
+      el.innerHTML = `
+        <div class="addr">${l.addr}<small>${l.unread ? '✦ unread · ' : ''}${l.sub}</small></div>
+        <div class="seal"></div>
+        <div class="arrived">${l.unread ? 'sealed' : 'arrived'}</div>
+      `;
+      el.style.left = '-65px';
+      el.style.bottom = '120px';
+      el.style.transform = 'translate(-50%, 50%) rotate(0deg) scale(0.4)';
+      el.style.opacity = '0';
+      const offset = (i - (letters.length - 1) / 2);
+      const finalRot = offset * 14 + (l.tilt || 0);
+      const finalX = -65 + offset * 80;
+      const finalY = -40 - Math.abs(offset) * 12;
+      fan.appendChild(el);
+      // unread letters emerge slower, with a longer delay
+      const isUnread = l.unread;
+      const dur = isUnread ? '1.4s' : '0.9s';
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          el.style.transition = `transform ${dur} cubic-bezier(.25,.7,.4,1), opacity 0.7s ease`;
+          el.style.transform = `translateY(${finalY}px) translateX(${finalX}px) rotate(${finalRot}deg) scale(1)`;
+          el.style.opacity = '1';
+        }, i * (isUnread ? 280 : 180));
+      });
+      el.addEventListener('click', () => openLetter(l, el));
+    });
+  }
+
+  // ---- letter reveal (sealed envelope → wax breaks → letter unfurls) ----
+  function openLetter(letter, fanEl) {
+    document.getElementById('letterSalutation').textContent =
+      letter.addr.startsWith('to ') ? `Dear ${letter.addr.slice(3)},` :
+      letter.addr === 'future me' ? 'Dear future me,' :
+      `Dear ${letter.addr},`;
+    document.getElementById('letterBody').textContent = letter.body || '';
+    document.getElementById('revealMeta').innerHTML =
+      `a letter <span class="from">${letter.from || 'from past you'}</span> · sealed ${letter.sealedDate || '—'}`;
+
+    // reset all states
+    document.querySelectorAll('#envSeal .wax-half').forEach(w => w.classList.remove('broken'));
+    document.getElementById('envSeal').classList.remove('broken');
+    document.getElementById('envFlap').classList.remove('opened');
+    document.getElementById('revealLetter').classList.remove('shown');
+    document.getElementById('revealPrompt').classList.remove('gone');
+
+    if (letter.unread) {
+      document.getElementById('revealPrompt').textContent = 'tap to break the seal';
+      document.getElementById('revealEnv').onclick = () => {
+        if (document.getElementById('revealLetter').classList.contains('shown')) return;
+        breakSealAndReveal();
+      };
+    } else {
+      // already read — skip the ceremony, show letter immediately
+      document.getElementById('revealPrompt').classList.add('gone');
+      document.querySelectorAll('#envSeal .wax-half').forEach(w => w.classList.add('broken'));
+      document.getElementById('envSeal').classList.add('broken');
+      document.getElementById('envFlap').classList.add('opened');
+      setTimeout(() => {
+        document.getElementById('revealLetter').classList.add('shown');
+      }, 50);
+      document.getElementById('revealEnv').onclick = null;
+    }
+
+    document.getElementById('revealOverlay').classList.add('open');
+
+    // mark as read after first reveal
+    if (letter.unread) {
+      letter.unread = false;
+      // refresh state on next close
+      window._lastReadLetterEl = fanEl;
+    }
+  }
+
+  function breakSealAndReveal() {
+    const seal = document.getElementById('envSeal');
+    seal.classList.add('broken');
+    document.querySelectorAll('#envSeal .wax-half').forEach(w => w.classList.add('broken'));
+    document.getElementById('revealPrompt').classList.add('gone');
+
+    // wax particles
+    const env = document.getElementById('revealEnv');
+    for (let i = 0; i < 8; i++) {
+      const p = document.createElement('div');
+      p.className = 'wax-particle';
+      const angle = (i / 8) * Math.PI * 2;
+      const dist = 40 + Math.random() * 30;
+      p.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
+      p.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
+      env.appendChild(p);
+      requestAnimationFrame(() => p.classList.add('fly'));
+      setTimeout(() => p.remove(), 1000);
+    }
+
+    // open the flap
+    setTimeout(() => {
+      document.getElementById('envFlap').classList.add('opened');
+    }, 700);
+
+    // unfurl the letter
+    setTimeout(() => {
+      document.getElementById('revealLetter').classList.add('shown');
+    }, 1500);
+  }
+
+  function closeReveal() {
+    document.getElementById('revealOverlay').classList.remove('open');
+    // refresh inbox display in case unread → read
+    if (window._lastReadLetterEl) {
+      window._lastReadLetterEl.classList.remove('unread');
+      window._lastReadLetterEl = null;
+      updateCaption();
+    }
+  }
+
+  function dropFromBox() {
+    fanCurrentMonth();
+    document.getElementById('prompt').classList.add('dim');
+  }
+
+  function beginLetter() {
+    alert('(in the real app, this opens the envelope-flip compose flow:\n\n  1. address the envelope (recipient + unlock date)\n  2. turn it over → write inside\n  3. fold & seal — a wax drop seals it\n  4. a stamp lands in your album)');
+  }
+
+  // ---- SENT: stamp data per year ----
+  const sentByYear = {
+    2026: [
+      { to: 'to future me', sub: 'opens 2027',         denom: '1y', icon: '✦', tilt: -1,   stamp: 's-1', date: 'May 1', text: 'to future me · sealed May 1, 2026 · opens May 1, 2027 · ✦ still sealed', delivered: false },
+      { to: 'to amma',      sub: 'someday',            denom: '∞',  icon: '✿', tilt:  1.5, stamp: 's-3', date: 'Apr 22', text: 'to amma · sealed Apr 22, 2026 · opens someday · ✦ still sealed', delivered: false },
+      { to: 'to m.',        sub: 'opens Dec 25',       denom: '8m', icon: '❀', tilt: -2,   stamp: 's-4', date: 'Apr 14', text: 'to m. · sealed Apr 14, 2026 · opens Dec 25, 2026 · ✦ still sealed', delivered: false },
+      { to: 'to ari',       sub: 'when you graduate',  denom: '—',  icon: '☽', tilt:  2,   stamp: 's-2', date: 'Apr 8',  text: 'to ari · sealed Apr 8, 2026 · opens — when you graduate · ✦ still sealed', delivered: false },
+      { to: 'to future me', sub: 'opens 2027',         denom: '1y', icon: '✦', tilt: -1.5, stamp: 's-1', date: 'Mar 30', text: 'to future me · sealed Mar 30, 2026 · opens Mar 30, 2027 · ✦ still sealed', delivered: false },
+      { to: 'to nadia',     sub: 'opens 2031',         denom: '5y', icon: '☼', tilt:  1,   stamp: 's-3', date: 'Mar 21', text: 'to nadia · sealed Mar 21, 2026 · opens 2031 · ✦ still sealed', delivered: false },
+      { to: 'to dad',       sub: 'opens Jun 12',       denom: '3m', icon: '✻', tilt: -2.5, stamp: 's-4', date: 'Mar 4',  text: 'to dad · sealed Mar 4, 2026 · opens Jun 12, 2026 · ✦ still sealed', delivered: false },
+      { to: 'to future me', sub: 'opens 2027',         denom: '1y', icon: '♡', tilt:  0,   stamp: 's-2', date: 'Feb 14', text: 'to future me · sealed Feb 14, 2026 · opens Feb 14, 2027 · ✦ still sealed', delivered: false },
+    ],
+    2025: [
+      { to: 'to mum',        sub: "delivered Mother's Day", denom: '5m', icon: '❀', tilt: -1.5, stamp: 's-3', date: 'Dec 14', text: "to mum · sealed Dec 14, 2025 · delivered May 8, 2026 · ✓ delivered", delivered: true },
+      { to: 'to future me',  sub: 'arrived May 1',          denom: '6m', icon: '✦', tilt:  1,   stamp: 's-1', date: 'Nov 4',  text: 'to future me · sealed Nov 4, 2025 · arrived May 1, 2026 · ✓ arrived', delivered: true },
+      { to: 'to dad',        sub: 'delivered Apr 14',       denom: '6m', icon: '✻', tilt: -2,   stamp: 's-2', date: 'Oct 9',  text: 'to dad · sealed Oct 9, 2025 · delivered Apr 14, 2026 · ✓ delivered', delivered: true },
+      { to: 'to future me',  sub: 'arrived Mar 2',          denom: '6m', icon: '✦', tilt:  2,   stamp: 's-1', date: 'Sep 2',  text: 'to future me · sealed Sep 2, 2025 · arrived Mar 2, 2026 · ✓ arrived', delivered: true },
+      { to: 'to t.',         sub: 'delivered Apr 1',        denom: '9m', icon: '✿', tilt: -1,   stamp: 's-4', date: 'Jul 11', text: 'to t. · sealed Jul 11, 2025 · delivered Apr 1, 2026 · ✓ delivered', delivered: true },
+    ],
+    2024: [
+      { to: 'to mum',        sub: 'delivered',              denom: '5m', icon: '❀', tilt: -2,   stamp: 's-3', date: 'Dec 8',  text: 'to mum · sealed Dec 8, 2024 · delivered May 11, 2025 · ✓ delivered', delivered: true },
+      { to: 'to future me',  sub: 'arrived',                denom: '1y', icon: '✦', tilt:  1.5, stamp: 's-1', date: 'Jun 1',  text: 'to future me · sealed Jun 1, 2024 · arrived Jun 1, 2025 · ✓ arrived', delivered: true },
+      { to: 'to dad',        sub: 'delivered',              denom: '8m', icon: '✻', tilt: -1,   stamp: 's-2', date: 'Mar 30', text: 'to dad · sealed Mar 30, 2024 · delivered Nov 30, 2024 · ✓ delivered', delivered: true },
+    ],
+  };
+
+  function renderStamps(year) {
+    const grid = document.getElementById('stampGrid');
+    const stamps = sentByYear[year] || [];
+    grid.innerHTML = '';
+    stamps.forEach(s => {
+      const m = document.createElement('div');
+      m.className = 'mount';
+      m.innerHTML = `
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <div class="stamp ${s.stamp}${s.delivered ? ' delivered' : ''}" style="--tilt: ${s.tilt}deg">
+          <div class="frame">
+            <div class="denom">${s.denom}</div>
+            <div class="icon">${s.icon}</div>
+            <div>
+              <div class="country">hearth · evening post</div>
+              <div class="denom-bottom">${s.date}</div>
+            </div>
+          </div>
+        </div>
+        <div class="caption"><strong>${s.to}</strong>${s.sub}</div>
+      `;
+      m.addEventListener('click', () => openReceipt(s.text, s.delivered));
+      grid.appendChild(m);
+    });
+  }
+
+  // year-tab interaction
+  document.querySelectorAll('#yearTabs .year-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('#yearTabs .year-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      renderStamps(parseInt(t.getAttribute('data-year'), 10));
+    });
+  });
+  // initial render
+  renderStamps(2026);
+
+  // receipt modal
+  function openReceipt(text, delivered) {
+    const overlay = document.getElementById('receiptOverlay');
+    overlay.classList.add('open');
+    const parts = text.split(' · ');
+    document.getElementById('receiptTitle').textContent = parts[0];
+    const fields = document.getElementById('receiptFields');
+    fields.innerHTML = '';
+    parts.slice(1, -1).forEach(p => {
+      const idx = p.indexOf(' ');
+      let key = p, val = '';
+      if (idx >= 0) { key = p.slice(0, idx); val = p.slice(idx + 1); }
+      const row = document.createElement('div');
+      row.className = 'field';
+      row.innerHTML = `<span>${key}</span><span>${val}</span>`;
+      fields.appendChild(row);
+    });
+    const status = document.getElementById('receiptStatus');
+    status.textContent = parts[parts.length - 1];
+    status.classList.toggle('delivered', delivered);
+  }
+  function closeReceipt() { document.getElementById('receiptOverlay').classList.remove('open'); }
+  function peekConfirm() {
+    if (confirm('this breaks the seal early.\nare you sure you want to read it now?\n\n(in the real app, this would mark the letter as broken-seal — and the surprise would be gone.)')) {
+      alert('— letter content would appear here —\n\n(demo only)');
+    }
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeReceipt();
+      closeReveal();
+    }
+  });
+
+  // boot
+  respawnParticles();
+  refreshControls();
+  setTimeout(() => {
+    document.getElementById('prompt').classList.add('dim');
+    fanCurrentMonth();
+  }, 700);
+</script>
+
+</body>
+</html>

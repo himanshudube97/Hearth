@@ -66,6 +66,7 @@ model JournalEntry {
   isDelivered    Boolean   @default(false) // Has the letter been sent/delivered
   deliveredAt    DateTime? // When the letter was delivered
   isViewed       Boolean   @default(false) // Has the user viewed this letter after it arrived
+  letterPeekedAt DateTime? // Set when user breaks seal early via the 'peek' affordance from /sent
 
   // Received letter tracking
   isReceivedLetter  Boolean   @default(false)

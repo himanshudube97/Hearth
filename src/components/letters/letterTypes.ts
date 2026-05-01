@@ -1,15 +1,17 @@
 // src/components/letters/letterTypes.ts
-import { addMonths, addYears } from 'date-fns'
+import { addDays, addMonths } from 'date-fns'
 
 export type LetterRecipient = 'future_me' | 'someone_close'
 
 export type UnlockChoice =
+  | { kind: '1_week' }
+  | { kind: '14_days' }
   | { kind: '1_month' }
-  | { kind: '6_months' }
-  | { kind: '1_year' }
+  | { kind: '6_months' }   // kept in union (used in RecipientSidebar legacy view) but not shown as a new pill
+  | { kind: '1_year' }     // kept in union (used in LetterWriteView legacy view) but not shown as a new pill
   | { kind: 'someday'; date: Date | null } // null = picker not yet chosen
 
-export const DEFAULT_UNLOCK: UnlockChoice = { kind: '1_year' }
+export const DEFAULT_UNLOCK: UnlockChoice = { kind: '1_week' }
 
 /**
  * Resolve an UnlockChoice into a concrete unlock Date relative to `from`.
@@ -18,10 +20,12 @@ export const DEFAULT_UNLOCK: UnlockChoice = { kind: '1_year' }
  */
 export function resolveUnlockDate(choice: UnlockChoice, from: Date = new Date()): Date | null {
   switch (choice.kind) {
-    case '1_month':  return addMonths(from, 1)
-    case '6_months': return addMonths(from, 6)
-    case '1_year':   return addYears(from, 1)
-    case 'someday':  return choice.date
+    case '1_week':    return addDays(from, 7)
+    case '14_days':   return addDays(from, 14)
+    case '1_month':   return addMonths(from, 1)
+    case '6_months':  return addMonths(from, 6)
+    case '1_year':    return addMonths(from, 12)
+    case 'someday':   return choice.date
   }
 }
 
@@ -67,3 +71,24 @@ export function mapRecipientToSchema(
     recipientEmail: null,
   }
 }
+
+// === New v2 types ===
+
+export interface InboxLetter {
+  id: string
+  recipientName: string | null
+  sealedAt: string       // ISO
+  unlockDate: string | null
+  isViewed: boolean
+}
+
+export interface SentStamp {
+  id: string
+  recipientName: string | null
+  sealedAt: string
+  unlockDate: string | null
+  isDelivered: boolean
+  letterPeekedAt: string | null
+}
+
+export type LettersTab = 'inbox' | 'sent'

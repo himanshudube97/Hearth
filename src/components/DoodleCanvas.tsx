@@ -57,9 +57,11 @@ interface DoodleCanvasProps {
   onSave: (strokes: StrokeData[]) => void
   onClose: () => void
   initialStrokes?: StrokeData[]
+  /** When true, renders inline (fills parent) instead of as a fixed full-screen overlay */
+  inline?: boolean
 }
 
-export default function DoodleCanvas({ onSave, onClose, initialStrokes }: DoodleCanvasProps) {
+export default function DoodleCanvas({ onSave, onClose, initialStrokes, inline = false }: DoodleCanvasProps) {
   const { theme } = useThemeStore()
   const canvasRef = useRef<HTMLDivElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
@@ -229,6 +231,144 @@ export default function DoodleCanvas({ onSave, onClose, initialStrokes }: Doodle
     const pathData = getSvgPathFromStroke(outlinePoints)
 
     return <path d={pathData} fill={getCurrentColor()} opacity={0.9} />
+  }
+
+  if (inline) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.97 }}
+        transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          borderRadius: 8,
+          overflow: 'hidden',
+          background: theme.glass.bg,
+          backdropFilter: `blur(${theme.glass.blur})`,
+          border: `1px solid ${theme.glass.border}`,
+        }}
+      >
+        {/* Toolbar */}
+        <div className="flex flex-col gap-2 p-2 border-b" style={{ borderColor: theme.glass.border }}>
+          {/* Brushes and Eraser */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-1">
+              {brushes.map((brush, index) => (
+                <button
+                  key={brush.name}
+                  onClick={() => { setActiveBrush(index); setIsErasing(false); }}
+                  className="px-2 py-1 rounded text-xs transition-all"
+                  style={{
+                    background: activeBrush === index && !isErasing ? getCurrentColor() + '30' : 'transparent',
+                    border: `2px solid ${activeBrush === index && !isErasing ? getCurrentColor() : 'transparent'}`,
+                    color: theme.text.primary,
+                  }}
+                >
+                  {brush.name}
+                </button>
+              ))}
+              <button
+                onClick={() => setIsErasing(!isErasing)}
+                className="px-2 py-1 rounded text-xs transition-all"
+                style={{
+                  background: isErasing ? theme.accent.primary + '30' : 'transparent',
+                  border: `2px solid ${isErasing ? theme.accent.primary : 'transparent'}`,
+                  color: theme.text.primary,
+                }}
+              >
+                ⌫ Erase
+              </button>
+            </div>
+            <button
+              onClick={clearCanvas}
+              className="px-2 py-1 rounded text-xs"
+              style={{ color: theme.text.muted }}
+            >
+              Clear
+            </button>
+          </div>
+
+          {/* Color Palette */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {COLOR_PALETTE.map((color) => (
+              <button
+                key={color}
+                onClick={() => { setSelectedColor(color); setIsErasing(false); }}
+                className="w-5 h-5 rounded-full transition-all hover:scale-110"
+                style={{
+                  background: color,
+                  border: selectedColor === color
+                    ? `3px solid ${theme.accent.primary}`
+                    : `2px solid ${theme.glass.border}`,
+                  boxShadow: selectedColor === color ? `0 0 0 2px ${theme.bg.primary}` : 'none',
+                }}
+                title={color}
+              />
+            ))}
+            <button
+              onClick={() => { setSelectedColor(null); setIsErasing(false); }}
+              className="w-5 h-5 rounded-full transition-all hover:scale-110 flex items-center justify-center text-xs"
+              style={{
+                background: selectedColor === null ? getCurrentColor() : 'transparent',
+                border: selectedColor === null
+                  ? `3px solid ${theme.accent.primary}`
+                  : `2px dashed ${theme.glass.border}`,
+                color: theme.text.muted,
+              }}
+              title="Theme default"
+            >
+              {selectedColor === null ? '' : 'T'}
+            </button>
+          </div>
+        </div>
+
+        {/* Canvas */}
+        <div
+          ref={canvasRef}
+          className="relative touch-none flex-1"
+          style={{
+            background: 'rgba(0, 0, 0, 0.08)',
+            cursor: isErasing ? 'cell' : 'crosshair',
+            minHeight: 0,
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+        >
+          <svg className="absolute inset-0 w-full h-full">
+            {strokes.map((stroke, index) => renderStroke(stroke, index))}
+            {renderCurrentStroke()}
+          </svg>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2 p-2 border-t" style={{ borderColor: theme.glass.border }}>
+          <button
+            onClick={handleClose}
+            className="px-3 py-1 rounded text-xs"
+            style={{ color: theme.text.muted }}
+          >
+            close
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-3 py-1 rounded text-xs font-medium"
+            style={{
+              background: theme.accent.primary,
+              color: theme.bg.primary,
+            }}
+          >
+            save
+          </button>
+        </div>
+      </motion.div>
+    )
   }
 
   return (
