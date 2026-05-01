@@ -5,6 +5,8 @@ import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useLayoutMode } from '@/hooks/useMediaQuery'
 import BookSpread from './BookSpread'
+import DiaryCover from './DiaryCover'
+import { useDiaryCover } from '@/hooks/useDiaryCover'
 
 // Pre-generate random particle data at module level to keep render pure
 const DUST_PARTICLES = Array.from({ length: 12 }, () => ({
@@ -25,6 +27,7 @@ export default function DeskScene() {
   const { theme } = useThemeStore()
   const layoutMode = useLayoutMode()
   const [scaleForTablet, setScaleForTablet] = useState(1)
+  const { coverState, progress, closeCover: _closeCover, markOpen: _markOpen } = useDiaryCover()
 
   useEffect(() => {
     setMounted(true)
@@ -118,7 +121,22 @@ export default function DeskScene() {
               transformOrigin: 'center center',
             }}
           >
-            <BookSpread />
+            {/* Inner motion wrapper — translateX shifts the scene as the cover opens
+                so the closed book appears at screen center. Static at 0 for now;
+                Task 4 wires it up to progress. */}
+            <motion.div
+              style={{
+                position: 'relative',
+                // x: 0  ← becomes wrapperX motion value in Task 4
+              }}
+            >
+              {/* Hide the spread when the cover is closed; Task 4 makes this animated. */}
+              <motion.div style={{ opacity: coverState === 'open' ? 1 : 0 }}>
+                <BookSpread />
+              </motion.div>
+
+              {coverState === 'closed' && <DiaryCover progress={progress} />}
+            </motion.div>
           </motion.div>
 
           {/* Floating dust particles */}
