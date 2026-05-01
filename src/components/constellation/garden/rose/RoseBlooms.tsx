@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
 import type { MemoryStar } from '../../ConstellationRenderer'
 import { RoseSVG } from './RoseSVG'
-import { roseColorForId, roseSizeForId } from './roseHash'
+import { roseSizeForId } from './roseHash'
 
 interface RoseBloomsProps {
   memoryStars: MemoryStar[]
@@ -13,6 +13,8 @@ interface RoseBloomsProps {
 }
 
 // Five blooms clustered around the trellis: 3 along the arch + 2 flanking the posts.
+// Color is fixed per anchor so the bouquet always reads as 2 yellow / 2 red / 1 white,
+// regardless of which entries land in which slots.
 const DESKTOP_ANCHORS: { x: number; y: number }[] = [
   { x: 38, y: 32 },
   { x: 50, y: 26 },
@@ -27,6 +29,15 @@ const MOBILE_ANCHORS: { x: number; y: number }[] = [
   { x: 68, y: 36 },
   { x: 24, y: 54 },
   { x: 76, y: 54 },
+]
+
+// Index-aligned with ANCHORS: arch-left, arch-top, arch-right, flank-left, flank-right.
+const ANCHOR_COLORS: string[] = [
+  '#F4D26B', // yellow — arch left
+  '#F8E8D8', // cream/white — arch top centerpiece
+  '#F4D26B', // yellow — arch right
+  '#B12838', // crimson — flank left
+  '#B12838', // crimson — flank right
 ]
 
 function useIsMobile(): boolean {
@@ -48,7 +59,7 @@ export function RoseBlooms({ memoryStars, onSelect, getMoodColor }: RoseBloomsPr
     return memoryStars.slice(0, anchors.length).map((star, i) => ({
       star,
       anchor: anchors[i],
-      color: roseColorForId(star.id),
+      color: ANCHOR_COLORS[i],
       size: roseSizeForId(star.id) * (isMobile ? 0.7 : 1),
     }))
   }, [memoryStars, anchors, isMobile])
