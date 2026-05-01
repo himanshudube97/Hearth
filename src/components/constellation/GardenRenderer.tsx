@@ -6,6 +6,7 @@ import type { MemoryStar } from './ConstellationRenderer'
 import { PostalScene } from './garden/scenes/PostalScene'
 import { MeadowScene } from './garden/scenes/MeadowScene'
 import { RoseGardenScene } from './garden/scenes/RoseGardenScene'
+import { OceanHarbourScene } from './garden/scenes/OceanHarbourScene'
 
 export interface GardenRendererProps {
   loading: boolean
@@ -22,6 +23,8 @@ export function GardenRenderer(props: GardenRendererProps) {
       return <PostalScene {...props} />
     case 'rose':
       return <RoseGardenScene {...props} />
+    case 'ocean':
+      return <OceanHarbourScene {...props} />
     default:
       return <MeadowScene {...props} />
   }
