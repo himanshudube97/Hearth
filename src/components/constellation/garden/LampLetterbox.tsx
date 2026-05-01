@@ -34,7 +34,7 @@ export function LampLetterbox({ theme, parallax }: Props) {
       className="absolute pointer-events-none"
       style={{
         right: '7%',
-        bottom: 0,
+        bottom: 60,
         width: 180,
         height: '44%',
         x: tx,
