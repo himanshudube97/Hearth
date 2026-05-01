@@ -21,17 +21,6 @@ interface GardenItem {
 }
 
 /**
- * Back row: three fence segments straddling the mid-horizontal axis,
- * with slight horizontal jitter so they don't read as one continuous
- * line. Lower saturation pushes them visually behind the flower row.
- */
-const FENCE: GardenItem[] = [
-  { id: 'fence-l', name: 'fence', x: 18, y: 60, size: 110, rotate: 0, saturate: 0.55, z: 1 },
-  { id: 'fence-c', name: 'fence', x: 42, y: 61, size: 130, rotate: 0, saturate: 0.55, z: 1 },
-  { id: 'fence-r', name: 'fence', x: 66, y: 60, size: 110, rotate: 0, saturate: 0.55, z: 1 },
-]
-
-/**
  * Flower cluster — 11 stems / blossoms across the band. Sizes and
  * rotations chosen for a "tended but informal" look. Z-order layers
  * taller stems behind shorter ones so the bouquet reads as planted.
@@ -58,7 +47,7 @@ const POTS: GardenItem[] = [
   { id: 'pot-r', name: 'potted-plant', x: 88, y: 78, size: 56, rotate: 2, z: 4 },
 ]
 
-const ITEMS: GardenItem[] = [...FENCE, ...POTS, ...FLOWERS]
+const ITEMS: GardenItem[] = [...POTS, ...FLOWERS]
 
 interface MeadowGardenProps {
   theme: Theme
