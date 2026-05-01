@@ -8,6 +8,8 @@ import PostboxControls from './PostboxControls'
 import WriteCard from './WriteCard'
 import TopHint from './TopHint'
 import NewLetterTag from './NewLetterTag'
+import LetterFanout from './LetterFanout'
+import RevealModal from './RevealModal'
 import { MONTHS, MONTH_NAMES, groupInboxByMonth, countUnread } from '../lettersData'
 import type { InboxLetter } from '../letterTypes'
 
@@ -20,6 +22,8 @@ export default function InboxView({ onUnreadCountChange }: Props) {
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [monthIdx, setMonthIdx] = useState(today.getMonth())
+  const [fanTriggerKey, setFanTriggerKey] = useState(0)
+  const [revealLetter, setRevealLetter] = useState<InboxLetter | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -45,6 +49,9 @@ export default function InboxView({ onUnreadCountChange }: Props) {
 
   useEffect(() => { onUnreadCountChange(newCountTotal) }, [newCountTotal, onUnreadCountChange])
 
+  // re-fan when month/year/letters count changes
+  useEffect(() => { setFanTriggerKey(k => k + 1) }, [year, monthIdx, letters.length])
+
   return (
     <section
       className="relative min-h-screen overflow-hidden"
@@ -62,7 +69,7 @@ export default function InboxView({ onUnreadCountChange }: Props) {
 
           <div className="flex items-end gap-[80px]">
             <Lamp />
-            <Postbox onClick={() => {/* triggers fanout — Stage 5 */}}>
+            <Postbox onClick={() => setFanTriggerKey(k => k + 1)}>
               <PostboxControls
                 year={year}
                 monthIdx={monthIdx}
@@ -89,6 +96,20 @@ export default function InboxView({ onUnreadCountChange }: Props) {
       >
         — {MONTH_NAMES[monthIdx]} · {year} · {captionFor(currentLetters)} —
       </div>
+
+      <LetterFanout
+        letters={currentLetters}
+        triggerKey={fanTriggerKey}
+        onLetterClick={setRevealLetter}
+      />
+      <RevealModal
+        letter={revealLetter}
+        onClose={() => setRevealLetter(null)}
+        onMarkRead={(id) => {
+          fetch(`/api/letters/${id}/read`, { method: 'POST' }).catch(() => {})
+          setLetters(ls => ls.map(l => l.id === id ? { ...l, isViewed: true } : l))
+        }}
+      />
     </section>
   )
 }
