@@ -1,8 +1,8 @@
 // src/hooks/useDiaryCover.ts
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { useMotionValue, useTransform, type MotionValue } from 'framer-motion'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { animate, useMotionValue, useTransform, type MotionValue } from 'framer-motion'
 
 const STORAGE_KEY = 'hearth-diary-cover-opened'
 
@@ -22,6 +22,10 @@ export interface UseDiaryCoverResult {
   coverRotateY: MotionValue<number>
   /** Drop-shadow blur radius in px; grows as the cover lifts. */
   coverShadowBlur: MotionValue<number>
+  /** Wheel handler. Typed as native WheelEvent because we attach via
+   *  addEventListener with { passive: false } in DeskScene — React's
+   *  synthetic wheel handler cannot reliably preventDefault. */
+  onWheel: (e: WheelEvent) => void
   closeCover: () => void
   /** Internal: forces coverState to 'open' once the snap completes. */
   markOpen: () => void
@@ -63,6 +67,52 @@ export function useDiaryCover(): UseDiaryCoverResult {
     setCoverState('closed')
   }, [progress])
 
+  const SENSITIVITY = 1 / 600
+  const SNAP_DELAY_MS = 150
+  const SNAP_THRESHOLD = 0.5
+
+  const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isSnappingRef = useRef(false)
+
+  const scheduleSnap = useCallback(() => {
+    if (snapTimerRef.current) clearTimeout(snapTimerRef.current)
+    snapTimerRef.current = setTimeout(() => {
+      if (isSnappingRef.current) return
+      isSnappingRef.current = true
+      const current = progress.get()
+      const target = current >= SNAP_THRESHOLD ? 1 : 0
+      animate(progress, target, {
+        type: 'spring',
+        stiffness: 200,
+        damping: 26,
+        onComplete: () => {
+          isSnappingRef.current = false
+          if (target === 1) {
+            markOpen()
+          }
+        },
+      })
+    }, SNAP_DELAY_MS)
+  }, [progress, markOpen])
+
+  const onWheel = useCallback(
+    (e: WheelEvent) => {
+      if (isSnappingRef.current) return // ignore wheel while snap animation is running
+      e.preventDefault()
+      const next = Math.max(0, Math.min(1, progress.get() + e.deltaY * SENSITIVITY))
+      progress.set(next)
+      scheduleSnap()
+    },
+    [progress, scheduleSnap]
+  )
+
+  // Cleanup any pending snap on unmount.
+  useEffect(() => {
+    return () => {
+      if (snapTimerRef.current) clearTimeout(snapTimerRef.current)
+    }
+  }, [])
+
   return {
     coverState,
     progress,
@@ -71,6 +121,7 @@ export function useDiaryCover(): UseDiaryCoverResult {
     coverOpacity,
     coverRotateY,
     coverShadowBlur,
+    onWheel,
     closeCover,
     markOpen,
   }

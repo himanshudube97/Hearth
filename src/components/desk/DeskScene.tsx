@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useLayoutMode } from '@/hooks/useMediaQuery'
@@ -27,14 +27,15 @@ export default function DeskScene() {
   const { theme } = useThemeStore()
   const layoutMode = useLayoutMode()
   const [scaleForTablet, setScaleForTablet] = useState(1)
+  const wheelCaptureRef = useRef<HTMLDivElement | null>(null)
   const {
     coverState,
-    progress: _progress,
     wrapperX,
     spreadOpacity,
     coverOpacity,
     coverRotateY,
     coverShadowBlur,
+    onWheel,
     closeCover: _closeCover,
     markOpen: _markOpen,
   } = useDiaryCover()
@@ -51,6 +52,13 @@ export default function DeskScene() {
       return () => window.removeEventListener('resize', calcScale)
     }
   }, [layoutMode])
+
+  useEffect(() => {
+    const el = wheelCaptureRef.current
+    if (!el || coverState !== 'closed') return
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [coverState, onWheel])
 
   const handleMobileClose = useCallback(() => {
     window.history.back()
@@ -181,20 +189,13 @@ export default function DeskScene() {
           </div>
 
           {coverState === 'closed' && (
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              defaultValue={0}
-              onChange={(e) => _progress.set(parseFloat(e.target.value))}
+            <div
+              ref={wheelCaptureRef}
               style={{
                 position: 'fixed',
-                bottom: 20,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 1000,
-                width: 400,
+                inset: 0,
+                zIndex: 50, // above the cover's zIndex 40
+                // No background — invisible, just intercepts wheel events.
               }}
             />
           )}
