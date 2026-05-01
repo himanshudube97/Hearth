@@ -11,6 +11,7 @@ import { Trellis } from '../rose/Trellis'
 import { ScatteredFlora } from '../rose/ScatteredFlora'
 import { RoseBlooms } from '../rose/RoseBlooms'
 import { PetalDrift } from '../rose/PetalDrift'
+import { AmbientDrift } from '../AmbientDrift'
 
 export interface RoseGardenSceneProps {
   loading: boolean
@@ -89,6 +90,7 @@ export function RoseGardenScene({
         getMoodColor={getMoodColor}
       />
       <PetalDrift />
+      <AmbientDrift theme={theme} />
 
       <motion.div
         initial={{ opacity: 0 }}
