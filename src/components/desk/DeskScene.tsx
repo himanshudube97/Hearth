@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useLayoutMode } from '@/hooks/useMediaQuery'
 import BookSpread from './BookSpread'
-import DiaryCover from './DiaryCover'
 import { useDiaryCover } from '@/hooks/useDiaryCover'
 
 // Pre-generate random particle data at module level to keep render pure
@@ -27,17 +26,7 @@ export default function DeskScene() {
   const { theme } = useThemeStore()
   const layoutMode = useLayoutMode()
   const [scaleForTablet, setScaleForTablet] = useState(1)
-  const {
-    coverState,
-    wrapperX,
-    spreadOpacity,
-    coverOpacity,
-    coverRotateY,
-    coverShadowBlur,
-    onWheel,
-    closeCover,
-    markOpen: _markOpen,
-  } = useDiaryCover()
+  const { coverState, markOpen: _markOpen, closeCover } = useDiaryCover()
 
   useEffect(() => {
     setMounted(true)
@@ -131,24 +120,7 @@ export default function DeskScene() {
               transformOrigin: 'center center',
             }}
           >
-            <motion.div
-              style={{
-                position: 'relative',
-                x: wrapperX,
-              }}
-            >
-              <motion.div style={{ opacity: spreadOpacity }}>
-                <BookSpread />
-              </motion.div>
-
-              {coverState === 'closed' && (
-                <DiaryCover
-                  rotateY={coverRotateY}
-                  opacity={coverOpacity}
-                  shadowBlur={coverShadowBlur}
-                />
-              )}
-            </motion.div>
+            <BookSpread />
           </motion.div>
 
           {/* Floating dust particles */}
@@ -179,21 +151,6 @@ export default function DeskScene() {
               />
             ))}
           </div>
-
-          {coverState === 'closed' && (
-            <div
-              ref={(el) => {
-                if (!el) return
-                el.addEventListener('wheel', onWheel, { passive: false })
-                return () => el.removeEventListener('wheel', onWheel)
-              }}
-              style={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 50,
-              }}
-            />
-          )}
 
           {coverState === 'open' && (
             <button
