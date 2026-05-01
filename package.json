@@ -15,6 +15,7 @@
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
     "@lemonsqueezy/lemonsqueezy.js": "^4.0.0",
+    "@lottiefiles/dotlottie-react": "^0.19.0",
     "@prisma/client": "^5.22.0",
     "@stripe/stripe-js": "^8.7.0",
     "@supabase/ssr": "^0.8.0",
