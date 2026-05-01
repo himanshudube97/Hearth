@@ -5,14 +5,14 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { themes, ThemeName } from '@/lib/themes'
 
+// Hearth and Linen are temporarily hidden from the showcase until their views
+// are polished. The themes themselves remain registered.
 const themeList: { key: ThemeName; emoji: string }[] = [
   { key: 'rivendell', emoji: '🌲' },
-  { key: 'hearth', emoji: '🔥' },
   { key: 'rose', emoji: '🌸' },
   { key: 'sage', emoji: '🌿' },
   { key: 'ocean', emoji: '🌊' },
   { key: 'postal', emoji: '✉️' },
-  { key: 'linen', emoji: '🕊️' },
 ]
 
 export default function ThemeShowcase() {

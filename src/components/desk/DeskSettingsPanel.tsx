@@ -42,7 +42,11 @@ export default function DeskSettingsPanel() {
     document.documentElement.style.setProperty('--diary-page-opacity', `${pageOpacity}%`)
   }, [pageOpacity])
 
-  const themeList = Object.entries(themes) as [ThemeName, typeof theme][]
+  // Themes hidden from the picker (still registered, just not offered).
+  // Hearth and Linen are temporarily hidden until their views are polished.
+  const HIDDEN_THEMES: ThemeName[] = ['hearth', 'linen']
+  const themeList = (Object.entries(themes) as [ThemeName, typeof theme][])
+    .filter(([name]) => !HIDDEN_THEMES.includes(name))
   const cursorList = Object.entries(cursors) as [CursorName, (typeof cursors)[CursorName]][]
 
   return (
