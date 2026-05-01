@@ -11,6 +11,7 @@ import { Trellis } from '../rose/Trellis'
 import { ScatteredFlora } from '../rose/ScatteredFlora'
 import { RoseBlooms } from '../rose/RoseBlooms'
 import { PetalDrift } from '../rose/PetalDrift'
+import { RoseSVG } from '../rose/RoseSVG'
 import { AmbientDrift } from '../AmbientDrift'
 
 export interface RoseGardenSceneProps {
@@ -50,9 +51,28 @@ export function RoseGardenScene({
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        <p style={{ color: theme.text.muted, fontStyle: 'italic' }}>
-          tending the rose garden…
-        </p>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="text-center flex flex-col items-center gap-3"
+        >
+          <motion.div
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <RoseSVG color="#F4B6B0" glow={theme.accent.warm} size={0.5} />
+          </motion.div>
+          <p
+            style={{
+              color: theme.text.muted,
+              fontFamily: 'var(--font-serif)',
+              fontStyle: 'italic',
+            }}
+          >
+            tending the rose garden…
+          </p>
+        </motion.div>
       </motion.div>
     )
   }
@@ -66,9 +86,23 @@ export function RoseGardenScene({
         animate={{ opacity: 1 }}
         transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
       >
-        <p style={{ color: theme.text.muted, fontStyle: 'italic' }}>
-          a quiet rose garden — write a memory and the first bloom appears
-        </p>
+        <motion.div
+          className="text-center relative z-10 px-6 flex flex-col items-center gap-4"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <RoseSVG color="#E27062" glow={theme.accent.warm} size={0.8} />
+          <p
+            style={{
+              color: theme.text.muted,
+              fontFamily: 'var(--font-serif)',
+              fontStyle: 'italic',
+            }}
+          >
+            a quiet rose garden — write a memory and the first bloom appears
+          </p>
+        </motion.div>
       </motion.div>
     )
   }
