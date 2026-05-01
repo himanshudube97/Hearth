@@ -34,6 +34,50 @@ export function HorizonSilhouettes() {
           transform: 'translateX(-50%)',
         }}
       >
+        {/* Rotating beam emanating from the lamp.
+            Pivots around the lamp position (16, 20 in this container). */}
+        <motion.div
+          style={{
+            position: 'absolute',
+            left: 16,
+            top: 20,
+            width: 320,
+            height: 70,
+            transformOrigin: '0 50%',
+            background:
+              'linear-gradient(90deg, rgba(255,234,208,0.55) 0%, rgba(255,220,180,0.22) 55%, transparent 100%)',
+            clipPath: 'polygon(0 45%, 100% 0%, 100% 100%, 0 55%)',
+            mixBlendMode: 'screen',
+            filter: 'blur(6px)',
+            pointerEvents: 'none',
+          }}
+          animate={
+            reduceMotion
+              ? undefined
+              : {
+                  rotate: [0, 360],
+                  opacity: [0.55, 0.55, 0, 0, 0.55],
+                }
+          }
+          transition={
+            reduceMotion
+              ? undefined
+              : {
+                  rotate: {
+                    duration: 22,
+                    repeat: Infinity,
+                    ease: 'linear',
+                  },
+                  opacity: {
+                    duration: 22,
+                    repeat: Infinity,
+                    ease: 'linear',
+                    times: [0, 0.5, 0.55, 0.95, 1],
+                  },
+                }
+          }
+        />
+
         {/* Lamp glow halo (sits behind the SVG, pulses) */}
         <motion.div
           style={{
