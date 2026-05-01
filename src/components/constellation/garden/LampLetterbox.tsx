@@ -390,7 +390,7 @@ export function LampLetterbox({ theme, parallax }: Props) {
         {open && (
           <div
             className="absolute pointer-events-none"
-            style={{ left: -120, bottom: 80, width: 280, height: 220 }}
+            style={{ left: -200, bottom: 150, width: 280, height: 220 }}
           >
             {LETTERS.map((l, i) => {
               const angle = (-118 + i * 28) * (Math.PI / 180)
