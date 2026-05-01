@@ -51,6 +51,7 @@ export function PaperBoat({
       className="absolute cursor-pointer focus:outline-none"
       style={{
         left: `${slotX}%`,
+        marginLeft: -((BASE_W * scale) / 2),
         bottom: `${slotYFromBottom}%`,
         width: BASE_W * scale,
         height: BASE_H * scale,
@@ -60,11 +61,11 @@ export function PaperBoat({
       }}
       animate={
         reduceMotion
-          ? { x: '-50%', rotate: tilt }
+          ? { rotate: tilt }
           : {
-              x: '-50%',
               rotate: tilt,
               y: [0, -5, 0, 4, 0],
+              x: [0, 2.5, 0, -2.5, 0],
             }
       }
       transition={
@@ -76,6 +77,12 @@ export function PaperBoat({
                 repeat: Infinity,
                 ease: 'easeInOut',
                 delay: phaseOffset,
+              },
+              x: {
+                duration: 4.2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: phaseOffset + 0.3,
               },
             }
       }

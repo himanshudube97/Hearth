@@ -5,16 +5,18 @@ import { motion, useReducedMotion } from 'framer-motion'
 interface CloudConfig {
   left: string
   top: string
-  width: number
+  size: number
   drift: number
   duration: number
+  delay: number
 }
 
 const CLOUDS: CloudConfig[] = [
-  { left: '8%', top: '20%', width: 140, drift: 28, duration: 90 },
-  { left: '30%', top: '14%', width: 100, drift: 22, duration: 70 },
-  { left: '55%', top: '24%', width: 120, drift: 32, duration: 110 },
-  { left: '75%', top: '18%', width: 80, drift: 18, duration: 80 },
+  { left: '6%', top: '18%', size: 1.0, drift: 32, duration: 95, delay: 0 },
+  { left: '28%', top: '11%', size: 0.8, drift: 24, duration: 75, delay: 8 },
+  { left: '54%', top: '23%', size: 1.2, drift: 38, duration: 115, delay: 4 },
+  { left: '75%', top: '15%', size: 0.75, drift: 20, duration: 85, delay: 18 },
+  { left: '42%', top: '28%', size: 0.9, drift: 28, duration: 100, delay: 22 },
 ]
 
 export function HarbourSky() {
@@ -52,7 +54,9 @@ export function HarbourSky() {
           transform: 'translate(-50%, -50%)',
         }}
         animate={
-          reduceMotion ? undefined : { opacity: [0.85, 1, 0.85], scale: [1, 1.04, 1] }
+          reduceMotion
+            ? undefined
+            : { opacity: [0.85, 1, 0.85], scale: [1, 1.04, 1] }
         }
         transition={
           reduceMotion
@@ -61,35 +65,93 @@ export function HarbourSky() {
         }
       />
 
-      {/* Drifting cloud streaks */}
+      {/* Drifting cloud puffs */}
       {CLOUDS.map((cloud, i) => (
-        <motion.div
-          key={i}
-          className="absolute"
-          style={{
-            left: cloud.left,
-            top: cloud.top,
-            width: cloud.width,
-            height: 4,
-            background: 'rgba(200,210,220,0.5)',
-            borderRadius: '50%',
-            filter: 'blur(2px)',
-          }}
-          animate={
-            reduceMotion ? undefined : { x: [0, cloud.drift, 0] }
-          }
-          transition={
-            reduceMotion
-              ? undefined
-              : {
-                  duration: cloud.duration,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                  delay: i * 4,
-                }
-          }
-        />
+        <CloudPuff key={i} config={cloud} reduceMotion={reduceMotion ?? false} />
       ))}
     </div>
+  )
+}
+
+function CloudPuff({
+  config,
+  reduceMotion,
+}: {
+  config: CloudConfig
+  reduceMotion: boolean
+}) {
+  const { left, top, size, drift, duration, delay } = config
+  const w = 110 * size
+  const h = 16 * size
+
+  return (
+    <motion.div
+      className="absolute"
+      style={{ left, top, width: w, height: h }}
+      animate={
+        reduceMotion
+          ? undefined
+          : {
+              x: [0, drift, 0],
+              opacity: [0.55, 0.9, 0.55],
+            }
+      }
+      transition={
+        reduceMotion
+          ? undefined
+          : {
+              x: {
+                duration,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay,
+              },
+              opacity: {
+                duration: duration * 0.55,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: delay + 3,
+              },
+            }
+      }
+    >
+      {/* Three layered blurred ovals form a soft cloud silhouette */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 5 * size,
+          width: 75 * size,
+          height: 7 * size,
+          background: 'rgba(220,225,230,0.65)',
+          borderRadius: '50%',
+          filter: `blur(${4 * size}px)`,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: 22 * size,
+          top: 0,
+          width: 55 * size,
+          height: 10 * size,
+          background: 'rgba(220,225,230,0.6)',
+          borderRadius: '50%',
+          filter: `blur(${5 * size}px)`,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: 42 * size,
+          top: 6 * size,
+          width: 68 * size,
+          height: 7 * size,
+          background: 'rgba(220,225,230,0.55)',
+          borderRadius: '50%',
+          filter: `blur(${4 * size}px)`,
+        }}
+      />
+    </motion.div>
   )
 }
