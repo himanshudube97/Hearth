@@ -4,30 +4,37 @@ import { useState } from 'react'
 import { motion, AnimatePresence, useTransform } from 'framer-motion'
 import type { Theme } from '@/lib/themes'
 import type { GardenParallax } from './useGardenParallax'
+import type { MemoryStar } from '../ConstellationRenderer'
 
-const LETTERS = [
-  { from: 'Anya',  city: 'Lisbon',     tint: '#F4E1B8', stamp: '#B04830' },
-  { from: 'River', city: 'Kyoto',      tint: '#E6D6E8', stamp: '#5A3A6A' },
-  { from: 'Mira',  city: 'Marrakesh',  tint: '#FFE0CC', stamp: '#C2562A' },
-  { from: 'Kai',   city: 'Reykjavík',  tint: '#D6E4DC', stamp: '#2C5260' },
-  { from: 'Sol',   city: 'Havana',     tint: '#FFD8D0', stamp: '#9A4555' },
-]
+const TINTS = ['#F4E1B8', '#E6D6E8', '#FFE0CC', '#D6E4DC', '#FFD8D0']
 
 interface Props {
   theme: Theme
   parallax: GardenParallax
+  memoryStars: MemoryStar[]
+  onSelect: (star: MemoryStar) => void
+  getMoodColor: (mood: number) => string
 }
 
 /**
  * Foreground anchor: a tall Victorian gas lamp with a glowing halo,
- * and the rust postbox tucked beneath. The whole group counter-parallaxes
- * (moves opposite to the background layers) for depth.
+ * and the rust postbox tucked beneath. Click the box → real memories fan
+ * out as letters; click a letter → opens that memory's modal.
  */
-export function LampLetterbox({ theme, parallax }: Props) {
+export function LampLetterbox({
+  theme,
+  parallax,
+  memoryStars,
+  onSelect,
+  getMoodColor,
+}: Props) {
   const [open, setOpen] = useState(false)
 
   const tx = useTransform(parallax.x, v => v * 8)
   const ty = useTransform(parallax.y, v => v * 3)
+
+  const visible = memoryStars.slice(0, 5)
+  const badgeCount = visible.length
 
   return (
     <motion.div
@@ -352,7 +359,7 @@ export function LampLetterbox({ theme, parallax }: Props) {
             }}
             transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
           >
-            5
+            {badgeCount}
           </motion.div>
           {/* Side flag */}
           <motion.div
@@ -385,30 +392,54 @@ export function LampLetterbox({ theme, parallax }: Props) {
         />
       </motion.button>
 
-      {/* ─────── 5 letters fan (popped to the LEFT of the box) ─────── */}
+      {/* ─────── Memory letters fan (popped to the LEFT of the box) ─────── */}
       <AnimatePresence>
-        {open && (
+        {open && visible.length > 0 && (
           <div
             className="absolute pointer-events-none"
             style={{ left: -200, bottom: 150, width: 280, height: 220 }}
           >
-            {LETTERS.map((l, i) => {
-              const angle = (-118 + i * 28) * (Math.PI / 180)
+            {visible.map((star, i) => {
+              const N = visible.length
+              const middle = -62
+              const halfSpread = N === 1 ? 0 : 56
+              const startDeg = middle - halfSpread
+              const stepDeg = N === 1 ? 0 : (halfSpread * 2) / (N - 1)
+              const angle = (startDeg + i * stepDeg) * (Math.PI / 180)
               const r = 130
               const x = Math.cos(angle) * r
               const y = -Math.sin(angle) * r
-              const tilt = -14 + i * 6
+              const tilt = N === 1 ? 0 : -14 + i * (24 / (N - 1))
+              const tint = TINTS[i % TINTS.length]
+              const stamp = getMoodColor(star.entry.mood)
+              const date = new Date(star.entry.createdAt)
+              const dateLine = date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+              })
+              const subline = date
+                .toLocaleDateString('en-US', { weekday: 'long' })
+                .toUpperCase()
 
               return (
-                <motion.div
-                  key={l.from}
-                  className="absolute"
+                <motion.button
+                  key={star.id}
+                  type="button"
+                  onClick={() => onSelect(star)}
+                  aria-label={`Open memory from ${dateLine}`}
+                  className="absolute focus:outline-none"
                   style={{
                     right: 16,
                     bottom: 0,
                     width: 110,
                     height: 70,
                     transformOrigin: 'bottom center',
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    pointerEvents: 'auto',
+                    zIndex: 40 + i,
                   }}
                   initial={{ x: 0, y: 0, opacity: 0, rotate: 0, scale: 0.55 }}
                   animate={{
@@ -419,6 +450,8 @@ export function LampLetterbox({ theme, parallax }: Props) {
                     scale: 1,
                   }}
                   exit={{ x: 0, y: 0, opacity: 0, scale: 0.55, rotate: 0 }}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.97 }}
                   transition={{
                     type: 'spring',
                     stiffness: 200,
@@ -426,8 +459,8 @@ export function LampLetterbox({ theme, parallax }: Props) {
                     delay: i * 0.08,
                   }}
                 >
-                  <Envelope l={l} />
-                </motion.div>
+                  <Envelope tint={tint} stamp={stamp} from={dateLine} city={subline} />
+                </motion.button>
               )
             })}
           </div>
@@ -437,12 +470,22 @@ export function LampLetterbox({ theme, parallax }: Props) {
   )
 }
 
-function Envelope({ l }: { l: typeof LETTERS[number] }) {
+function Envelope({
+  tint,
+  stamp,
+  from,
+  city,
+}: {
+  tint: string
+  stamp: string
+  from: string
+  city: string
+}) {
   return (
     <div
       className="relative w-full h-full"
       style={{
-        background: l.tint,
+        background: tint,
         borderRadius: 3,
         boxShadow:
           '0 8px 16px -4px rgba(31,39,80,0.35), 0 2px 5px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(0,0,0,0.06)',
@@ -459,7 +502,7 @@ function Envelope({ l }: { l: typeof LETTERS[number] }) {
           right: 6,
           width: 22,
           height: 26,
-          background: l.stamp,
+          background: stamp,
           border: '1px dashed rgba(255,255,255,0.65)',
           boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
         }}
@@ -506,9 +549,9 @@ function Envelope({ l }: { l: typeof LETTERS[number] }) {
           lineHeight: 1,
         }}
       >
-        from {l.from}
+        from {from}
         <div style={{ fontSize: 9, opacity: 0.7, fontFamily: 'serif', letterSpacing: 0.5, marginTop: 2 }}>
-          {l.city.toUpperCase()}
+          {city}
         </div>
       </div>
     </div>

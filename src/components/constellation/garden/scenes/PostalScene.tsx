@@ -139,7 +139,13 @@ export function PostalScene({
       <GroundLine theme={theme} />
       <LeftLamp theme={theme} parallax={parallax} />
       <Bunting parallax={parallax} />
-      <LampLetterbox theme={theme} parallax={parallax} />
+      <LampLetterbox
+        theme={theme}
+        parallax={parallax}
+        memoryStars={memoryStars}
+        onSelect={setSelectedStar}
+        getMoodColor={getMoodColor}
+      />
 
       <motion.div
         initial={{ opacity: 0 }}
