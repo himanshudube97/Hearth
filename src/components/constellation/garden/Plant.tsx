@@ -19,6 +19,7 @@ export type PlantName =
   | 'sunflower'
   | 'blossom'
   | 'bouquet'
+  | 'fence'
   | 'leaf-fluttering'
   | 'leaf-fallen'
   | 'butterfly'
