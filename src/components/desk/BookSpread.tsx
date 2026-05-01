@@ -138,6 +138,7 @@ function BookSpreadInner(
   // transitions in/out of the cover page. Initialized to 0; synced to
   // the actual start page in onInit once HTMLFlipBook mounts.
   const prevPageRef = useRef<number>(0)
+  const [coverHidesLeftFrame, setCoverHidesLeftFrame] = useState<boolean>(false)
 
   const autosave = useAutosaveEntry()
   const autosaveRef = useRef(autosave)
@@ -169,6 +170,7 @@ function BookSpreadInner(
   useImperativeHandle(ref, () => ({
     flipToCover: () => {
       if (!hasCover) return
+      setCoverHidesLeftFrame(true)
       flipBookRef.current?.pageFlip?.()?.turnToPage?.(0)
     },
   }), [hasCover])
@@ -332,6 +334,18 @@ function BookSpreadInner(
     // Only fire on photo changes, not on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingPhotos, loading])
+
+  const handleChangeState = useCallback((e: { data: string }) => {
+    // When the library starts the flip animation away from the cover, expand
+    // the frame in lockstep with the page-flip animation. Stays at the new
+    // value once the flip lands ('read' state).
+    if (e.data === 'flipping') {
+      if (hasCover && prevPageRef.current === 0) {
+        // Leaving the cover — frame should grow to full width.
+        setCoverHidesLeftFrame(false)
+      }
+    }
+  }, [hasCover])
 
   // Library's onFlip event: convert page index -> spread index and sync store
   const handleFlip = useCallback((e: { data: number }) => {
@@ -525,7 +539,13 @@ function BookSpreadInner(
       >
         {/* Hardcover frame, rendered as the first child so it sits behind
             the pages and shares the open-animation with them. */}
-        <div className="book-cover" />
+        <div
+          className="book-cover"
+          style={{
+            left: coverHidesLeftFrame ? '50%' : '-48px',
+            transition: 'left 1.2s ease-in-out',
+          }}
+        />
         {/* Ribbon bookmark with brass swivel clasp + oval hangtag dangling beneath */}
         <RibbonBookmark color={colors.ribbon}>
           <RibbonTag date={spreadDate} colors={colors} />
@@ -574,11 +594,15 @@ function BookSpreadInner(
                 : entries.length * 2
             }
             onFlip={handleFlip}
+            onChangeState={handleChangeState}
             onInit={() => {
               setBookReady(true)
               const pageFlip = flipBookRef.current?.pageFlip?.()
               if (pageFlip) {
-                prevPageRef.current = pageFlip.getCurrentPageIndex?.() ?? 0
+                const initialPage = pageFlip.getCurrentPageIndex?.() ?? 0
+                prevPageRef.current = initialPage
+                // Frame should hide its left half whenever we're on the cover.
+                setCoverHidesLeftFrame(hasCover && initialPage === 0)
               }
             }}
             className=""
