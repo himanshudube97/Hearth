@@ -19,7 +19,11 @@ export default function ThemeSwitcher() {
   const [isOpen, setIsOpen] = useState(false)
   const { theme, themeName, setTheme } = useThemeStore()
 
-  const themeList = Object.entries(themes) as [ThemeName, typeof theme][]
+  // Themes hidden from the picker (still registered, just not offered).
+  // Hearth and Linen are temporarily hidden until their Memory views are polished.
+  const HIDDEN_THEMES: ThemeName[] = ['hearth', 'linen']
+  const themeList = (Object.entries(themes) as [ThemeName, typeof theme][])
+    .filter(([name]) => !HIDDEN_THEMES.includes(name))
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
