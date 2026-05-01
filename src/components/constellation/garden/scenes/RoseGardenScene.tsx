@@ -12,6 +12,7 @@ import { ScatteredFlora } from '../rose/ScatteredFlora'
 import { RoseBlooms } from '../rose/RoseBlooms'
 import { PetalDrift } from '../rose/PetalDrift'
 import { RoseSVG } from '../rose/RoseSVG'
+import { RoseBud } from '../rose/RoseBud'
 import { AmbientDrift } from '../AmbientDrift'
 
 export interface RoseGardenSceneProps {
@@ -92,7 +93,12 @@ export function RoseGardenScene({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
         >
-          <RoseSVG color="#E27062" glow={theme.accent.warm} size={0.8} />
+          <motion.div
+            animate={{ opacity: [0.6, 1, 0.6], scale: [1, 1.04, 1] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <RoseBud size={1.2} />
+          </motion.div>
           <p
             style={{
               color: theme.text.muted,
