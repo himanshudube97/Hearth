@@ -4,9 +4,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useLayoutMode } from '@/hooks/useMediaQuery'
-import BookSpread, { type BookSpreadHandle } from './BookSpread'
+import BookSpread from './BookSpread'
 import { useDiaryCover } from '@/hooks/useDiaryCover'
-import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 
 // Pre-generate random particle data at module level to keep render pure
 const DUST_PARTICLES = Array.from({ length: 12 }, () => ({
@@ -28,7 +27,6 @@ export default function DeskScene() {
   const layoutMode = useLayoutMode()
   const [scaleForTablet, setScaleForTablet] = useState(1)
   const { coverState, markOpen, closeCover } = useDiaryCover()
-  const bookSpreadRef = useRef<BookSpreadHandle | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -46,22 +44,6 @@ export default function DeskScene() {
   const handleMobileClose = useCallback(() => {
     window.history.back()
   }, [])
-
-  const colors = getGlassDiaryColors(theme)
-
-  // Minimal v1 cover — solid theme-derived color matching the open
-  // book's hardcover frame. Decorations come later.
-  const coverContent = (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: colors.cover,
-        border: `1px solid ${colors.coverBorder}`,
-        borderRadius: 4,
-      }}
-    />
-  )
 
   if (!mounted) return null
 
@@ -121,12 +103,47 @@ export default function DeskScene() {
         <MobileJournalEntry onClose={handleMobileClose} />
       ) : (
         <>
+          {/* Wheel-capture overlay when cover is closed.
+              Intercepts trackpad scroll before the flipbook's own handler
+              can consume it. Callback ref so the listener is registered
+              immediately on mount without an extra useEffect + mounted gate. */}
+          {coverState === 'closed' && (
+            <div
+              ref={(el) => {
+                if (!el) return
+                let accumulated = 0
+                let triggered = false
+                const handler = (e: WheelEvent) => {
+                  e.preventDefault()
+                  if (triggered) return
+                  accumulated += e.deltaY
+                  if (Math.abs(accumulated) > 60) {
+                    triggered = true
+                    markOpen()
+                  }
+                }
+                el.addEventListener('wheel', handler, { passive: false })
+                return () => el.removeEventListener('wheel', handler)
+              }}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 50,
+              }}
+            />
+          )}
+
           {/* Book - center.
               `top` uses max() so on short viewports the book stays
               anchored ~100px below the page top, keeping the global
               navigation bar and the book's top decorations from
               colliding. On taller viewports the 50% wins and the book
-              renders perfectly centered as before. */}
+              renders perfectly centered as before.
+
+              Inner motion.div shifts the whole BookSpread left by 325px
+              when closed so the single-page-width cover frame lands at
+              screen center (the spread is 1300px wide; half is 650px;
+              shifting left 325px centers the right half). */}
           <motion.div
             className="absolute z-30"
             style={{
@@ -138,18 +155,12 @@ export default function DeskScene() {
               transformOrigin: 'center center',
             }}
           >
-            <BookSpread
-              ref={bookSpreadRef}
-              coverContent={coverContent}
-              coverInitiallyShown={coverState === 'closed'}
-              onCoverFlipped={(toCover) => {
-                if (toCover) {
-                  closeCover()
-                } else {
-                  markOpen()
-                }
-              }}
-            />
+            <motion.div
+              animate={{ x: coverState === 'closed' ? -325 : 0 }}
+              transition={{ duration: 1.2, ease: 'easeInOut' }}
+            >
+              <BookSpread closed={coverState === 'closed'} />
+            </motion.div>
           </motion.div>
 
           {/* Floating dust particles */}
@@ -183,12 +194,7 @@ export default function DeskScene() {
 
           {coverState === 'open' && (
             <button
-              onClick={() => {
-                bookSpreadRef.current?.flipToCover()
-                // Safety: also flip state directly in case the library is already on page 0
-                // and onCoverFlipped doesn't re-fire.
-                closeCover()
-              }}
+              onClick={closeCover}
               aria-label="Close diary"
               title="Close diary"
               style={{

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useImperativeHandle, useRef, useState, memo, forwardRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState, memo, forwardRef } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
@@ -40,23 +40,10 @@ interface Entry {
   style?: import('@/lib/entry-style').EntryStyle | null
 }
 
-export interface BookSpreadHandle {
-  /** Animate back to the cover (page 0). No-op if no cover is present. */
-  flipToCover: () => void
-}
-
 interface BookSpreadProps {
-  /** Optional cover content rendered as the first page when provided.
-   *  Activates react-pageflip's showCover hardcover mode (single-pane cover view). */
-  coverContent?: React.ReactNode
-  /** When true and coverContent is provided, the flipbook starts at page 0
-   *  (cover visible). When false (default), starts past the cover at the
-   *  new-entry spread. Used to skip the cover for returning users. */
-  coverInitiallyShown?: boolean
-  /** Called when the library transitions in or out of the cover page.
-   *  - toCover=true: library page just changed TO 0 (cover became visible)
-   *  - toCover=false: library page just changed FROM 0 (cover opened) */
-  onCoverFlipped?: (toCover: boolean) => void
+  /** When true, the diary cover is closed: the .book-cover frame
+   *  is compact (single-page width) and the flipbook is invisible. */
+  closed?: boolean
 }
 
 // Fixed page dimensions for the flipbook
@@ -112,10 +99,7 @@ function combineDraftHtml(left: string, right: string): string {
   return leftHtml + PAGE_BREAK_MARKER + rightHtml
 }
 
-function BookSpreadInner(
-  { coverContent, coverInitiallyShown = false, onCoverFlipped }: BookSpreadProps,
-  ref: React.ForwardedRef<BookSpreadHandle>,
-) {
+export default function BookSpread({ closed = false }: BookSpreadProps) {
   const { theme, themeName } = useThemeStore()
   const setCurrentSong = useJournalStore((s) => s.setCurrentSong)
   const setCurrentMood = useJournalStore((s) => s.setCurrentMood)
@@ -129,16 +113,9 @@ function BookSpreadInner(
   const setTotalSpreads = useDeskStore((s) => s.setTotalSpreads)
   const goToSpread = useDeskStore((s) => s.goToSpread)
 
-  const hasCover = coverContent !== undefined
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flipBookRef = useRef<any>(null)
   const diaryRootRef = useRef<HTMLDivElement>(null)
-  // Tracks the library's current page index so handleFlip can detect
-  // transitions in/out of the cover page. Initialized to 0; synced to
-  // the actual start page in onInit once HTMLFlipBook mounts.
-  const prevPageRef = useRef<number>(0)
-  const [coverHidesLeftFrame, setCoverHidesLeftFrame] = useState<boolean>(false)
 
   const autosave = useAutosaveEntry()
   const autosaveRef = useRef(autosave)
@@ -164,16 +141,6 @@ function BookSpreadInner(
   // wired via store .subscribe outside React's render cycle) sees fresh data.
   const pendingPhotosRef = useRef(pendingPhotos)
   pendingPhotosRef.current = pendingPhotos
-
-  // Expose imperative handle so DeskScene (and any other parent) can programmatically
-  // animate back to the cover page without coupling to the flipbook internals.
-  useImperativeHandle(ref, () => ({
-    flipToCover: () => {
-      if (!hasCover) return
-      setCoverHidesLeftFrame(true)
-      flipBookRef.current?.pageFlip?.()?.turnToPage?.(0)
-    },
-  }), [hasCover])
 
   // Fetch entries on mount. If there's an unlocked today-entry, pluck the
   // most recent one to be the "active editing target" — bound to the
@@ -335,50 +302,21 @@ function BookSpreadInner(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingPhotos, loading])
 
-  const handleChangeState = useCallback((e: { data: string }) => {
-    // When the library starts the flip animation away from the cover, expand
-    // the frame in lockstep with the page-flip animation. Stays at the new
-    // value once the flip lands ('read' state).
-    if (e.data === 'flipping') {
-      if (hasCover && prevPageRef.current === 0) {
-        // Leaving the cover — frame should grow to full width.
-        setCoverHidesLeftFrame(false)
-      }
-    }
-  }, [hasCover])
-
   // Library's onFlip event: convert page index -> spread index and sync store
   const handleFlip = useCallback((e: { data: number }) => {
-    const newPage = e.data
-    const prevPage = prevPageRef.current
-    prevPageRef.current = newPage
-
-    if (hasCover) {
-      // Detect cover transitions
-      if (newPage === 0 && prevPage !== 0) {
-        onCoverFlipped?.(true)
-      } else if (newPage !== 0 && prevPage === 0) {
-        onCoverFlipped?.(false)
-      }
-      // Spread index only meaningful when not on the cover page
-      if (newPage > 0) {
-        goToSpread(Math.floor((newPage - 1) / 2))
-      }
-    } else {
-      goToSpread(Math.floor(newPage / 2))
-    }
-  }, [hasCover, goToSpread, onCoverFlipped])
+    goToSpread(Math.floor(e.data / 2))
+  }, [goToSpread])
 
   // Programmatic external goToSpread() calls (e.g. EntrySelector clicks)
   // need to be pushed back to the library so its visible page matches.
   useEffect(() => {
     const pageFlip = flipBookRef.current?.pageFlip?.()
     if (!pageFlip) return
-    const targetPage = globalCurrentSpread * 2 + (hasCover ? 1 : 0)
+    const targetPage = globalCurrentSpread * 2
     if (pageFlip.getCurrentPageIndex?.() !== targetPage) {
       pageFlip.turnToPage?.(targetPage)
     }
-  }, [globalCurrentSpread, hasCover])
+  }, [globalCurrentSpread])
 
   const handlePrevPage = useCallback(() => {
     flipBookRef.current?.pageFlip()?.flipPrev()
@@ -511,6 +449,18 @@ function BookSpreadInner(
           ['--book-cover-border' as string]: colors.coverBorder,
         } as React.CSSProperties}
       >
+        {/* .book-cover is rendered as a sibling of the inner motion.div
+            so that applying opacity to the flipbook does not hide the frame.
+            When closed: left=50% → frame wraps only the right half (single-page width).
+            When open: left=-48px → full spread width with negative inset. */}
+        <div
+          className="book-cover"
+          style={{
+            left: closed ? '50%' : '-48px',
+            transition: 'left 1.2s ease-in-out',
+          }}
+        />
+
       {/* Book wrapper. Sized for the spread (1300x820), relative so chrome
           can be positioned absolutely on top. The --page-bg CSS variable is
           inherited by the .diary-page children so each page tints to the
@@ -532,20 +482,13 @@ function BookSpreadInner(
           transformStyle: 'preserve-3d',
           ['--page-bg' as string]: colors.pageBg,
           ['--page-bg-solid' as string]: colors.pageBgSolid,
+          opacity: closed ? 0 : 1,
+          transition: 'opacity 1.2s ease-in-out',
         } as React.CSSProperties}
         initial={{ rotateX: 5, opacity: 0 }}
-        animate={bookReady ? { rotateX: 0, opacity: 1 } : { rotateX: 5, opacity: 0 }}
+        animate={bookReady ? { rotateX: 0, opacity: closed ? 0 : 1 } : { rotateX: 5, opacity: 0 }}
         transition={{ duration: 0.6 }}
       >
-        {/* Hardcover frame, rendered as the first child so it sits behind
-            the pages and shares the open-animation with them. */}
-        <div
-          className="book-cover"
-          style={{
-            left: coverHidesLeftFrame ? '50%' : '-48px',
-            transition: 'left 1.2s ease-in-out',
-          }}
-        />
         {/* Ribbon bookmark with brass swivel clasp + oval hangtag dangling beneath */}
         <RibbonBookmark color={colors.ribbon}>
           <RibbonTag date={spreadDate} colors={colors} />
@@ -587,24 +530,10 @@ function BookSpreadInner(
             flippingTime={1200}
             useMouseEvents={false}
             mobileScrollSupport={false}
-            showCover={hasCover}
-            startPage={
-              hasCover
-                ? coverInitiallyShown ? 0 : entries.length * 2 + 1
-                : entries.length * 2
-            }
+            showCover={false}
+            startPage={entries.length * 2}
             onFlip={handleFlip}
-            onChangeState={handleChangeState}
-            onInit={() => {
-              setBookReady(true)
-              const pageFlip = flipBookRef.current?.pageFlip?.()
-              if (pageFlip) {
-                const initialPage = pageFlip.getCurrentPageIndex?.() ?? 0
-                prevPageRef.current = initialPage
-                // Frame should hide its left half whenever we're on the cover.
-                setCoverHidesLeftFrame(hasCover && initialPage === 0)
-              }
-            }}
+            onInit={() => setBookReady(true)}
             className=""
             style={{}}
             startZIndex={0}
@@ -615,16 +544,6 @@ function BookSpreadInner(
             showPageCorners={false}
             disableFlipByClick={true}
           >
-            {/* Optional cover page — rendered as the very first child so
-                react-pageflip treats it as the hardcover front when
-                showCover={true}. side="right" matches the library's expectation
-                for a single-pane cover (front of a closed book). */}
-            {hasCover && (
-              <PageWrapper key="cover" side="right" colors={colors}>
-                {coverContent}
-              </PageWrapper>
-            )}
-
             {/* Existing entries: oldest first so the newest sits next to the
                 new-entry spread at the back of the book. Reverse-chronological
                 navigation: ‹ goes to older entries, › advances toward the new-entry. */}
@@ -735,5 +654,3 @@ function BookSpreadInner(
     </div>
   )
 }
-
-export default forwardRef<BookSpreadHandle, BookSpreadProps>(BookSpreadInner)
