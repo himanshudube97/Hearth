@@ -451,13 +451,32 @@ export default function BookSpread({ closed = false }: BookSpreadProps) {
       >
         {/* .book-cover is rendered as a sibling of the inner motion.div
             so that applying opacity to the flipbook does not hide the frame.
-            When closed: left=50% → frame wraps only the right half (single-page width).
-            When open: left=-48px → full spread width with negative inset. */}
+            Open-frame: always at left=-48px (full spread width). Opacity 0
+            when closed, 1 when open — fades in to wrap the revealed spread. */}
         <div
           className="book-cover"
           style={{
-            left: closed ? '50%' : '-48px',
-            transition: 'left 1.2s ease-in-out',
+            left: '-48px',
+            opacity: closed ? 0 : 1,
+            transition: 'opacity 1.2s ease-in-out',
+          }}
+        />
+
+        {/* Closed-cover: single-page-wide textured panel that flips open.
+            Rotates 0deg → -180deg around its left edge (the spine) when
+            opening. backface-visibility:hidden makes it invisible past 90°
+            so the back face never shows. Sits on top of the open-frame
+            (later in DOM) while the open-frame is opacity:0 anyway. */}
+        <div
+          className="book-cover"
+          style={{
+            left: '50%',
+            transform: closed
+              ? 'perspective(2000px) rotateY(0deg)'
+              : 'perspective(2000px) rotateY(-180deg)',
+            transformOrigin: 'left center',
+            backfaceVisibility: 'hidden',
+            transition: 'transform 1.2s ease-in-out',
           }}
         />
 
