@@ -102,6 +102,9 @@ export default function PhotoItem({
             backgroundPosition: 'center',
           }}
         />
+        {/* DOM children owned by the caption-sync useEffect — never pass
+            {item.caption} as JSX children, or React resets the caret on
+            every keystroke (backwards typing). */}
         <div
           ref={captionRef}
           contentEditable={isEditing}
@@ -122,9 +125,7 @@ export default function PhotoItem({
             cursor: isEditing ? 'text' : 'inherit',
             minHeight: 18,
           }}
-        >
-          {item.caption ?? ''}
-        </div>
+        />
       </div>
     )
   }

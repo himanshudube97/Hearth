@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useImperativeHandle, useRef, useState, memo, forwardRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState, memo, forwardRef } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
@@ -40,23 +40,13 @@ interface Entry {
   style?: import('@/lib/entry-style').EntryStyle | null
 }
 
-export interface BookSpreadHandle {
-  /** Animate the cover closed (flips back to the cover page).
-   *  No-op if no cover is provided. */
-  flipToCover: () => void
-}
-
 interface BookSpreadProps {
-  /** When provided, rendered as the first PageWrapper child. Activates
-   *  showCover mode so closed state shows it as a single-pane hardcover. */
-  coverContent?: React.ReactNode
-  /** When true and coverContent is provided, the flipbook starts at page 0
-   *  (cover visible). Used to skip the cover for returning users. */
-  coverInitiallyShown?: boolean
-  /** Fires when react-pageflip transitions in or out of the cover page (page 0).
-   *  - toCover=true: just landed at page 0 (cover became visible)
-   *  - toCover=false: just left page 0 (cover opened away) */
-  onCoverFlipped?: (toCover: boolean) => void
+  /** When true, the diary cover is closed: a single-page-wide hardcover panel
+   *  is shown centered, and the spread + open-frame are hidden. When the
+   *  prop flips to false, the closed panel rotates -180° around the spine
+   *  (backface-visibility:hidden so it disappears past 90°) while the
+   *  spread + open-frame snap in once the flip is past vertical. */
+  closed?: boolean
 }
 
 // Fixed page dimensions for the flipbook
@@ -112,17 +102,12 @@ function combineDraftHtml(left: string, right: string): string {
   return leftHtml + PAGE_BREAK_MARKER + rightHtml
 }
 
-function BookSpreadInner(
-  { coverContent, coverInitiallyShown = false, onCoverFlipped }: BookSpreadProps,
-  ref: React.ForwardedRef<BookSpreadHandle>,
-) {
+export default function BookSpread({ closed = false }: BookSpreadProps) {
   const { theme, themeName } = useThemeStore()
   const setCurrentSong = useJournalStore((s) => s.setCurrentSong)
   const setCurrentMood = useJournalStore((s) => s.setCurrentMood)
   const setDoodleStrokes = useJournalStore((s) => s.setDoodleStrokes)
   const colors = getGlassDiaryColors(theme)
-  const hasCover = coverContent !== undefined
-  const [coverHidesLeftFrame, setCoverHidesLeftFrame] = useState<boolean>(false)
   // Subscribe via selectors so BookSpread does NOT re-render when
   // leftPageDraft/rightPageDraft change in the desk store. If it did,
   // react-pageflip would rebuild page DOM on every keystroke and kill focus.
@@ -134,7 +119,6 @@ function BookSpreadInner(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flipBookRef = useRef<any>(null)
   const diaryRootRef = useRef<HTMLDivElement>(null)
-  const prevPageRef = useRef<number>(0)
 
   const autosave = useAutosaveEntry()
   const autosaveRef = useRef(autosave)
@@ -323,59 +307,19 @@ function BookSpreadInner(
 
   // Library's onFlip event: convert page index -> spread index and sync store
   const handleFlip = useCallback((e: { data: number }) => {
-    const newPage = e.data
-    const prevPage = prevPageRef.current
-    prevPageRef.current = newPage
-
-    if (hasCover) {
-      if (newPage === 0 && prevPage !== 0) {
-        onCoverFlipped?.(true)
-      } else if (newPage !== 0 && prevPage === 0) {
-        onCoverFlipped?.(false)
-      }
-      if (newPage > 0) {
-        goToSpread(Math.floor((newPage - 1) / 2))
-      }
-    } else {
-      goToSpread(Math.floor(newPage / 2))
-    }
-  }, [hasCover, goToSpread, onCoverFlipped])
-
-  // onChangeState='flipping' fires the moment a flip animation begins —
-  // use it to expand the .book-cover frame in sync with the cover-page flip.
-  const handleChangeState = useCallback((e: { data: string }) => {
-    if (e.data === 'flipping') {
-      if (hasCover && prevPageRef.current === 0) {
-        // Leaving the cover — frame expands to full width.
-        setCoverHidesLeftFrame(false)
-      }
-    }
-  }, [hasCover])
+    goToSpread(Math.floor(e.data / 2))
+  }, [goToSpread])
 
   // Programmatic external goToSpread() calls (e.g. EntrySelector clicks)
   // need to be pushed back to the library so its visible page matches.
   useEffect(() => {
     const pageFlip = flipBookRef.current?.pageFlip?.()
     if (!pageFlip) return
-    const currentPage = pageFlip.getCurrentPageIndex?.() ?? 0
-    // Don't auto-navigate while on the cover.
-    if (hasCover && currentPage === 0) return
-    const targetPage = globalCurrentSpread * 2 + (hasCover ? 1 : 0)
-    if (currentPage !== targetPage) {
+    const targetPage = globalCurrentSpread * 2
+    if (pageFlip.getCurrentPageIndex?.() !== targetPage) {
       pageFlip.turnToPage?.(targetPage)
     }
-  }, [globalCurrentSpread, hasCover])
-
-  useImperativeHandle(ref, () => ({
-    flipToCover: () => {
-      if (!hasCover) return
-      // Sync the frame collapse with the flip back to cover.
-      setCoverHidesLeftFrame(true)
-      // Use flipPrev so react-pageflip plays the actual flip animation
-      // (turnToPage is a no-animation jump-cut).
-      flipBookRef.current?.pageFlip?.()?.flipPrev?.()
-    },
-  }), [hasCover])
+  }, [globalCurrentSpread])
 
   const handlePrevPage = useCallback(() => {
     flipBookRef.current?.pageFlip()?.flipPrev()
@@ -508,17 +452,43 @@ function BookSpreadInner(
           ['--book-cover-border' as string]: colors.coverBorder,
         } as React.CSSProperties}
       >
-        {/* .book-cover frame. When the cover page is showing, its `left`
-            sits at 50% so the frame hugs the single visible page. When the
-            cover flips open, `left` animates to -48px so the frame wraps
-            the full spread. Synced via setCoverHidesLeftFrame at the start
-            of the cover-page flip. */}
+        {/* Open-frame: full-spread hardcover backdrop, only visible when
+            the cover is open. Cross-fades with the closed-cover flip
+            (starts at 0.45s, runs 1.05s) so the spread is already mostly
+            visible by the time the cover clears 90° — no jump from
+            "right half blocked" to "right half visible". */}
         <div
           className="book-cover"
           style={{
-            left: coverHidesLeftFrame ? '50%' : '-48px',
-            transition: 'left 1.2s ease-in-out',
+            left: '-48px',
+            opacity: closed ? 0 : 1,
+            transition: closed
+              ? 'opacity 0.55s ease-in'
+              : 'opacity 1.05s cubic-bezier(0.33, 1, 0.68, 1) 0.45s',
           }}
+        />
+
+        {/* Closed-cover: single-page-wide textured panel that flips around
+            its left edge (the spine). 2.0s symmetric ease-in-out cubic
+            keeps the rotation weighted on both ends so it feels like a
+            real hardcover swinging — no flick. Opacity is held until the
+            rotation has nearly reached 90° (delay 0.85s) and then fades
+            over 0.3s so the cover smoothly disappears around the edge-on
+            crossing rather than snapping out via backface-hidden alone. */}
+        <div
+          className="book-cover"
+          style={{
+            left: '50%',
+            opacity: closed ? 1 : 0,
+            transform: closed
+              ? 'perspective(2200px) rotateY(0deg)'
+              : 'perspective(2200px) rotateY(-180deg)',
+            transformOrigin: 'left center',
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+            transition:
+              'transform 2.0s cubic-bezier(0.45, 0, 0.55, 1), opacity 0.3s ease-in-out 0.85s',
+          } as React.CSSProperties}
         />
 
       {/* Book wrapper. Sized for the spread (1300x820), relative so chrome
@@ -544,8 +514,21 @@ function BookSpreadInner(
           ['--page-bg-solid' as string]: colors.pageBgSolid,
         } as React.CSSProperties}
         initial={{ rotateX: 5, opacity: 0 }}
-        animate={bookReady ? { rotateX: 0, opacity: 1 } : { rotateX: 5, opacity: 0 }}
-        transition={{ duration: 0.6 }}
+        animate={
+          bookReady
+            ? { rotateX: 0, opacity: closed ? 0 : 1 }
+            : { rotateX: 5, opacity: 0 }
+        }
+        // Cross-fades with the 2.0s cover flip. Front-loaded ease-out
+        // (cubic) so the spread is already at ~80% opacity by the time
+        // the cover clears 90° — no abrupt reveal of the right page when
+        // the cover hides itself.
+        transition={{
+          rotateX: { duration: 0.6 },
+          opacity: closed
+            ? { duration: 0.55, ease: 'easeIn' }
+            : { duration: 1.05, ease: [0.33, 1, 0.68, 1], delay: 0.45 },
+        }}
       >
         {/* Ribbon bookmark with brass swivel clasp + oval hangtag dangling beneath */}
         <RibbonBookmark color={colors.ribbon}>
@@ -588,19 +571,10 @@ function BookSpreadInner(
             flippingTime={1200}
             useMouseEvents={false}
             mobileScrollSupport={false}
-            showCover={hasCover}
-            startPage={hasCover ? (coverInitiallyShown ? 0 : entries.length * 2 + 1) : entries.length * 2}
+            showCover={false}
+            startPage={entries.length * 2}
             onFlip={handleFlip}
-            onChangeState={handleChangeState}
-            onInit={() => {
-              setBookReady(true)
-              const pageFlip = flipBookRef.current?.pageFlip?.()
-              if (pageFlip) {
-                const initialPage = pageFlip.getCurrentPageIndex?.() ?? 0
-                prevPageRef.current = initialPage
-                setCoverHidesLeftFrame(hasCover && initialPage === 0)
-              }
-            }}
+            onInit={() => setBookReady(true)}
             className=""
             style={{}}
             startZIndex={0}
@@ -611,16 +585,6 @@ function BookSpreadInner(
             showPageCorners={false}
             disableFlipByClick={true}
           >
-            {/* Cover page (rendered first when coverContent is provided). With
-                showCover=true, react-pageflip treats this as a hardcover that
-                only shows on the right while closed, then flips with the real
-                library animation when opened. */}
-            {hasCover && (
-              <PageWrapper key="cover" side="right" colors={colors}>
-                {coverContent}
-              </PageWrapper>
-            )}
-
             {/* Existing entries: oldest first so the newest sits next to the
                 new-entry spread at the back of the book. Reverse-chronological
                 navigation: ‹ goes to older entries, › advances toward the new-entry. */}
@@ -662,25 +626,6 @@ function BookSpreadInner(
               />
             </PageWrapper>
 
-            {/* Empty textured back-cover. Without this, react-pageflip's
-                showCover treats the last new-entry page as the back hardcover
-                and renders it with cover semantics (e.g. backface visibility
-                rules), which we don't want. This empty page absorbs that role. */}
-            {hasCover && (
-              <PageWrapper key="back-cover" side="left" colors={colors}>
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'var(--book-cover-bg)',
-                    backgroundImage: `
-                      repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 5px),
-                      repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 5px)
-                    `,
-                  }}
-                />
-              </PageWrapper>
-            )}
           </HTMLFlipBook>
         )}
 
@@ -751,5 +696,3 @@ function BookSpreadInner(
     </div>
   )
 }
-
-export default forwardRef<BookSpreadHandle, BookSpreadProps>(BookSpreadInner)

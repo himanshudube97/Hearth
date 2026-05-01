@@ -96,6 +96,8 @@ function EditableLine({
     }
   }, [text])
   return (
+    // DOM children owned by the useEffect above — never pass {text} as JSX
+    // children, or React resets the caret on every keystroke (backwards typing).
     <div
       ref={ref}
       contentEditable={isEditing}
@@ -112,8 +114,6 @@ function EditableLine({
         minHeight: 8,
         minWidth: 12,
       }}
-    >
-      {text}
-    </div>
+    />
   )
 }

@@ -21,6 +21,7 @@ import {
   makeClipItem,
   makeMoodItem,
   makeStampItem,
+  makeDateItem,
   ClipVariant,
 } from '@/lib/scrapbook'
 import CanvasItemWrapper from './CanvasItemWrapper'
@@ -224,8 +225,8 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
     setEditingId(item.id)
   }
 
-  function addMood() {
-    const item = makeMoodItem(2, items)
+  function addMood(level: 0 | 1 | 2 | 3 | 4) {
+    const item = makeMoodItem(level, items)
     setItems((prev) => [...prev, item])
     setSelectedId(item.id)
   }
@@ -238,6 +239,12 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
     setItems((prev) => [...prev, item])
     setSelectedId(item.id)
     setEditingId(item.id)
+  }
+
+  function addDate() {
+    const item = makeDateItem(new Date(), items)
+    setItems((prev) => [...prev, item])
+    setSelectedId(item.id)
   }
 
   function resetBoard() {
@@ -282,6 +289,7 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
             onAddClip={addClip}
             onAddMood={addMood}
             onAddStamp={addStamp}
+            onAddDate={addDate}
             onReset={resetBoard}
           />
         </div>
@@ -387,7 +395,7 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
                   />
                 )}
                 {item.type === 'mood' && (
-                  <MoodItem item={item as MoodItemData} onChange={updateItem} />
+                  <MoodItem item={item as MoodItemData} />
                 )}
                 {item.type === 'stamp' && (
                   <StampItem
@@ -397,11 +405,7 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
                   />
                 )}
                 {item.type === 'date' && (
-                  <DateItem
-                    item={item as DateItemData}
-                    isEditing={isItemEditing}
-                    onChange={updateItem}
-                  />
+                  <DateItem item={item as DateItemData} />
                 )}
               </CanvasItemWrapper>
             )

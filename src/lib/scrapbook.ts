@@ -45,8 +45,7 @@ export function isEditableType(type: ScrapbookItemType): boolean {
     type === 'song' ||
     type === 'doodle' ||
     type === 'clip' ||
-    type === 'stamp' ||
-    type === 'date'
+    type === 'stamp'
   )
 }
 
@@ -103,8 +102,7 @@ export interface StampItemData extends BaseItem {
 
 export interface DateItemData extends BaseItem {
   type: 'date'
-  isoDate: string         // 'YYYY-MM-DD'
-  displayText?: string    // user override; falls back to formatted isoDate
+  isoDate: string         // 'YYYY-MM-DD' — captured at creation, never changes
 }
 
 export type ScrapbookItem =
@@ -389,15 +387,20 @@ export function makeStampItem(
 }
 
 export function makeDateItem(date: Date, items: ScrapbookItem[]): DateItemData {
-  const iso = date.toISOString().slice(0, 10)
+  // Use local-date fields, not toISOString — toISOString shifts to UTC and
+  // can produce yesterday's date for users west of GMT in the evening.
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  const iso = `${yyyy}-${mm}-${dd}`
   return {
     id: makeId(),
     type: 'date',
     x: 42,
     y: 6,
-    width: 18,
-    height: 5,
-    rotation: 0,
+    width: 22,
+    height: 6,
+    rotation: -1,
     z: nextZ(items),
     isoDate: iso,
   }

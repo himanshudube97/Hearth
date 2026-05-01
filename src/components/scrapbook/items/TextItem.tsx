@@ -69,6 +69,9 @@ export default function TextItem({ item, selected, isEditing, onChange }: Props)
         }}
       />
 
+      {/* DOM children are owned by the useEffect above — never pass {item.text}
+          as JSX children, or React reconciliation resets the caret on every
+          keystroke and the user types backwards. */}
       <div
         ref={ref}
         contentEditable={isEditing}
@@ -93,9 +96,7 @@ export default function TextItem({ item, selected, isEditing, onChange }: Props)
           // Soft "ink" effect: very subtle text shadow that warms the color
           textShadow: '0 0.5px 0 rgba(0,0,0,0.08)',
         }}
-      >
-        {item.text}
-      </div>
+      />
 
       {/* corner fold detail when selected — pure delight, no functional use */}
       {selected && (

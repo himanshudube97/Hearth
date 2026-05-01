@@ -2,6 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { stickerIds, stickers } from './stickers'
+import { MOOD_LABELS, MOOD_EMOJIS } from './items/MoodItem'
+
+type MoodLevel = 0 | 1 | 2 | 3 | 4
 
 interface Props {
   onAddText: () => void
@@ -10,9 +13,18 @@ interface Props {
   onAddSong: (url: string) => void
   onAddDoodle: () => void
   onAddClip: (variant: 'index-card' | 'ticket-stub' | 'receipt') => void
-  onAddMood: () => void
+  onAddMood: (level: MoodLevel) => void
   onAddStamp: () => void
+  onAddDate: () => void
   onReset: () => void
+}
+
+// Live "friday, 1 may"-style preview for the date sticker tile.
+function dateTileLabel(): string {
+  const d = new Date()
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()
+  const month = d.toLocaleDateString('en-US', { month: 'short' }).toLowerCase()
+  return `${weekday} ${d.getDate()} ${month}`
 }
 
 export default function CanvasToolbar({
@@ -24,15 +36,18 @@ export default function CanvasToolbar({
   onAddClip,
   onAddMood,
   onAddStamp,
+  onAddDate,
   onReset,
 }: Props) {
   const [stickerOpen, setStickerOpen] = useState(false)
   const [songPromptOpen, setSongPromptOpen] = useState(false)
   const [songUrl, setSongUrl] = useState('')
   const [clipOpen, setClipOpen] = useState(false)
+  const [moodOpen, setMoodOpen] = useState(false)
   const stickerWrapRef = useRef<HTMLDivElement>(null)
   const songWrapRef = useRef<HTMLDivElement>(null)
   const clipWrapRef = useRef<HTMLDivElement>(null)
+  const moodWrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -44,6 +59,9 @@ export default function CanvasToolbar({
       }
       if (clipWrapRef.current && !clipWrapRef.current.contains(e.target as Node)) {
         setClipOpen(false)
+      }
+      if (moodWrapRef.current && !moodWrapRef.current.contains(e.target as Node)) {
+        setMoodOpen(false)
       }
     }
     document.addEventListener('mousedown', onDocClick)
@@ -166,6 +184,41 @@ export default function CanvasToolbar({
             }}
           >
             <div className="grid grid-cols-5 gap-2">
+              <button
+                key="__date"
+                onClick={() => {
+                  onAddDate()
+                  setStickerOpen(false)
+                }}
+                className="aspect-square rounded-lg flex items-center justify-center transition-transform"
+                style={{
+                  background: '#fefdf8',
+                  border: '1px solid rgba(58, 52, 41, 0.18)',
+                  cursor: 'pointer',
+                  padding: 4,
+                }}
+                onMouseEnter={(e) => {
+                  ;(e.currentTarget as HTMLElement).style.transform =
+                    'scale(1.08) rotate(-2deg)'
+                }}
+                onMouseLeave={(e) => {
+                  ;(e.currentTarget as HTMLElement).style.transform = ''
+                }}
+                title="date"
+              >
+                <span
+                  style={{
+                    fontFamily: 'var(--font-playfair), serif',
+                    fontStyle: 'italic',
+                    fontSize: 11,
+                    color: '#a3413a',
+                    lineHeight: 1.1,
+                    textAlign: 'center',
+                  }}
+                >
+                  {dateTileLabel()}
+                </span>
+              </button>
               {stickerIds.map((id) => {
                 const entry = stickers[id]
                 const Sticker = entry.component
@@ -248,7 +301,60 @@ export default function CanvasToolbar({
         )}
       </div>
 
-      <ToolbarButton onClick={onAddMood} icon="❤" label="mood" />
+      <div className="relative" ref={moodWrapRef}>
+        <ToolbarButton
+          onClick={() => setMoodOpen((o) => !o)}
+          icon="❤"
+          label="mood"
+          active={moodOpen}
+        />
+        {moodOpen && (
+          <div
+            className="absolute p-2 rounded-2xl flex flex-col gap-1"
+            style={{
+              top: 0,
+              left: '100%',
+              marginLeft: 10,
+              background: '#fefaf0',
+              border: '1px solid rgba(58, 52, 41, 0.18)',
+              boxShadow: '0 8px 24px rgba(20, 14, 4, 0.22)',
+              zIndex: 50,
+              width: 160,
+            }}
+          >
+            {([0, 1, 2, 3, 4] as const).map((level) => (
+              <button
+                key={level}
+                onClick={() => { onAddMood(level); setMoodOpen(false) }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(58, 52, 41, 0.18)',
+                  background: '#fefdf8',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 22, lineHeight: 1 }}>{MOOD_EMOJIS[level]}</span>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-caveat), cursive',
+                    fontSize: 18,
+                    color: '#3a3429',
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  {MOOD_LABELS[level]}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <ToolbarButton onClick={onAddStamp} icon="◉" label="stamp" />
 
       <div style={{ height: 1, width: '70%', alignSelf: 'center', background: 'rgba(58, 52, 41, 0.18)', margin: '4px 0' }} />

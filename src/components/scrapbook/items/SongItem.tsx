@@ -320,6 +320,9 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
             </div>
           ) : (
             <>
+              {/* DOM children owned by the title-sync useEffect — never pass
+                  {item.title} as JSX children, or React resets the caret on
+                  every keystroke (backwards typing). */}
               <div
                 ref={titleRef}
                 contentEditable={isEditing}
@@ -340,9 +343,7 @@ export default function SongItem({ item, isEditing, onChange }: Props) {
                   cursor: isEditing ? 'text' : 'inherit',
                   textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                 }}
-              >
-                {item.title}
-              </div>
+              />
               <div
                 style={{
                   display: 'flex',

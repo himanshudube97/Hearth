@@ -1,34 +1,18 @@
 // src/components/scrapbook/items/DateItem.tsx
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React from 'react'
 import { DateItemData } from '@/lib/scrapbook'
 
-interface Props {
-  item: DateItemData
-  isEditing: boolean
-  onChange: (next: DateItemData) => void
+// "friday, 1 may" — lowercased, day before month.
+function formatLine(iso: string): string {
+  const d = new Date(iso + 'T12:00:00')
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
+  const month = d.toLocaleDateString('en-US', { month: 'long' }).toLowerCase()
+  return `${weekday}, ${d.getDate()} ${month}`
 }
 
-function formatDisplay(isoDate: string): string {
-  const d = new Date(isoDate + 'T00:00:00')
-  return d.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  }).toLowerCase()
-}
-
-export default function DateItem({ item, isEditing, onChange }: Props) {
-  const ref = useRef<HTMLDivElement>(null)
-  const text = item.displayText ?? formatDisplay(item.isoDate)
-
-  useEffect(() => {
-    if (ref.current && ref.current.innerText !== text) {
-      ref.current.innerText = text
-    }
-  }, [text])
-
+export default function DateItem({ item }: { item: DateItemData }) {
   return (
     <div
       className="w-full h-full flex items-center justify-center"
@@ -40,28 +24,19 @@ export default function DateItem({ item, isEditing, onChange }: Props) {
         padding: '4px 14px',
       }}
     >
-      <div
-        ref={ref}
-        contentEditable={isEditing}
-        suppressContentEditableWarning
-        onInput={(e) =>
-          onChange({ ...item, displayText: (e.currentTarget as HTMLDivElement).innerText })
-        }
-        onPointerDown={(e) => { if (isEditing) e.stopPropagation() }}
-        spellCheck={false}
+      <span
         style={{
           fontFamily: 'var(--font-playfair), serif',
           fontStyle: 'italic',
           fontSize: 'min(2.6vw, 19px)',
           color: '#a3413a',
           letterSpacing: 0.3,
-          outline: 'none',
-          minWidth: 60,
-          textAlign: 'center',
+          whiteSpace: 'nowrap',
+          lineHeight: 1.1,
         }}
       >
-        {text}
-      </div>
+        {formatLine(item.isoDate)}
+      </span>
     </div>
   )
 }

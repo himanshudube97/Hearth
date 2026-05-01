@@ -133,6 +133,8 @@ function Editable({
   text: string
 }) {
   return (
+    // DOM children owned by the parent's useEffect — never pass {text} as JSX
+    // children, or React resets the caret on every keystroke (backwards typing).
     <div
       ref={refEl}
       contentEditable={isEditing}
@@ -150,8 +152,6 @@ function Editable({
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
       }}
-    >
-      {text}
-    </div>
+    />
   )
 }
