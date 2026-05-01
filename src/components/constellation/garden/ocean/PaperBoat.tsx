@@ -17,8 +17,6 @@ export interface PaperBoatProps {
   glow: boolean
   /** Color used for the glow (theme.moods[mood]). Ignored when glow is false. */
   glowColor: string
-  /** Stagger-in delay in seconds. */
-  delay: number
   /** Click handler. */
   onClick: () => void
   /** Aria label for the button. */
@@ -36,27 +34,10 @@ export function PaperBoat({
   phaseOffset,
   glow,
   glowColor,
-  delay,
   onClick,
   ariaLabel,
 }: PaperBoatProps) {
   const reduceMotion = useReducedMotion()
-
-  // Gentle vertical bob — no rotation drift. Boats sit at their static tilt.
-  const animate = reduceMotion
-    ? undefined
-    : {
-        y: [0, -2, 0, 2, 0],
-      }
-
-  const transition = reduceMotion
-    ? undefined
-    : {
-        duration: 3.5,
-        repeat: Infinity,
-        ease: 'easeInOut' as const,
-        delay: phaseOffset,
-      }
 
   const sailFilter = glow
     ? `drop-shadow(0 0 6px ${glowColor}) drop-shadow(0 0 14px ${glowColor})`
@@ -76,23 +57,26 @@ export function PaperBoat({
         background: 'transparent',
         border: 'none',
         padding: 0,
-        transform: 'translate(-50%, 0)',
       }}
-      initial={{ opacity: 0, y: 6, rotate: tilt }}
-      animate={{
-        opacity: 1,
-        y: 0,
-        rotate: tilt,
-        ...(animate ?? {}),
-      }}
-      transition={{
-        duration: 0.9,
-        delay,
-        ease: [0.22, 1, 0.36, 1],
-        ...(transition ?? {}),
-      }}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 1.2, y: -6 }}
+      animate={
+        reduceMotion
+          ? { x: '-50%', rotate: tilt }
+          : { x: '-50%', rotate: tilt, y: [0, -2, 0, 2, 0] }
+      }
+      transition={
+        reduceMotion
+          ? undefined
+          : {
+              y: {
+                duration: 3.5,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: phaseOffset,
+              },
+            }
+      }
+      whileHover={{ scale: 1.08 }}
+      whileTap={{ scale: 1.15 }}
     >
       {/* Reflection ripple under the boat */}
       <div

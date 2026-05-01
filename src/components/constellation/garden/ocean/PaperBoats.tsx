@@ -66,7 +66,7 @@ export function PaperBoats({
 
   return (
     <div className="absolute inset-0">
-      {placed.map(({ star, hash, slotIndex }, i) => {
+      {placed.map(({ star, hash, slotIndex }) => {
         const slot = DESKTOP_SLOTS[slotIndex]
         return (
           <PaperBoat
@@ -78,7 +78,6 @@ export function PaperBoats({
             phaseOffset={(slotIndex * 0.5) % 3.5}
             glow={hash.glow}
             glowColor={getMoodColor(star.entry.mood)}
-            delay={0.4 + i * 0.12}
             onClick={() => onSelect(star)}
             ariaLabel={`Open memory from ${new Date(
               star.entry.createdAt,
