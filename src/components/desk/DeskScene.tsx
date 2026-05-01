@@ -36,7 +36,7 @@ export default function DeskScene() {
     coverRotateY,
     coverShadowBlur,
     onWheel,
-    closeCover: _closeCover,
+    closeCover,
     markOpen: _markOpen,
   } = useDiaryCover()
 
@@ -198,6 +198,42 @@ export default function DeskScene() {
                 // No background — invisible, just intercepts wheel events.
               }}
             />
+          )}
+
+          {coverState === 'open' && (
+            <button
+              onClick={closeCover}
+              aria-label="Close diary"
+              title="Close diary"
+              style={{
+                position: 'fixed',
+                top: 20,
+                right: 20,
+                zIndex: 60,
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                background: 'rgba(0, 0, 0, 0.25)',
+                backdropFilter: 'blur(8px)',
+                border: `1px solid ${theme.accent.warm}40`,
+                color: theme.text.primary,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 18,
+                lineHeight: 1,
+                transition: 'background 0.2s, border-color 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.4)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.25)'
+              }}
+            >
+              ×
+            </button>
           )}
 
         </>
