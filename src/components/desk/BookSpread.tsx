@@ -474,9 +474,9 @@ export default function BookSpread({ closed = false }: BookSpreadProps) {
             transform: closed
               ? 'perspective(2000px) rotateY(0deg)'
               : 'perspective(2000px) rotateY(-180deg)',
+            opacity: closed ? 1 : 0,
             transformOrigin: 'left center',
-            backfaceVisibility: 'hidden',
-            transition: 'transform 1.2s ease-in-out',
+            transition: 'transform 1.2s ease-in-out, opacity 1.2s ease-in-out',
           }}
         />
 
