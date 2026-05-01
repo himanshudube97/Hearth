@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useThemeStore } from '@/store/theme'
 import { JournalEntry } from '@/store/journal'
-import { ConstellationRenderer, MemoryStar } from '@/components/constellation/ConstellationRenderer'
+import type { MemoryStar } from '@/components/constellation/ConstellationRenderer'
 import { GardenRenderer } from '@/components/constellation/GardenRenderer'
+import { FirelightRenderer } from '@/components/constellation/FirelightRenderer'
 
 const MAX_VISIBLE_MEMORIES = 7 // Random memories shown each visit
 
@@ -63,7 +64,7 @@ export default function ConstellationPage() {
     setMemoryStars(stars)
   }, [entries])
 
-  const Renderer = theme.mode === 'light' ? GardenRenderer : ConstellationRenderer
+  const Renderer = theme.mode === 'light' ? GardenRenderer : FirelightRenderer
 
   return (
     <Renderer
