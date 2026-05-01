@@ -1,6 +1,25 @@
 'use client'
 
+import { motion, useReducedMotion } from 'framer-motion'
+
+interface CloudConfig {
+  left: string
+  top: string
+  width: number
+  drift: number
+  duration: number
+}
+
+const CLOUDS: CloudConfig[] = [
+  { left: '8%', top: '20%', width: 140, drift: 28, duration: 90 },
+  { left: '30%', top: '14%', width: 100, drift: 22, duration: 70 },
+  { left: '55%', top: '24%', width: 120, drift: 32, duration: 110 },
+  { left: '75%', top: '18%', width: 80, drift: 18, duration: 80 },
+]
+
 export function HarbourSky() {
+  const reduceMotion = useReducedMotion()
+
   return (
     <div
       className="absolute inset-0"
@@ -18,8 +37,8 @@ export function HarbourSky() {
         )`,
       }}
     >
-      {/* Soft pale dawn sun on the horizon */}
-      <div
+      {/* Soft pale dawn sun — gentle pulse */}
+      <motion.div
         className="absolute"
         style={{
           left: '58%',
@@ -32,57 +51,45 @@ export function HarbourSky() {
           boxShadow: '0 0 50px rgba(220,200,180,0.4)',
           transform: 'translate(-50%, -50%)',
         }}
+        animate={
+          reduceMotion ? undefined : { opacity: [0.85, 1, 0.85], scale: [1, 1.04, 1] }
+        }
+        transition={
+          reduceMotion
+            ? undefined
+            : { duration: 5, repeat: Infinity, ease: 'easeInOut' }
+        }
       />
 
-      {/* Cool grey-blue cloud streaks */}
-      <div
-        className="absolute"
-        style={{
-          left: '8%',
-          top: '20%',
-          width: 140,
-          height: 4,
-          background: 'rgba(200,210,220,0.5)',
-          borderRadius: '50%',
-          filter: 'blur(2px)',
-        }}
-      />
-      <div
-        className="absolute"
-        style={{
-          left: '30%',
-          top: '14%',
-          width: 100,
-          height: 4,
-          background: 'rgba(200,210,220,0.5)',
-          borderRadius: '50%',
-          filter: 'blur(2px)',
-        }}
-      />
-      <div
-        className="absolute"
-        style={{
-          left: '55%',
-          top: '24%',
-          width: 120,
-          height: 4,
-          background: 'rgba(200,210,220,0.5)',
-          borderRadius: '50%',
-          filter: 'blur(2px)',
-        }}
-      />
-      <div
-        className="absolute"
-        style={{
-          left: '75%',
-          top: '18%',
-          width: 80,
-          height: 4,
-          background: 'rgba(200,210,220,0.5)',
-          borderRadius: '50%',
-          filter: 'blur(2px)',
-        }}
-      />
+      {/* Drifting cloud streaks */}
+      {CLOUDS.map((cloud, i) => (
+        <motion.div
+          key={i}
+          className="absolute"
+          style={{
+            left: cloud.left,
+            top: cloud.top,
+            width: cloud.width,
+            height: 4,
+            background: 'rgba(200,210,220,0.5)',
+            borderRadius: '50%',
+            filter: 'blur(2px)',
+          }}
+          animate={
+            reduceMotion ? undefined : { x: [0, cloud.drift, 0] }
+          }
+          transition={
+            reduceMotion
+              ? undefined
+              : {
+                  duration: cloud.duration,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                  delay: i * 4,
+                }
+          }
+        />
+      ))}
     </div>
   )
 }

@@ -61,14 +61,18 @@ export function PaperBoat({
       animate={
         reduceMotion
           ? { x: '-50%', rotate: tilt }
-          : { x: '-50%', rotate: tilt, y: [0, -2, 0, 2, 0] }
+          : {
+              x: '-50%',
+              rotate: tilt,
+              y: [0, -5, 0, 4, 0],
+            }
       }
       transition={
         reduceMotion
           ? undefined
           : {
               y: {
-                duration: 3.5,
+                duration: 2.6,
                 repeat: Infinity,
                 ease: 'easeInOut',
                 delay: phaseOffset,
