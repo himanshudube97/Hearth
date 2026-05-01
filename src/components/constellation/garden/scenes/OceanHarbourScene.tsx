@@ -156,19 +156,47 @@ export function OceanHarbourScene({
         transition={{ delay: 0.8, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         className="absolute top-20 left-1/2 -translate-x-1/2 text-center pointer-events-none"
       >
+        <div className="flex items-center justify-center gap-3 md:gap-5 px-4">
+          <motion.span
+            style={{
+              color: '#F8E8D0',
+              filter: 'drop-shadow(0 0 12px #F8E8D0AA)',
+              fontSize: 'clamp(1rem, 2.4vw, 1.5rem)',
+              display: 'inline-block',
+            }}
+            animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.2, 1], rotate: [0, 12, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            ✦
+          </motion.span>
+          <p
+            style={{
+              color: '#F8E8D0',
+              fontFamily: 'var(--font-serif)',
+              fontStyle: 'italic',
+              letterSpacing: '0.015em',
+              fontSize: 'clamp(1.125rem, 3vw, 1.875rem)',
+              textShadow: '0 2px 16px rgba(248,232,208,0.35), 0 1px 4px rgba(0,0,0,0.5)',
+              lineHeight: 1.2,
+            }}
+          >
+            press a paper boat to reveal its memory
+          </p>
+          <motion.span
+            style={{
+              color: '#F8E8D0',
+              filter: 'drop-shadow(0 0 12px #F8E8D0AA)',
+              fontSize: 'clamp(1rem, 2.4vw, 1.5rem)',
+              display: 'inline-block',
+            }}
+            animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.2, 1], rotate: [0, -12, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          >
+            ✦
+          </motion.span>
+        </div>
         <p
-          className="text-lg"
-          style={{
-            color: '#F8E8D0',
-            fontFamily: 'var(--font-serif)',
-            fontStyle: 'italic',
-            textShadow: '0 1px 4px rgba(0,0,0,0.4)',
-          }}
-        >
-          your harbour
-        </p>
-        <p
-          className="text-sm mt-1"
+          className="text-sm mt-3"
           style={{
             color: '#F8E8D0CC',
             fontFamily: 'var(--font-serif)',
@@ -176,10 +204,8 @@ export function OceanHarbourScene({
             textShadow: '0 1px 4px rgba(0,0,0,0.4)',
           }}
         >
-          {Math.min(memoryStars.length, 5)}{' '}
-          {Math.min(memoryStars.length, 5) === 1
-            ? 'boat afloat'
-            : 'boats afloat'}
+          your harbour · {Math.min(memoryStars.length, 5)}{' '}
+          {Math.min(memoryStars.length, 5) === 1 ? 'boat afloat' : 'boats afloat'}
         </p>
       </motion.div>
 

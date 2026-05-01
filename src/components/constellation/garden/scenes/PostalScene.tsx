@@ -112,7 +112,7 @@ export function PostalScene({
               fontStyle: 'italic',
             }}
           >
-            the post hasn&apos;t arrived yet — write something and the first letter will fly in
+            the post hasn&apos;t arrived yet — write something and the first memory will fly in
           </p>
         </motion.div>
       </motion.div>
@@ -147,26 +147,55 @@ export function PostalScene({
         transition={{ delay: 0.8, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         className="absolute top-20 left-1/2 -translate-x-1/2 text-center pointer-events-none"
       >
+        <div className="flex items-center justify-center gap-3 md:gap-5 px-4">
+          <motion.span
+            style={{
+              color: theme.accent.warm,
+              filter: `drop-shadow(0 0 12px ${theme.accent.warm})`,
+              fontSize: 'clamp(1rem, 2.4vw, 1.5rem)',
+              display: 'inline-block',
+            }}
+            animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.2, 1], rotate: [0, 12, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            ✦
+          </motion.span>
+          <p
+            style={{
+              color: theme.text.primary,
+              fontFamily: 'var(--font-serif)',
+              fontStyle: 'italic',
+              letterSpacing: '0.015em',
+              fontSize: 'clamp(1.125rem, 3vw, 1.875rem)',
+              textShadow: `0 2px 14px ${theme.accent.warm}40`,
+              lineHeight: 1.2,
+            }}
+          >
+            open the letterbox to reveal a memory
+          </p>
+          <motion.span
+            style={{
+              color: theme.accent.warm,
+              filter: `drop-shadow(0 0 12px ${theme.accent.warm})`,
+              fontSize: 'clamp(1rem, 2.4vw, 1.5rem)',
+              display: 'inline-block',
+            }}
+            animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.2, 1], rotate: [0, -12, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          >
+            ✦
+          </motion.span>
+        </div>
         <p
-          className="text-lg"
-          style={{
-            color: theme.text.primary,
-            fontFamily: 'var(--font-serif)',
-            fontStyle: 'italic',
-          }}
-        >
-          evening post
-        </p>
-        <p
-          className="text-sm mt-1"
+          className="text-sm mt-3"
           style={{
             color: `${theme.text.muted}90`,
             fontFamily: 'var(--font-serif)',
             fontStyle: 'italic',
           }}
         >
-          {memoryStars.length}{' '}
-          {memoryStars.length === 1 ? 'letter on the wind' : 'letters on the wind'}
+          evening post · {memoryStars.length}{' '}
+          {memoryStars.length === 1 ? 'memory on the wind' : 'memories on the wind'}
         </p>
       </motion.div>
 

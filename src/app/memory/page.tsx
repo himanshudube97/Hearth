@@ -9,7 +9,7 @@ import { FirelightRenderer } from '@/components/constellation/FirelightRenderer'
 
 const MAX_VISIBLE_MEMORIES = 7 // Random memories shown each visit
 
-export default function ConstellationPage() {
+export default function MemoryPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [memoryStars, setMemoryStars] = useState<MemoryStar[]>([])
   const [selectedStar, setSelectedStar] = useState<MemoryStar | null>(null)
