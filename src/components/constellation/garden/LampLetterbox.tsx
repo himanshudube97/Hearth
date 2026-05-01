@@ -33,7 +33,7 @@ export function LampLetterbox({ theme, parallax }: Props) {
     <motion.div
       className="absolute pointer-events-none"
       style={{
-        right: '7%',
+        right: '14%',
         bottom: 60,
         width: 180,
         height: '44%',

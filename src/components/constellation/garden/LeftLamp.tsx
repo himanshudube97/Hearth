@@ -22,7 +22,7 @@ export function LeftLamp({ theme, parallax }: Props) {
     <motion.div
       className="absolute pointer-events-none"
       style={{
-        left: '7%',
+        left: '14%',
         bottom: 60,
         width: 180,
         height: '44%',
