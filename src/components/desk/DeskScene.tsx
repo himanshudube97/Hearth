@@ -27,7 +27,17 @@ export default function DeskScene() {
   const { theme } = useThemeStore()
   const layoutMode = useLayoutMode()
   const [scaleForTablet, setScaleForTablet] = useState(1)
-  const { coverState, progress, closeCover: _closeCover, markOpen: _markOpen } = useDiaryCover()
+  const {
+    coverState,
+    progress: _progress,
+    wrapperX,
+    spreadOpacity,
+    coverOpacity,
+    coverRotateY,
+    coverShadowBlur,
+    closeCover: _closeCover,
+    markOpen: _markOpen,
+  } = useDiaryCover()
 
   useEffect(() => {
     setMounted(true)
@@ -121,21 +131,23 @@ export default function DeskScene() {
               transformOrigin: 'center center',
             }}
           >
-            {/* Inner motion wrapper — translateX shifts the scene as the cover opens
-                so the closed book appears at screen center. Static at 0 for now;
-                Task 4 wires it up to progress. */}
             <motion.div
               style={{
                 position: 'relative',
-                // x: 0  ← becomes wrapperX motion value in Task 4
+                x: wrapperX,
               }}
             >
-              {/* Hide the spread when the cover is closed; Task 4 makes this animated. */}
-              <motion.div style={{ opacity: coverState === 'open' ? 1 : 0 }}>
+              <motion.div style={{ opacity: spreadOpacity }}>
                 <BookSpread />
               </motion.div>
 
-              {coverState === 'closed' && <DiaryCover progress={progress} />}
+              {coverState === 'closed' && (
+                <DiaryCover
+                  rotateY={coverRotateY}
+                  opacity={coverOpacity}
+                  shadowBlur={coverShadowBlur}
+                />
+              )}
             </motion.div>
           </motion.div>
 
@@ -167,6 +179,25 @@ export default function DeskScene() {
               />
             ))}
           </div>
+
+          {coverState === 'closed' && (
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              defaultValue={0}
+              onChange={(e) => _progress.set(parseFloat(e.target.value))}
+              style={{
+                position: 'fixed',
+                bottom: 20,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 1000,
+                width: 400,
+              }}
+            />
+          )}
 
         </>
       )}

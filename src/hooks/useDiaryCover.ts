@@ -2,7 +2,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useMotionValue, type MotionValue } from 'framer-motion'
+import { useMotionValue, useTransform, type MotionValue } from 'framer-motion'
 
 const STORAGE_KEY = 'hearth-diary-cover-opened'
 
@@ -11,6 +11,17 @@ export type CoverState = 'closed' | 'open'
 export interface UseDiaryCoverResult {
   coverState: CoverState
   progress: MotionValue<number>
+  /** Negative offset that shifts the wrapper left so the closed cover
+   *  lands at screen center. Eases to 0 as the spread opens up. */
+  wrapperX: MotionValue<number>
+  /** 0 → 1, drives the spread fade-in behind the lifting cover. */
+  spreadOpacity: MotionValue<number>
+  /** 1 until progress > 0.95, then linear to 0 at 1.0. */
+  coverOpacity: MotionValue<number>
+  /** 0° → -180° as progress goes 0 → 1. */
+  coverRotateY: MotionValue<number>
+  /** Drop-shadow blur radius in px; grows as the cover lifts. */
+  coverShadowBlur: MotionValue<number>
   closeCover: () => void
   /** Internal: forces coverState to 'open' once the snap completes. */
   markOpen: () => void
@@ -21,6 +32,12 @@ export function useDiaryCover(): UseDiaryCoverResult {
   // The real value is hydrated from sessionStorage in the effect below.
   const [coverState, setCoverState] = useState<CoverState>('closed')
   const progress = useMotionValue(0)
+
+  const wrapperX = useTransform(progress, [0, 1], [-325, 0])
+  const spreadOpacity = useTransform(progress, [0.1, 0.7], [0, 1], { clamp: true })
+  const coverOpacity = useTransform(progress, [0.95, 1], [1, 0], { clamp: true })
+  const coverRotateY = useTransform(progress, [0, 1], [0, -180])
+  const coverShadowBlur = useTransform(progress, [0, 1], [16, 64])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -46,5 +63,15 @@ export function useDiaryCover(): UseDiaryCoverResult {
     setCoverState('closed')
   }, [progress])
 
-  return { coverState, progress, closeCover, markOpen }
+  return {
+    coverState,
+    progress,
+    wrapperX,
+    spreadOpacity,
+    coverOpacity,
+    coverRotateY,
+    coverShadowBlur,
+    closeCover,
+    markOpen,
+  }
 }
