@@ -10,6 +10,7 @@ import TopHint from './TopHint'
 import NewLetterTag from './NewLetterTag'
 import LetterFanout from './LetterFanout'
 import RevealModal from './RevealModal'
+import ComposeModal from '../compose/ComposeModal'
 import { MONTHS, MONTH_NAMES, groupInboxByMonth, countUnread } from '../lettersData'
 import type { InboxLetter } from '../letterTypes'
 
@@ -24,6 +25,7 @@ export default function InboxView({ onUnreadCountChange }: Props) {
   const [monthIdx, setMonthIdx] = useState(today.getMonth())
   const [fanTriggerKey, setFanTriggerKey] = useState(0)
   const [revealLetter, setRevealLetter] = useState<InboxLetter | null>(null)
+  const [composing, setComposing] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -65,7 +67,7 @@ export default function InboxView({ onUnreadCountChange }: Props) {
         style={{ minHeight: '100vh' }}
       >
         <div className="flex items-end gap-[60px] w-full px-[80px] justify-center">
-          <WriteCard onBegin={() => alert('compose flow — Stage 7')} />
+          <WriteCard onBegin={() => setComposing(true)} />
 
           <div className="flex items-end gap-[80px]">
             <Lamp />
@@ -108,6 +110,18 @@ export default function InboxView({ onUnreadCountChange }: Props) {
         onMarkRead={(id) => {
           fetch(`/api/letters/${id}/read`, { method: 'POST' }).catch(() => {})
           setLetters(ls => ls.map(l => l.id === id ? { ...l, isViewed: true } : l))
+        }}
+      />
+      <ComposeModal
+        open={composing}
+        onClose={() => setComposing(false)}
+        onSealed={() => {
+          // Re-fetch inbox in case the new letter has an unlock date in the past
+          // (rare edge case — minimum unlock is 1 week typically, but cheap to refetch).
+          fetch('/api/letters/inbox')
+            .then(r => r.json())
+            .then(d => setLetters(d.letters || []))
+            .catch(() => {})
         }}
       />
     </section>
