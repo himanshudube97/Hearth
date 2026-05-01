@@ -10,7 +10,6 @@ import { GardenPath } from '../rose/GardenPath'
 import { LowHedge } from '../rose/LowHedge'
 import { Trellis } from '../rose/Trellis'
 import { ScatteredFlora } from '../rose/ScatteredFlora'
-import { GardenBench } from '../rose/GardenBench'
 import { ForegroundBushes } from '../rose/ForegroundBushes'
 import { RoseBlooms } from '../rose/RoseBlooms'
 import { PetalDrift } from '../rose/PetalDrift'
@@ -128,7 +127,6 @@ export function RoseGardenScene({
       <LowHedge />
       <Trellis />
       <ScatteredFlora />
-      <GardenBench />
       <ForegroundBushes />
       <RoseBlooms
         memoryStars={memoryStars}
