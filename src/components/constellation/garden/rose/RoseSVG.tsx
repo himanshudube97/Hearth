@@ -40,12 +40,12 @@ export function RoseSVG({ color, glow, size = 1, animate = true }: RoseSVGProps)
         style={{ overflow: 'visible' }}
         animate={
           animate
-            ? { rotate: [-2, 2, -2], scale: [1, 1.03, 1] }
+            ? { rotate: [-1.5, 1.5, -1.5], scale: [1, 1.1, 1] }
             : undefined
         }
         transition={
           animate
-            ? { duration: 4, repeat: Infinity, ease: 'easeInOut' }
+            ? { duration: 3, repeat: Infinity, ease: 'easeInOut' }
             : undefined
         }
       >
