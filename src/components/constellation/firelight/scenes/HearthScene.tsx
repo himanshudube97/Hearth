@@ -65,7 +65,7 @@ export function HearthScene({
         animate={{ opacity: 1 }}
         transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
       >
-        <SceneFrame theme={theme} />
+        <SceneFrame />
         <motion.p
           className="relative z-10 mt-8 text-center"
           style={{ color: theme.text.muted, fontFamily: 'var(--font-serif)' }}
@@ -87,7 +87,7 @@ export function HearthScene({
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
     >
-      <SceneFrame theme={theme}>
+      <SceneFrame>
         <LetterWall
           memoryStars={memoryStars}
           theme={theme}
@@ -119,13 +119,7 @@ export function HearthScene({
 
 // Composes the cottage + fire + sparks in a centered, responsive container.
 // Wrapped so the loading/empty/main branches render the same scaffold.
-function SceneFrame({
-  theme: _theme,
-  children,
-}: {
-  theme: Theme
-  children?: React.ReactNode
-}) {
+function SceneFrame({ children }: { children?: React.ReactNode }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
       {/* Centered scene box: 80vw × 80vh on desktop, full bleed on mobile */}
