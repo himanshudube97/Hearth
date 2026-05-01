@@ -6,6 +6,7 @@ import type { JournalEntry } from '@/store/journal'
 import type { MemoryStar } from '../../ConstellationRenderer'
 import { MemoryModal } from '../../MemoryModal'
 import { HarbourSky } from '../ocean/HarbourSky'
+import { CrowDrift } from '../ocean/CrowDrift'
 import { HorizonSilhouettes } from '../ocean/HorizonSilhouettes'
 import { WaterAndReflections } from '../ocean/WaterAndReflections'
 import { Dock } from '../ocean/Dock'
@@ -138,6 +139,7 @@ export function OceanHarbourScene({
       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
     >
       <HarbourSky />
+      <CrowDrift />
       <HorizonSilhouettes />
       <WaterAndReflections />
       <Dock />
