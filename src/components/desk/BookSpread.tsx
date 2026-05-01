@@ -412,6 +412,10 @@ export default function BookSpread() {
     setPendingPhotos(prev => [...prev.filter(p => p.position !== position), newPhoto])
   }, [])
 
+  const handlePhotoRemove = useCallback((position: 1 | 2) => {
+    setPendingPhotos(prev => prev.filter(p => p.position !== position))
+  }, [])
+
   const isNewEntrySpread = globalCurrentSpread === entries.length
 
   // Floating date pill: derive from the spread currently visible
@@ -578,6 +582,7 @@ export default function BookSpread() {
                 isNewEntry={true}
                 photos={pendingPhotos}
                 onPhotoAdd={handlePhotoAdd}
+                onPhotoRemove={handlePhotoRemove}
                 onNavigateLeft={handleNavigateLeft}
                 onBackspaceAcrossSpine={handleBackspaceAcrossSpine}
               />

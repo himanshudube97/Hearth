@@ -13,6 +13,10 @@ interface PhotoSlotProps {
   spread: number
   onPhotoAdd?: (file: File) => void
   onCameraCapture?: () => void
+  /** When set, a small × button appears on the filled polaroid (hover to
+   *  reveal) that calls this callback. Omit to hide the remove affordance —
+   *  e.g. for read-only past entries. */
+  onRemove?: () => void
   disabled?: boolean
   className?: string
   dateCaption?: string  // e.g. "apr 27"
@@ -98,6 +102,7 @@ const PhotoSlot = memo(function PhotoSlot({
   spread: _spread, // Used by parent for tracking, not needed here
   onPhotoAdd,
   onCameraCapture,
+  onRemove,
   disabled = false,
   className = '',
   dateCaption = '~',
@@ -168,6 +173,8 @@ const PhotoSlot = memo(function PhotoSlot({
     return (
       <motion.div
         className={`relative ${className}`}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
         style={{ transformOrigin: 'center center' }}
         initial={{ opacity: 0, scale: 0.8, rotate: 0 }}
         animate={{ opacity: 1, scale: 1, rotate: filledRotation }}
@@ -209,6 +216,46 @@ const PhotoSlot = memo(function PhotoSlot({
               className="w-full h-full object-cover"
             />
           </div>
+
+          {/* Remove button — appears on hover when removal is allowed.
+              Counter-rotated by the polaroid's tilt so the × stays
+              visually upright. */}
+          {onRemove && (
+            <motion.button
+              type="button"
+              aria-label="Remove photo"
+              title="Remove photo"
+              onClick={(e) => {
+                e.stopPropagation()
+                onRemove()
+              }}
+              initial={false}
+              animate={{ opacity: isHovering ? 1 : 0, scale: isHovering ? 1 : 0.85 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                position: 'absolute',
+                top: 4,
+                right: 4,
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                background: 'rgba(20, 14, 4, 0.78)',
+                color: '#f5efdc',
+                border: '1px solid rgba(245, 239, 220, 0.45)',
+                fontSize: 14,
+                lineHeight: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                padding: 0,
+                pointerEvents: isHovering ? 'auto' : 'none',
+                transform: `rotate(${-filledRotation}deg)`,
+              }}
+            >
+              ×
+            </motion.button>
+          )}
 
           {/* Date caption */}
           <div

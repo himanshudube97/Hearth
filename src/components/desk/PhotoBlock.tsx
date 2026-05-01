@@ -15,6 +15,9 @@ interface Photo {
 interface PhotoBlockProps {
   photos: Photo[]
   onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
+  /** When set, each filled polaroid shows a × on hover that calls this with
+   *  the slot position. Omit for read-only entries. */
+  onPhotoRemove?: (position: 1 | 2) => void
   disabled?: boolean
   className?: string
   dateCaption?: string
@@ -23,6 +26,7 @@ interface PhotoBlockProps {
 const PhotoBlock = memo(function PhotoBlock({
   photos,
   onPhotoAdd,
+  onPhotoRemove,
   disabled = false,
   className = '',
   dateCaption,
@@ -78,6 +82,7 @@ const PhotoBlock = memo(function PhotoBlock({
             spread={1}
             onPhotoAdd={handlePhotoAdd(1)}
             onCameraCapture={handleCameraOpen(1)}
+            onRemove={onPhotoRemove ? () => onPhotoRemove(1) : undefined}
             disabled={disabled || !!photo1}
             className="w-28"
             dateCaption={dateCaption}
@@ -92,6 +97,7 @@ const PhotoBlock = memo(function PhotoBlock({
             spread={1}
             onPhotoAdd={handlePhotoAdd(2)}
             onCameraCapture={handleCameraOpen(2)}
+            onRemove={onPhotoRemove ? () => onPhotoRemove(2) : undefined}
             disabled={disabled || !!photo2}
             className="w-28"
             dateCaption={dateCaption}

@@ -60,6 +60,7 @@ interface RightPageProps {
   isNewEntry: boolean
   photos?: Photo[]
   onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
+  onPhotoRemove?: (position: 1 | 2) => void
   onNavigateLeft?: (targetLeft?: number) => void
   onBackspaceAcrossSpine?: () => void
 }
@@ -130,6 +131,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
   isNewEntry,
   photos = [],
   onPhotoAdd,
+  onPhotoRemove,
   onNavigateLeft,
   onBackspaceAcrossSpine,
 }: RightPageProps, ref) {
@@ -314,6 +316,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
           <PhotoBlock
             photos={photos}
             onPhotoAdd={handlePhotoAdd}
+            onPhotoRemove={onPhotoRemove}
             dateCaption={dateCaption}
           />
         </div>

@@ -113,6 +113,14 @@ export async function PUT(
       text, mood, song, tags, encryptionType, e2eeIV,
       spreads, appendText, newPhotos, newDoodles,
       style,
+      // Full-replacement doodle/photo lists (autosave wire format). When the
+      // client sends `doodles` / `photos` as the entry's complete current
+      // state, the corresponding set is replaced to match — required for
+      // clears/deletions to actually persist. The legacy `newDoodles` /
+      // `newPhotos` fields above stay append-only for callers that
+      // explicitly want that semantic.
+      doodles,
+      photos,
       // Letter-only fields. Drafts can be edited freely; sealed letters reject
       // all writes via the lock check below.
       entryType, recipientEmail, recipientName, senderName, letterLocation, unlockDate,
@@ -254,6 +262,46 @@ export async function PUT(
             },
           })
         }
+      }
+    }
+
+    // Full-replacement photos. Replaces the entry's photo set with the
+    // incoming list — required so removing a photo (`photos` shrinks)
+    // actually deletes the row from the DB. Only applied to unlocked
+    // entries; locked journal entries must go through the append-only
+    // newPhotos path, and sealed letters reject the whole request earlier.
+    if (!locked && Array.isArray(photos)) {
+      await prisma.entryPhoto.deleteMany({ where: { entryId: id } })
+      if (photos.length > 0) {
+        await prisma.entryPhoto.createMany({
+          data: photos.map((p: { url: string; position: number; spread?: number; rotation?: number }) => ({
+            entryId: id,
+            url: p.url,
+            position: p.position,
+            spread: p.spread ?? 1,
+            rotation: p.rotation ?? 0,
+          })),
+        })
+      }
+    }
+
+    // Full-replacement doodles. Replaces the entry's doodle set with the
+    // incoming list — required so a cleared canvas (`doodles: []`) actually
+    // removes the row from the DB. Only applied to unlocked entries; locked
+    // journal entries must go through the append-only newDoodles path, and
+    // sealed letters reject the whole request earlier in this handler.
+    if (!locked && Array.isArray(doodles)) {
+      await prisma.doodle.deleteMany({ where: { journalEntryId: id } })
+      for (let i = 0; i < doodles.length; i++) {
+        const d = doodles[i]
+        await prisma.doodle.create({
+          data: {
+            journalEntryId: id,
+            strokes: d.strokes,
+            spread: d.spread ?? 1,
+            positionInEntry: d.positionInEntry ?? i,
+          },
+        })
       }
     }
 

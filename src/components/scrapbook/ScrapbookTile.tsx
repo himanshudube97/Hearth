@@ -3,6 +3,8 @@
 
 import React from 'react'
 import { stickers, StickerId } from './stickers'
+import { useThemeStore } from '@/store/theme'
+import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 
 export interface ScrapbookSummary {
   id: string
@@ -40,6 +42,9 @@ function pickDecoration(id: string) {
 }
 
 export default function ScrapbookTile({ summary, onOpen, onDelete }: Props) {
+  const { theme } = useThemeStore()
+  const colors = getGlassDiaryColors(theme)
+
   const dateLabel = new Date(summary.updatedAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -61,10 +66,10 @@ export default function ScrapbookTile({ summary, onOpen, onDelete }: Props) {
         onClick={onOpen}
         style={{
           aspectRatio: '4 / 5',
-          background: '#e8d8b0',
+          background: colors.pageBgSolid,
           border: 'none',
           borderRadius: 4,
-          boxShadow: '0 8px 22px rgba(20, 14, 4, 0.30), inset 0 0 0 1px rgba(255,255,255,0.35)',
+          boxShadow: `0 8px 22px rgba(0, 0, 0, 0.30), inset 0 0 0 1px ${colors.pageBorder}`,
           cursor: 'pointer',
           padding: 0,
           width: '100%',
@@ -76,10 +81,7 @@ export default function ScrapbookTile({ summary, onOpen, onDelete }: Props) {
             position: 'relative',
             width: '100%',
             height: '100%',
-            backgroundImage: [
-              'radial-gradient(circle at 18% 22%, rgba(255, 240, 200, 0.45) 0%, transparent 55%)',
-              'radial-gradient(circle at 82% 78%, rgba(120, 80, 30, 0.10) 0%, transparent 55%)',
-            ].join(', '),
+            backgroundImage: `radial-gradient(circle at 18% 22%, ${colors.ruledLine} 0%, transparent 55%)`,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -94,7 +96,7 @@ export default function ScrapbookTile({ summary, onOpen, onDelete }: Props) {
                 height: 36,
                 marginBottom: 14,
                 transform: `rotate(${decoration.tilt}deg)`,
-                filter: 'drop-shadow(0 1px 2px rgba(60, 40, 10, 0.18))',
+                filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18))',
                 opacity: 0.92,
               }}
             >
@@ -107,7 +109,7 @@ export default function ScrapbookTile({ summary, onOpen, onDelete }: Props) {
               fontFamily: 'var(--font-caveat), cursive',
               fontSize: 19,
               lineHeight: 1.25,
-              color: 'rgba(58, 52, 41, 0.78)',
+              color: colors.prompt,
               textAlign: 'center',
               maxWidth: '85%',
               fontStyle: 'italic',
@@ -121,7 +123,7 @@ export default function ScrapbookTile({ summary, onOpen, onDelete }: Props) {
               position: 'absolute',
               bottom: 12,
               right: 16,
-              color: 'rgba(58, 52, 41, 0.55)',
+              color: theme.text.muted,
               fontFamily: 'var(--font-caveat), cursive',
               fontSize: 14,
             }}
@@ -136,7 +138,7 @@ export default function ScrapbookTile({ summary, onOpen, onDelete }: Props) {
             fontFamily: 'var(--font-playfair), serif',
             fontStyle: 'italic',
             fontSize: 16,
-            color: '#3a3429',
+            color: theme.text.primary,
           }}
         >
           {summary.title ?? dateLabel}
@@ -148,7 +150,7 @@ export default function ScrapbookTile({ summary, onOpen, onDelete }: Props) {
           style={{
             background: 'transparent',
             border: 'none',
-            color: 'rgba(58, 52, 41, 0.45)',
+            color: theme.text.muted,
             fontSize: 14,
             cursor: 'pointer',
           }}
