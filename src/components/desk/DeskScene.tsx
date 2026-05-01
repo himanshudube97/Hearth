@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useLayoutMode } from '@/hooks/useMediaQuery'
@@ -27,7 +27,6 @@ export default function DeskScene() {
   const { theme } = useThemeStore()
   const layoutMode = useLayoutMode()
   const [scaleForTablet, setScaleForTablet] = useState(1)
-  const wheelCaptureRef = useRef<HTMLDivElement | null>(null)
   const {
     coverState,
     wrapperX,
@@ -52,13 +51,6 @@ export default function DeskScene() {
       return () => window.removeEventListener('resize', calcScale)
     }
   }, [layoutMode])
-
-  useEffect(() => {
-    const el = wheelCaptureRef.current
-    if (!el || coverState !== 'closed') return
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [coverState, onWheel])
 
   const handleMobileClose = useCallback(() => {
     window.history.back()
@@ -190,12 +182,15 @@ export default function DeskScene() {
 
           {coverState === 'closed' && (
             <div
-              ref={wheelCaptureRef}
+              ref={(el) => {
+                if (!el) return
+                el.addEventListener('wheel', onWheel, { passive: false })
+                return () => el.removeEventListener('wheel', onWheel)
+              }}
               style={{
                 position: 'fixed',
                 inset: 0,
-                zIndex: 50, // above the cover's zIndex 40
-                // No background — invisible, just intercepts wheel events.
+                zIndex: 50,
               }}
             />
           )}
