@@ -58,32 +58,15 @@ export function OceanHarbourScene({
           <motion.div
             animate={{ opacity: [0.5, 1, 0.5], y: [0, -2, 0] }}
             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ width: 36, height: 22, position: 'relative' }}
+            style={{ width: 48, height: 38 }}
           >
-            {/* Mini boat for the loading state */}
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                bottom: 0,
-                width: 36,
-                height: 10,
-                background: 'linear-gradient(180deg, #F8F0DC 60%, #D8C8A4 100%)',
-                clipPath: 'polygon(8% 0, 92% 0, 100% 100%, 0 100%)',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                left: 14,
-                bottom: 9,
-                width: 0,
-                height: 0,
-                borderLeft: '10px solid transparent',
-                borderRight: '10px solid transparent',
-                borderBottom: '16px solid #F8F0DC',
-              }}
-            />
+            <svg viewBox="-24 -28 48 38" width="48" height="38">
+              <line x1="0" y1="-3" x2="0" y2="-25" stroke="#A89878" strokeWidth="0.6" strokeLinecap="round" />
+              <path d="M 0 -25 L 5 -23.5 L 0 -22 Z" fill="#C28860" opacity="0.85" />
+              <path d="M 0 -25 L 0 -3 L 13 -5 Z" fill="#FFFFFF" stroke="#D8C8A4" strokeWidth="0.4" strokeLinejoin="round" />
+              <path d="M -20 9 L 20 9 L 16 -1 L 9 -7 L 3 -1 L 0 1 L -3 -1 L -9 -7 L -16 -1 Z" fill="#F8F0DC" stroke="#B8A878" strokeWidth="0.4" strokeLinejoin="round" />
+              <path d="M -20 9 L 20 9 L 17 4 L -17 4 Z" fill="#D8C8A4" opacity="0.55" />
+            </svg>
           </motion.div>
           <p
             style={{
@@ -190,8 +173,8 @@ export function OceanHarbourScene({
             textShadow: '0 1px 4px rgba(0,0,0,0.4)',
           }}
         >
-          {Math.min(memoryStars.length, 7)}{' '}
-          {Math.min(memoryStars.length, 7) === 1
+          {Math.min(memoryStars.length, 5)}{' '}
+          {Math.min(memoryStars.length, 5) === 1
             ? 'boat afloat'
             : 'boats afloat'}
         </p>

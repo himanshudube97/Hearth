@@ -25,8 +25,8 @@ export interface PaperBoatProps {
   ariaLabel: string
 }
 
-const HULL_GRADIENT = 'linear-gradient(180deg, #F8F0DC 60%, #D8C8A4 100%)'
-const SAIL_COLOR = '#F8F0DC'
+const BASE_W = 48
+const BASE_H = 38
 
 export function PaperBoat({
   slotX,
@@ -60,8 +60,8 @@ export function PaperBoat({
       }
 
   const sailFilter = glow
-    ? `drop-shadow(0 0 8px ${glowColor}) drop-shadow(0 0 16px ${glowColor})`
-    : 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
+    ? `drop-shadow(0 0 6px ${glowColor}) drop-shadow(0 0 14px ${glowColor})`
+    : 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.25))'
 
   return (
     <motion.button
@@ -72,8 +72,8 @@ export function PaperBoat({
       style={{
         left: `${slotX}%`,
         bottom: `${slotYFromBottom}%`,
-        width: 36 * scale,
-        height: 22 * scale,
+        width: BASE_W * scale,
+        height: BASE_H * scale,
         background: 'transparent',
         border: 'none',
         padding: 0,
@@ -98,43 +98,116 @@ export function PaperBoat({
       <div
         style={{
           position: 'absolute',
-          left: -4 * scale,
+          left: '50%',
           bottom: -4 * scale,
-          width: 44 * scale,
+          width: 54 * scale,
           height: 6 * scale,
-          border: '1px solid rgba(255,200,140,0.4)',
+          marginLeft: -27 * scale,
+          border: '1px solid rgba(220,200,180,0.4)',
           borderRadius: '50%',
         }}
       />
 
-      {/* Hull — trapezoid */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          bottom: 0,
-          width: 36 * scale,
-          height: 10 * scale,
-          background: HULL_GRADIENT,
-          clipPath: 'polygon(8% 0, 92% 0, 100% 100%, 0 100%)',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
-        }}
-      />
+      <svg
+        viewBox="-24 -28 48 38"
+        width="100%"
+        height="100%"
+        style={{ overflow: 'visible' }}
+      >
+        {/* Mast — thin pole rising from the deck */}
+        <line
+          x1="0"
+          y1="-3"
+          x2="0"
+          y2="-25"
+          stroke="#A89878"
+          strokeWidth="0.6"
+          strokeLinecap="round"
+        />
 
-      {/* Sail — triangle */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 14 * scale,
-          bottom: 9 * scale,
-          width: 0,
-          height: 0,
-          borderLeft: `${10 * scale}px solid transparent`,
-          borderRight: `${10 * scale}px solid transparent`,
-          borderBottom: `${16 * scale}px solid ${SAIL_COLOR}`,
-          filter: sailFilter,
-        }}
-      />
+        {/* Tiny pennant flag at top of mast */}
+        <path
+          d="M 0 -25 L 5 -23.5 L 0 -22 Z"
+          fill="#C28860"
+          opacity="0.85"
+        />
+
+        {/* Sail — triangle to the right of the mast */}
+        <path
+          d="M 0 -25 L 0 -3 L 13 -5 Z"
+          fill="#FFFFFF"
+          stroke="#D8C8A4"
+          strokeWidth="0.4"
+          strokeLinejoin="round"
+          style={{ filter: sailFilter }}
+        />
+
+        {/* Sail subtle horizontal fold (paper crease) */}
+        <line
+          x1="0"
+          y1="-15"
+          x2="7.2"
+          y2="-15.6"
+          stroke="#D8C8A4"
+          strokeWidth="0.3"
+          opacity="0.6"
+        />
+
+        {/* Hull — origami paper boat: trapezoid base with peaked top corners and V-notch */}
+        <path
+          d="M -20 9
+             L 20 9
+             L 16 -1
+             L 9 -7
+             L 3 -1
+             L 0 1
+             L -3 -1
+             L -9 -7
+             L -16 -1 Z"
+          fill="#F8F0DC"
+          stroke="#B8A878"
+          strokeWidth="0.4"
+          strokeLinejoin="round"
+        />
+
+        {/* Hull bottom shadow band — gives a rim/depth feel */}
+        <path
+          d="M -20 9 L 20 9 L 17 4 L -17 4 Z"
+          fill="#D8C8A4"
+          opacity="0.55"
+        />
+
+        {/* Center vertical fold line (down the keel) */}
+        <line
+          x1="0"
+          y1="1"
+          x2="0"
+          y2="9"
+          stroke="#A89878"
+          strokeWidth="0.3"
+          opacity="0.6"
+        />
+
+        {/* Side fold lines — visible paper edges where the hull folds upward */}
+        <line
+          x1="-9"
+          y1="-7"
+          x2="-16"
+          y2="-1"
+          stroke="#C8B894"
+          strokeWidth="0.35"
+          opacity="0.7"
+        />
+        <line
+          x1="9"
+          y1="-7"
+          x2="16"
+          y2="-1"
+          stroke="#C8B894"
+          strokeWidth="0.35"
+          opacity="0.7"
+        />
+      </svg>
     </motion.button>
   )
 }

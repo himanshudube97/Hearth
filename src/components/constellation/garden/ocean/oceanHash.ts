@@ -11,7 +11,7 @@ function hash(id: string, salt = ''): number {
 }
 
 export interface OceanBoatHash {
-  /** Slot 0..6 in PaperBoats. PaperBoats handles mobile fallback. */
+  /** Slot 0..4 in PaperBoats. PaperBoats handles mobile fallback. */
   slotIndex: number
   /** Rotation in degrees, in [-4, +4]. */
   tilt: number
@@ -22,7 +22,7 @@ export interface OceanBoatHash {
 }
 
 export function oceanHashForId(id: string): OceanBoatHash {
-  const slotIndex = hash(id, '-slot') % 7
+  const slotIndex = hash(id, '-slot') % 5
   const tilt = ((hash(id, '-tilt') % 1000) / 1000) * 8 - 4 // [-4, +4]
   const scale = 0.85 + ((hash(id, '-scale') % 1000) / 1000) * 0.15 // [0.85, 1.0]
   const glow = hash(id, '-glow') % 3 === 0 // ~1 in 3

@@ -18,15 +18,13 @@ interface Slot {
   yFromBottom: number
 }
 
-// 7 desktop slots — slight Y variance gives "boats on uneven water" feel.
-// Slot indices match oceanHash output (0..6). Mobile drops slots 5 and 6.
+// 5 desktop slots — slight Y variance gives "boats on uneven water" feel.
+// Slot indices match oceanHash output (0..4). Mobile drops slot 4 (far right).
 const DESKTOP_SLOTS: Slot[] = [
-  { x: 8, yFromBottom: 14 },
-  { x: 25, yFromBottom: 12 },
-  { x: 34, yFromBottom: 18 },
-  { x: 42, yFromBottom: 10 },
-  { x: 58, yFromBottom: 14 },
-  { x: 73, yFromBottom: 9 },
+  { x: 14, yFromBottom: 13 },
+  { x: 32, yFromBottom: 11 },
+  { x: 50, yFromBottom: 14 },
+  { x: 68, yFromBottom: 10 },
   { x: 86, yFromBottom: 13 },
 ]
 
@@ -49,7 +47,7 @@ export function PaperBoats({
   const isMobile = useIsMobile()
 
   const placed = useMemo(() => {
-    const usableSlotCount = isMobile ? 5 : 7
+    const usableSlotCount = isMobile ? 4 : 5
     // Track which slots are filled so two entries can't collide on the same slot.
     const taken = new Set<number>()
     return memoryStars
