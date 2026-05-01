@@ -13,7 +13,7 @@ export default function LettersNav({ active, onChange, newCount = 0 }: Props) {
   return (
     <nav
       className="
-        fixed top-[18px] left-1/2 -translate-x-1/2 z-[80]
+        fixed top-[80px] left-1/2 -translate-x-1/2 z-[80]
         flex items-center gap-1
         rounded-full p-[5px]
         bg-[var(--paper-1)] border border-[var(--paper-2)]
@@ -34,18 +34,6 @@ export default function LettersNav({ active, onChange, newCount = 0 }: Props) {
           `}
         >
           {t === 'inbox' ? 'letters' : 'sent'}
-          {t === 'inbox' && newCount > 0 && (
-            <span
-              className="ml-2 inline-block px-2 py-0.5 rounded-full text-xs"
-              style={{
-                background: active === 'inbox' ? 'rgba(255,255,255,0.25)' : 'var(--accent-primary)',
-                color: '#fff',
-                fontFamily: 'var(--font-caveat), Caveat, cursive',
-              }}
-            >
-              {newCount} new
-            </span>
-          )}
         </button>
       ))}
     </nav>

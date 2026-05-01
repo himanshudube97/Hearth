@@ -5,7 +5,7 @@ interface Props { newCount: number }
 export default function TopHint({ newCount }: Props) {
   return (
     <div
-      className="absolute top-[76px] left-1/2 -translate-x-1/2 z-[9] text-center pointer-events-none"
+      className="absolute top-[136px] left-1/2 -translate-x-1/2 z-[9] text-center pointer-events-none"
       style={{
         fontFamily: 'Cormorant Garamond, serif',
         fontStyle: 'italic',
