@@ -2,7 +2,7 @@
 
 export const JOURNAL = {
   LINE_HEIGHT: 32,             // px - matches line pattern spacing
-  FONT_SIZE: 20,               // px - Caveat font size
+  FONT_SIZE: 21,               // px - Caveat font size
   MAX_CHARS: 1200,             // Total character limit per entry (both pages combined)
 
   // Desktop book dimensions

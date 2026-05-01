@@ -156,7 +156,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
     ? entryStyleDraft
     : parseStyle(entry?.style ?? null)
   const fontFamily = resolveFontFamily(activeStyle.font)
-  const fontSize = resolveFontSize(activeStyle.font, 20)
+  const fontSize = resolveFontSize(activeStyle.font, 21)
   const lockedForEntry = !isNewEntry && entry
     ? isEntryLocked(entry.createdAt, { entryType: 'normal' })
     : false

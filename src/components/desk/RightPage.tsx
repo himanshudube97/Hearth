@@ -157,7 +157,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
     ? entryStyleDraft
     : parseStyle(entry?.style ?? null)
   const fontFamily = resolveFontFamily(activeStyle.font)
-  const fontSize = resolveFontSize(activeStyle.font, 20)
+  const fontSize = resolveFontSize(activeStyle.font, 21)
 
   const linePattern = `repeating-linear-gradient(
     180deg,

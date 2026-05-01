@@ -31,6 +31,20 @@ export type StickerId =
   | 'raindrop'
   | 'bookmark'
   | 'pencil'
+  | 'cat'
+  | 'dog'
+  | 'rabbit'
+  | 'panda'
+  | 'bear'
+  | 'fox'
+  | 'penguin'
+  | 'bat'
+  | 'lightning'
+  | 'shield'
+  | 'mask'
+  | 'crown'
+  | 'rocket'
+  | 'robot'
 
 interface StickerProps {
   size?: number | string
@@ -646,6 +660,380 @@ const Pencil: React.FC<StickerProps> = () => (
   </svg>
 )
 
+const Cat: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <g className="sb-anim sb-anim-wobble">
+      {/* ears */}
+      <path d="M22 38 L 28 14 L 44 30 Z" fill="#e89348" stroke="#5a2a0a" strokeWidth="2.2" strokeLinejoin="round" />
+      <path d="M78 38 L 72 14 L 56 30 Z" fill="#e89348" stroke="#5a2a0a" strokeWidth="2.2" strokeLinejoin="round" />
+      {/* inner ears */}
+      <path d="M28 30 L 30 20 L 38 28 Z" fill="#f4b88a" />
+      <path d="M72 30 L 70 20 L 62 28 Z" fill="#f4b88a" />
+      {/* head */}
+      <ellipse cx="50" cy="54" rx="30" ry="28" fill="#e89348" stroke="#5a2a0a" strokeWidth="2.5" />
+      {/* stripes */}
+      <path d="M30 44 C 32 48, 32 52, 30 56" stroke="#a85820" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <path d="M70 44 C 68 48, 68 52, 70 56" stroke="#a85820" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <path d="M50 30 C 48 34, 48 38, 50 40" stroke="#a85820" strokeWidth="2" fill="none" strokeLinecap="round" />
+      {/* eyes */}
+      <ellipse cx="40" cy="52" rx="3" ry="4.5" fill="#1a0a04" />
+      <ellipse cx="60" cy="52" rx="3" ry="4.5" fill="#1a0a04" />
+      <circle cx="41" cy="50" r="1" fill="#fdfaf2" />
+      <circle cx="61" cy="50" r="1" fill="#fdfaf2" />
+      {/* nose */}
+      <path d="M48 60 L 52 60 L 50 64 Z" fill="#d97a6c" stroke="#5a2a0a" strokeWidth="1.2" strokeLinejoin="round" />
+      {/* mouth */}
+      <path d="M50 64 C 48 68, 44 68, 42 66" stroke="#5a2a0a" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      <path d="M50 64 C 52 68, 56 68, 58 66" stroke="#5a2a0a" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      {/* whiskers */}
+      <line x1="22" y1="60" x2="36" y2="62" stroke="#5a2a0a" strokeWidth="1" strokeLinecap="round" />
+      <line x1="22" y1="66" x2="36" y2="66" stroke="#5a2a0a" strokeWidth="1" strokeLinecap="round" />
+      <line x1="78" y1="60" x2="64" y2="62" stroke="#5a2a0a" strokeWidth="1" strokeLinecap="round" />
+      <line x1="78" y1="66" x2="64" y2="66" stroke="#5a2a0a" strokeWidth="1" strokeLinecap="round" />
+    </g>
+  </svg>
+)
+
+const Dog: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <g className="sb-anim sb-anim-wobble">
+      {/* floppy ears */}
+      <path d="M18 36 C 12 24, 18 12, 30 16 C 36 22, 36 38, 30 46 C 22 48, 18 44, 18 36 Z" fill="#a87040" stroke="#3a1a0a" strokeWidth="2.2" strokeLinejoin="round" />
+      <path d="M82 36 C 88 24, 82 12, 70 16 C 64 22, 64 38, 70 46 C 78 48, 82 44, 82 36 Z" fill="#a87040" stroke="#3a1a0a" strokeWidth="2.2" strokeLinejoin="round" />
+      {/* head */}
+      <ellipse cx="50" cy="54" rx="28" ry="26" fill="#e8b450" stroke="#3a1a0a" strokeWidth="2.5" />
+      {/* snout area */}
+      <ellipse cx="50" cy="66" rx="14" ry="11" fill="#f4d290" stroke="#3a1a0a" strokeWidth="1.8" />
+      {/* eyes */}
+      <circle cx="40" cy="50" r="3.2" fill="#1a0a04" />
+      <circle cx="60" cy="50" r="3.2" fill="#1a0a04" />
+      <circle cx="41" cy="48.5" r="1" fill="#fdfaf2" />
+      <circle cx="61" cy="48.5" r="1" fill="#fdfaf2" />
+      {/* nose */}
+      <ellipse cx="50" cy="62" rx="4" ry="3" fill="#1a0a04" />
+      {/* mouth */}
+      <path d="M50 66 L 50 70" stroke="#3a1a0a" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M50 70 C 48 74, 44 74, 42 72" stroke="#3a1a0a" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      <path d="M50 70 C 52 74, 56 74, 58 72" stroke="#3a1a0a" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      {/* tongue */}
+      <path d="M48 72 C 46 76, 54 76, 52 72 Z" fill="#d97a6c" stroke="#5a2a0a" strokeWidth="1" />
+    </g>
+  </svg>
+)
+
+const Rabbit: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <g className="sb-anim sb-anim-wobble">
+      {/* long ears */}
+      <ellipse cx="38" cy="22" rx="6" ry="18" fill="#fdfaf2" stroke="#5a4a3a" strokeWidth="2" />
+      <ellipse cx="62" cy="22" rx="6" ry="18" fill="#fdfaf2" stroke="#5a4a3a" strokeWidth="2" />
+      {/* inner ears */}
+      <ellipse cx="38" cy="24" rx="2.5" ry="12" fill="#f4b8c4" />
+      <ellipse cx="62" cy="24" rx="2.5" ry="12" fill="#f4b8c4" />
+      {/* head */}
+      <ellipse cx="50" cy="60" rx="26" ry="24" fill="#fdfaf2" stroke="#5a4a3a" strokeWidth="2.5" />
+      {/* eyes */}
+      <ellipse cx="40" cy="58" rx="2.6" ry="3.6" fill="#1a0a04" />
+      <ellipse cx="60" cy="58" rx="2.6" ry="3.6" fill="#1a0a04" />
+      <circle cx="40.8" cy="56.5" r="0.9" fill="#fdfaf2" />
+      <circle cx="60.8" cy="56.5" r="0.9" fill="#fdfaf2" />
+      {/* nose */}
+      <path d="M48 66 L 52 66 L 50 70 Z" fill="#f4a8b4" stroke="#5a2a3a" strokeWidth="1" strokeLinejoin="round" />
+      {/* mouth */}
+      <path d="M50 70 L 50 73" stroke="#5a4a3a" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M50 73 C 48 76, 45 76, 44 74" stroke="#5a4a3a" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+      <path d="M50 73 C 52 76, 55 76, 56 74" stroke="#5a4a3a" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+      {/* whiskers */}
+      <line x1="24" y1="68" x2="36" y2="70" stroke="#5a4a3a" strokeWidth="0.9" strokeLinecap="round" />
+      <line x1="76" y1="68" x2="64" y2="70" stroke="#5a4a3a" strokeWidth="0.9" strokeLinecap="round" />
+      {/* cheek blush */}
+      <circle cx="32" cy="64" r="3" fill="#f4c8d0" opacity="0.7" />
+      <circle cx="68" cy="64" r="3" fill="#f4c8d0" opacity="0.7" />
+    </g>
+  </svg>
+)
+
+const Panda: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <g className="sb-anim sb-anim-wobble">
+      {/* ears */}
+      <circle cx="22" cy="26" r="10" fill="#1a0a04" stroke="#0a0202" strokeWidth="1.6" />
+      <circle cx="78" cy="26" r="10" fill="#1a0a04" stroke="#0a0202" strokeWidth="1.6" />
+      {/* head */}
+      <circle cx="50" cy="54" r="30" fill="#fdfaf2" stroke="#3a2a1a" strokeWidth="2.5" />
+      {/* eye patches */}
+      <ellipse cx="38" cy="52" rx="7" ry="9" fill="#1a0a04" transform="rotate(-15 38 52)" />
+      <ellipse cx="62" cy="52" rx="7" ry="9" fill="#1a0a04" transform="rotate(15 62 52)" />
+      {/* eyes */}
+      <circle cx="38" cy="54" r="2.6" fill="#fdfaf2" />
+      <circle cx="62" cy="54" r="2.6" fill="#fdfaf2" />
+      <circle cx="38.5" cy="54" r="1.4" fill="#1a0a04" />
+      <circle cx="62.5" cy="54" r="1.4" fill="#1a0a04" />
+      {/* nose */}
+      <ellipse cx="50" cy="64" rx="3.5" ry="2.6" fill="#1a0a04" />
+      {/* mouth */}
+      <path d="M50 66 L 50 70" stroke="#1a0a04" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M50 70 C 48 73, 45 73, 44 71" stroke="#1a0a04" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      <path d="M50 70 C 52 73, 55 73, 56 71" stroke="#1a0a04" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    </g>
+  </svg>
+)
+
+const Bear: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <g className="sb-anim sb-anim-wobble">
+      {/* ears */}
+      <circle cx="26" cy="28" r="9" fill="#a87040" stroke="#3a1a0a" strokeWidth="2.2" />
+      <circle cx="74" cy="28" r="9" fill="#a87040" stroke="#3a1a0a" strokeWidth="2.2" />
+      <circle cx="26" cy="28" r="4.5" fill="#d49a6a" />
+      <circle cx="74" cy="28" r="4.5" fill="#d49a6a" />
+      {/* head */}
+      <circle cx="50" cy="54" r="28" fill="#a87040" stroke="#3a1a0a" strokeWidth="2.5" />
+      {/* snout */}
+      <ellipse cx="50" cy="64" rx="14" ry="11" fill="#e8c898" stroke="#3a1a0a" strokeWidth="1.8" />
+      {/* eyes */}
+      <circle cx="40" cy="50" r="2.8" fill="#1a0a04" />
+      <circle cx="60" cy="50" r="2.8" fill="#1a0a04" />
+      <circle cx="40.6" cy="49" r="0.9" fill="#fdfaf2" />
+      <circle cx="60.6" cy="49" r="0.9" fill="#fdfaf2" />
+      {/* nose */}
+      <ellipse cx="50" cy="60" rx="3.5" ry="2.6" fill="#1a0a04" />
+      {/* mouth */}
+      <path d="M50 62 L 50 67" stroke="#1a0a04" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M50 67 C 48 70, 45 70, 44 68" stroke="#1a0a04" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      <path d="M50 67 C 52 70, 55 70, 56 68" stroke="#1a0a04" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    </g>
+  </svg>
+)
+
+const Fox: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <g className="sb-anim sb-anim-wobble">
+      {/* head — pointier than other animals */}
+      <path d="M16 40 L 26 12 L 40 28 L 60 28 L 74 12 L 84 40 C 86 60, 76 80, 50 84 C 24 80, 14 60, 16 40 Z" fill="#e85f30" stroke="#5a1a08" strokeWidth="2.5" strokeLinejoin="round" />
+      {/* inner ears */}
+      <path d="M28 18 L 32 30 L 38 26 Z" fill="#3a1004" />
+      <path d="M72 18 L 68 30 L 62 26 Z" fill="#3a1004" />
+      {/* white face mask */}
+      <path d="M30 56 C 38 50, 62 50, 70 56 C 70 72, 60 80, 50 80 C 40 80, 30 72, 30 56 Z" fill="#fdfaf2" stroke="#5a1a08" strokeWidth="1.6" strokeLinejoin="round" />
+      {/* eyes */}
+      <ellipse cx="40" cy="52" rx="2.6" ry="3.6" fill="#1a0a04" />
+      <ellipse cx="60" cy="52" rx="2.6" ry="3.6" fill="#1a0a04" />
+      <circle cx="40.8" cy="50.8" r="0.9" fill="#fdfaf2" />
+      <circle cx="60.8" cy="50.8" r="0.9" fill="#fdfaf2" />
+      {/* snout */}
+      <path d="M44 64 L 56 64 L 50 72 Z" fill="#1a0a04" stroke="#0a0202" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M50 72 L 50 76" stroke="#1a0a04" strokeWidth="1.4" strokeLinecap="round" />
+    </g>
+  </svg>
+)
+
+const Penguin: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <g className="sb-anim sb-anim-wobble">
+      {/* body — black outer */}
+      <ellipse cx="50" cy="54" rx="26" ry="34" fill="#1a1a24" stroke="#0a0204" strokeWidth="2.5" />
+      {/* white belly */}
+      <ellipse cx="50" cy="60" rx="17" ry="26" fill="#fdfaf2" stroke="#3a3429" strokeWidth="1.4" />
+      {/* eyes */}
+      <circle cx="42" cy="38" r="2.6" fill="#fdfaf2" />
+      <circle cx="58" cy="38" r="2.6" fill="#fdfaf2" />
+      <circle cx="42" cy="38" r="1.4" fill="#1a0a04" />
+      <circle cx="58" cy="38" r="1.4" fill="#1a0a04" />
+      {/* beak */}
+      <path d="M44 44 L 56 44 L 50 52 Z" fill="#f5b840" stroke="#7a4a1a" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M44 48 L 56 48" stroke="#7a4a1a" strokeWidth="1" />
+      {/* wings */}
+      <path d="M24 50 C 18 60, 18 74, 26 80 L 28 70 Z" fill="#1a1a24" stroke="#0a0204" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M76 50 C 82 60, 82 74, 74 80 L 72 70 Z" fill="#1a1a24" stroke="#0a0204" strokeWidth="1.6" strokeLinejoin="round" />
+      {/* feet */}
+      <ellipse cx="40" cy="90" rx="6" ry="3" fill="#f5b840" stroke="#7a4a1a" strokeWidth="1.4" />
+      <ellipse cx="60" cy="90" rx="6" ry="3" fill="#f5b840" stroke="#7a4a1a" strokeWidth="1.4" />
+    </g>
+  </svg>
+)
+
+const Bat: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <g className="sb-anim sb-anim-flap">
+      {/* full bat silhouette — wide stylized wings */}
+      <path
+        d="M50 36 C 46 28, 38 22, 30 22 C 24 22, 18 26, 14 32 C 18 32, 22 34, 24 38 C 18 38, 12 42, 8 50 C 16 48, 24 50, 30 52 C 26 54, 22 58, 22 62 C 28 60, 34 60, 40 62 C 38 66, 38 72, 42 76 C 44 70, 46 66, 50 64 C 54 66, 56 70, 58 76 C 62 72, 62 66, 60 62 C 66 60, 72 60, 78 62 C 78 58, 74 54, 70 52 C 76 50, 84 48, 92 50 C 88 42, 82 38, 76 38 C 78 34, 82 32, 86 32 C 82 26, 76 22, 70 22 C 62 22, 54 28, 50 36 Z"
+        fill="#1a0a14"
+        stroke="#0a0204"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      {/* ears */}
+      <path d="M44 32 L 42 22 L 48 28 Z" fill="#1a0a14" stroke="#0a0204" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M56 32 L 58 22 L 52 28 Z" fill="#1a0a14" stroke="#0a0204" strokeWidth="1.4" strokeLinejoin="round" />
+      {/* eyes */}
+      <ellipse cx="46" cy="40" rx="1.6" ry="2" fill="#f5b840" />
+      <ellipse cx="54" cy="40" rx="1.6" ry="2" fill="#f5b840" />
+    </g>
+  </svg>
+)
+
+const Lightning: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <path
+      className="sb-anim sb-anim-twinkle"
+      d="M58 8 L 28 54 L 46 54 L 38 92 L 72 42 L 54 42 L 64 8 Z"
+      fill="#f5d142"
+      stroke="#7a4a08"
+      strokeWidth="2.5"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+const Shield: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    {/* shield body */}
+    <path
+      d="M50 8 C 36 14, 22 16, 16 16 C 16 44, 22 72, 50 92 C 78 72, 84 44, 84 16 C 78 16, 64 14, 50 8 Z"
+      fill="#3a6ad4"
+      stroke="#1a2a5a"
+      strokeWidth="2.5"
+      strokeLinejoin="round"
+    />
+    {/* inner ring */}
+    <path
+      d="M50 18 C 40 22, 30 24, 26 24 C 26 46, 30 66, 50 82 C 70 66, 74 46, 74 24 C 70 24, 60 22, 50 18 Z"
+      fill="#fdfaf2"
+      stroke="#1a2a5a"
+      strokeWidth="1.8"
+    />
+    {/* star */}
+    <path
+      d="M50 32 L 55 46 L 70 47 L 58 56 L 62 70 L 50 62 L 38 70 L 42 56 L 30 47 L 45 46 Z"
+      fill="#e63d2a"
+      stroke="#5a0a08"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+const Mask: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    {/* domino superhero mask */}
+    <path
+      d="M10 38 C 14 28, 28 24, 50 30 C 72 24, 86 28, 90 38 C 90 48, 80 60, 66 60 C 58 60, 52 56, 50 50 C 48 56, 42 60, 34 60 C 20 60, 10 48, 10 38 Z"
+      fill="#1a1a24"
+      stroke="#0a0204"
+      strokeWidth="2.5"
+      strokeLinejoin="round"
+    />
+    {/* eye holes */}
+    <ellipse cx="32" cy="42" rx="9" ry="7" fill="#fdfaf2" />
+    <ellipse cx="68" cy="42" rx="9" ry="7" fill="#fdfaf2" />
+    {/* tie strings */}
+    <path d="M10 38 C 4 40, 2 50, 6 60" stroke="#1a1a24" strokeWidth="2" fill="none" strokeLinecap="round" />
+    <path d="M90 38 C 96 40, 98 50, 94 60" stroke="#1a1a24" strokeWidth="2" fill="none" strokeLinecap="round" />
+  </svg>
+)
+
+const Crown: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    {/* crown body — five points */}
+    <path
+      d="M14 78 L 18 36 L 34 56 L 50 22 L 66 56 L 82 36 L 86 78 Z"
+      fill="#f5c842"
+      stroke="#7a4a08"
+      strokeWidth="2.5"
+      strokeLinejoin="round"
+    />
+    {/* base band */}
+    <rect x="14" y="74" width="72" height="10" fill="#e8a82a" stroke="#7a4a08" strokeWidth="2" />
+    {/* gems on points */}
+    <circle cx="18" cy="36" r="3.5" fill="#e63d2a" stroke="#5a0a08" strokeWidth="1.4" />
+    <circle cx="50" cy="22" r="4" fill="#3a8ad4" stroke="#1a2a5a" strokeWidth="1.4" />
+    <circle cx="82" cy="36" r="3.5" fill="#7a3aa8" stroke="#3a0a4a" strokeWidth="1.4" />
+    {/* center band gem */}
+    <ellipse cx="50" cy="79" rx="5" ry="3" fill="#e63d2a" stroke="#5a0a08" strokeWidth="1.2" />
+    <ellipse cx="30" cy="79" rx="2.5" ry="2" fill="#fdfaf2" />
+    <ellipse cx="70" cy="79" rx="2.5" ry="2" fill="#fdfaf2" />
+  </svg>
+)
+
+const Rocket: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <g className="sb-anim sb-anim-bob">
+      {/* body */}
+      <path
+        d="M50 8 C 38 24, 32 44, 32 64 L 68 64 C 68 44, 62 24, 50 8 Z"
+        fill="#fdfaf2"
+        stroke="#3a3429"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      {/* nose tip accent */}
+      <path
+        d="M50 8 C 46 14, 44 22, 44 28 L 56 28 C 56 22, 54 14, 50 8 Z"
+        fill="#e63d2a"
+        stroke="#5a0a08"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      {/* window */}
+      <circle cx="50" cy="40" r="7" fill="#7ab2d9" stroke="#1a2a5a" strokeWidth="2" />
+      <circle cx="48" cy="38" r="2" fill="#fdfaf2" opacity="0.8" />
+      {/* fins */}
+      <path d="M32 50 L 18 70 L 32 64 Z" fill="#e63d2a" stroke="#5a0a08" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M68 50 L 82 70 L 68 64 Z" fill="#e63d2a" stroke="#5a0a08" strokeWidth="2" strokeLinejoin="round" />
+      {/* base */}
+      <rect x="32" y="62" width="36" height="6" fill="#7a7060" stroke="#3a3429" strokeWidth="1.6" />
+    </g>
+    {/* flame */}
+    <path
+      className="sb-anim sb-anim-twinkle"
+      d="M40 68 C 42 80, 46 86, 50 92 C 54 86, 58 80, 60 68 Z"
+      fill="#f5b840"
+      stroke="#7a4a08"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M44 70 C 46 78, 48 82, 50 86 C 52 82, 54 78, 56 70 Z"
+      fill="#e63d2a"
+    />
+  </svg>
+)
+
+const Robot: React.FC<StickerProps> = () => (
+  <svg {...baseProps}>
+    <g className="sb-anim sb-anim-wobble">
+      {/* antenna */}
+      <line x1="50" y1="20" x2="50" y2="10" stroke="#3a3429" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="50" cy="9" r="3" fill="#e63d2a" stroke="#5a0a08" strokeWidth="1.4" />
+      {/* head */}
+      <rect x="22" y="20" width="56" height="48" rx="8" fill="#b8b8c0" stroke="#3a3429" strokeWidth="2.5" />
+      {/* screen */}
+      <rect x="30" y="30" width="40" height="22" rx="4" fill="#1a2a3a" stroke="#3a3429" strokeWidth="1.8" />
+      {/* eyes */}
+      <circle cx="40" cy="41" r="3.5" fill="#7af0d4" stroke="#1a4a3a" strokeWidth="1.2" />
+      <circle cx="60" cy="41" r="3.5" fill="#7af0d4" stroke="#1a4a3a" strokeWidth="1.2" />
+      <circle cx="40" cy="41" r="1.4" fill="#fdfaf2" />
+      <circle cx="60" cy="41" r="1.4" fill="#fdfaf2" />
+      {/* mouth grille */}
+      <line x1="36" y1="60" x2="64" y2="60" stroke="#3a3429" strokeWidth="1.6" />
+      <line x1="40" y1="58" x2="40" y2="62" stroke="#3a3429" strokeWidth="1.4" />
+      <line x1="46" y1="58" x2="46" y2="62" stroke="#3a3429" strokeWidth="1.4" />
+      <line x1="52" y1="58" x2="52" y2="62" stroke="#3a3429" strokeWidth="1.4" />
+      <line x1="58" y1="58" x2="58" y2="62" stroke="#3a3429" strokeWidth="1.4" />
+      {/* neck + body hint */}
+      <rect x="42" y="68" width="16" height="6" fill="#7a7060" stroke="#3a3429" strokeWidth="1.6" />
+      <path d="M28 78 C 28 74, 72 74, 72 78 L 76 92 L 24 92 Z" fill="#b8b8c0" stroke="#3a3429" strokeWidth="2" strokeLinejoin="round" />
+      {/* chest light */}
+      <circle cx="50" cy="86" r="3" fill="#f5d142" stroke="#7a4a08" strokeWidth="1.2" />
+      {/* side bolts */}
+      <circle cx="26" cy="44" r="2" fill="#3a3429" />
+      <circle cx="74" cy="44" r="2" fill="#3a3429" />
+    </g>
+  </svg>
+)
+
 export const stickers: Record<StickerId, { label: string; component: React.FC<StickerProps>; aspect: number }> = {
   star: { label: 'Star', component: Star, aspect: 1 },
   heart: { label: 'Heart', component: Heart, aspect: 1 },
@@ -673,6 +1061,20 @@ export const stickers: Record<StickerId, { label: string; component: React.FC<St
   firefly: { label: 'Firefly', component: Firefly, aspect: 1 },
   bookmark: { label: 'Bookmark', component: Bookmark, aspect: 1 },
   pencil: { label: 'Pencil', component: Pencil, aspect: 1 },
+  cat: { label: 'Cat', component: Cat, aspect: 1 },
+  dog: { label: 'Dog', component: Dog, aspect: 1 },
+  rabbit: { label: 'Rabbit', component: Rabbit, aspect: 1 },
+  panda: { label: 'Panda', component: Panda, aspect: 1 },
+  bear: { label: 'Bear', component: Bear, aspect: 1 },
+  fox: { label: 'Fox', component: Fox, aspect: 1 },
+  penguin: { label: 'Penguin', component: Penguin, aspect: 1 },
+  bat: { label: 'Bat', component: Bat, aspect: 1 },
+  lightning: { label: 'Lightning bolt', component: Lightning, aspect: 1 },
+  shield: { label: 'Shield', component: Shield, aspect: 1 },
+  mask: { label: 'Hero mask', component: Mask, aspect: 1 },
+  crown: { label: 'Crown', component: Crown, aspect: 1 },
+  rocket: { label: 'Rocket', component: Rocket, aspect: 1 },
+  robot: { label: 'Robot', component: Robot, aspect: 1 },
   'washi-tape': { label: 'Washi tape', component: WashiTape, aspect: 200 / 60 },
 }
 
