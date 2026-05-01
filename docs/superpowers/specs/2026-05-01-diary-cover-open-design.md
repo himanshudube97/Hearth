@@ -121,7 +121,8 @@ const progress = useMotionValue(initial === 'open' ? 1 : 0)
 
 `DiaryCover.tsx` renders a 650×820 element with:
 
-- **Background**: `theme.bg.primary` darkened by ~15% (computed via a small `darken(hex, 0.15)` utility, or `color-mix(in srgb, ${theme.bg.primary}, black 15%)` if browser support is fine — Next 16 / React 19 environments support it).
+- **Background**: `getGlassDiaryColors(theme).cover` — the same theme-derived cover color the open spread's hardcover frame already uses ([glassDiaryColors.ts:89](src/lib/glassDiaryColors.ts#L89)). Falls back through `theme.cover` override → `darken(theme.accent.primary, 0.35)`. This keeps the closed cover visually continuous with the open book's hardcover edge.
+- **Inset border**: `getGlassDiaryColors(theme).coverBorder` — 1–2px inner stroke, matches the existing `coverBorder` usage.
 - **Inner gradient sheen**: subtle linear gradient overlay (top-left highlight, bottom-right shadow) ~5% opacity to suggest leather.
 - **Grain texture**: very light noise overlay via SVG filter or `background-image` data URL, ~3% opacity.
 - **Spine highlight**: 4px-wide gradient strip on the cover's left edge, `theme.accent.warm` at low opacity — catches light at the binding.
@@ -132,7 +133,7 @@ const progress = useMotionValue(initial === 'open' ? 1 : 0)
 
 Uses `useThemeStore` so cover updates live when the user changes themes.
 
-**v1 deferral:** All cover colors derive from existing theme fields. We do not add a `theme.cover` field. Once shipped, if a particular theme needs a distinct cover (e.g., a black leather diary regardless of theme), add `theme.cover: { base, accent, ornament }` to `lib/themes.ts` and update `DiaryCover` to consume it.
+**Reusing existing theme infrastructure:** `theme.cover` is an existing optional field on `Theme` ([themes.ts:51](src/lib/themes.ts#L51)) and is already plumbed through `getGlassDiaryColors`. No theme schema changes needed.
 
 ## File changes
 
