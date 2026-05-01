@@ -1,9 +1,9 @@
 export const ROSE_PALETTE = [
   '#B12838', // crimson
   '#E27062', // coral
-  '#F4B6B0', // blush
+  '#F4D26B', // soft yellow
   '#F8E8D8', // cream
-  '#C898C0', // lavender-rose
+  '#A88CC8', // lavender
 ] as const
 
 export type RoseColor = (typeof ROSE_PALETTE)[number]
