@@ -12,7 +12,7 @@ export function WaterAndReflections() {
           width: 80,
           height: '14%',
           background:
-            'linear-gradient(180deg, rgba(255,200,120,0.7) 0%, rgba(255,160,80,0.4) 50%, transparent 100%)',
+            'linear-gradient(180deg, rgba(244,208,184,0.5) 0%, rgba(228,192,168,0.25) 50%, transparent 100%)',
           filter: 'blur(3px)',
           borderRadius: '50%',
           mixBlendMode: 'lighten',
@@ -28,7 +28,7 @@ export function WaterAndReflections() {
           top: '84%',
           height: 1,
           background:
-            'linear-gradient(90deg, transparent, rgba(255,200,140,0.5), transparent)',
+            'linear-gradient(90deg, transparent, rgba(220,200,180,0.4), transparent)',
         }}
       />
       <div
@@ -39,7 +39,7 @@ export function WaterAndReflections() {
           top: '88%',
           height: 1,
           background:
-            'linear-gradient(90deg, transparent, rgba(255,200,140,0.5), transparent)',
+            'linear-gradient(90deg, transparent, rgba(220,200,180,0.4), transparent)',
         }}
       />
       <div
@@ -50,7 +50,7 @@ export function WaterAndReflections() {
           top: '92%',
           height: 1,
           background:
-            'linear-gradient(90deg, transparent, rgba(255,200,140,0.5), transparent)',
+            'linear-gradient(90deg, transparent, rgba(220,200,180,0.4), transparent)',
         }}
       />
       <div
@@ -61,7 +61,7 @@ export function WaterAndReflections() {
           top: '96%',
           height: 1,
           background:
-            'linear-gradient(90deg, transparent, rgba(255,200,140,0.5), transparent)',
+            'linear-gradient(90deg, transparent, rgba(220,200,180,0.4), transparent)',
         }}
       />
     </div>

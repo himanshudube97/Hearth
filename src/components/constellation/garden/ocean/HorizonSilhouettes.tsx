@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 
-const SILHOUETTE = '#1A1620'
+const SILHOUETTE = '#2A3038'
 
 export function HorizonSilhouettes() {
   const reduceMotion = useReducedMotion()
@@ -64,9 +64,9 @@ export function HorizonSilhouettes() {
             top: 4,
             width: 4,
             height: 4,
-            background: '#FFD890',
+            background: '#FFEAD0',
             borderRadius: '50%',
-            boxShadow: '0 0 8px #FFAA50, 0 0 16px #FF8030',
+            boxShadow: '0 0 6px #F4D0B8, 0 0 12px #E8B898',
           }}
           animate={reduceMotion ? undefined : { opacity: [0.7, 1, 0.7] }}
           transition={
