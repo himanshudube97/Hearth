@@ -50,18 +50,18 @@ export function PaperBoats({
     const usableSlotCount = isMobile ? 4 : 5
     // Track which slots are filled so two entries can't collide on the same slot.
     const taken = new Set<number>()
-    return memoryStars
-      .map((star) => {
-        const h = oceanHashForId(star.id)
-        let slot = h.slotIndex % usableSlotCount
-        // Linear-probe to next free slot if collision.
-        while (taken.has(slot)) {
-          slot = (slot + 1) % usableSlotCount
-        }
-        taken.add(slot)
-        return { star, hash: h, slotIndex: slot }
-      })
-      .slice(0, usableSlotCount)
+    // Cap entries to the slot count BEFORE allocating, so the linear-probe
+    // loop below always terminates (it would spin forever if there were more
+    // entries than slots).
+    return memoryStars.slice(0, usableSlotCount).map((star) => {
+      const h = oceanHashForId(star.id)
+      let slot = h.slotIndex % usableSlotCount
+      while (taken.has(slot)) {
+        slot = (slot + 1) % usableSlotCount
+      }
+      taken.add(slot)
+      return { star, hash: h, slotIndex: slot }
+    })
   }, [memoryStars, isMobile])
 
   return (
