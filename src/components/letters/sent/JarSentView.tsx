@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Stamp from './Stamp'
 import ReceiptModal from './ReceiptModal'
 import type { SentStamp } from '../letterTypes'
@@ -8,6 +8,18 @@ import type { SentStamp } from '../letterTypes'
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 type Mode = 'monthly' | 'yearly'
+
+function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false)
+  useEffect(() => {
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReduced(mql.matches)
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+  return reduced
+}
 
 interface JarSentViewProps {
   stamps: SentStamp[]
@@ -218,6 +230,25 @@ export default function JarSentView({
 
       <ReceiptModal stamp={open} onClose={() => setOpen(null)} />
 
+      {/* Screen-reader summary — narrates the current selection when navigating
+          with the tag arrows or toggling mode. Visually hidden via clip. */}
+      <div
+        role="status"
+        aria-live="polite"
+        style={{
+          position: 'absolute',
+          width: 1, height: 1,
+          margin: -1, padding: 0,
+          overflow: 'hidden',
+          clip: 'rect(0 0 0 0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      >
+        Showing {total} letter{total === 1 ? '' : 's'} from {tagLabel}
+        {total > 0 && `: ${sealed} sealed, ${delivered} delivered`}
+      </div>
+
       <style jsx>{`
         .fanout {
           margin: 8px auto 0;
@@ -275,16 +306,28 @@ export default function JarSentView({
             0 1px 0 rgba(255,255,255,0.25) inset;
         }
         @media (max-width: 640px) {
+          /* Override the section's inline padding so the jar block
+             doesn't get squeezed by 56px gutters on narrow phones. */
+          .sent {
+            padding: 80px 16px 60px !important;
+          }
           .jar-block {
             width: 320px;
-            height: 360px;
+            height: 420px;
           }
           .jar-block :global(svg) {
             width: 240px;
             height: 290px;
           }
-          /* On narrow screens the tag sits under the jar's right shoulder
-             instead of dangling beside it. */
+          /* Anchor the jar to the TOP of jar-block on mobile (instead of bottom),
+             so the tag can stack underneath it without overlapping. */
+          .jar-block :global(button.jar) {
+            bottom: auto !important;
+            top: 0;
+          }
+          .jar-block :global(button.jar:hover) {
+            transform: translateX(-50%) translateY(-3px);
+          }
         }
       `}</style>
     </section>
@@ -354,6 +397,7 @@ function Jar({ sealed, delivered, total, totalEver, opened, onToggle }: JarProps
   const sealedShown = Math.min(sealed, Math.max(0, CAP - delivered))
   const deliveredShown = Math.min(delivered, CAP)
   const overflow = total - (sealedShown + deliveredShown)
+  const reducedMotion = useReducedMotion()
 
   const sealedPositions = useMemo(() => spread(sealedShown, 'top'), [sealedShown])
   const deliveredPositions = useMemo(() => spread(deliveredShown, 'bottom'), [deliveredShown])
@@ -508,16 +552,24 @@ function Jar({ sealed, delivered, total, totalEver, opened, onToggle }: JarProps
           {/* fireflies — tiny warm glow particles */}
           <g className="fireflies">
             <circle cx="92" cy="200" r="1.6" fill="rgba(255,210,140,0.85)">
-              <animate attributeName="opacity" values="0.3;1;0.3" dur="3.4s" repeatCount="indefinite" />
+              {!reducedMotion && (
+                <animate attributeName="opacity" values="0.3;1;0.3" dur="3.4s" repeatCount="indefinite" />
+              )}
             </circle>
             <circle cx="178" cy="170" r="1.3" fill="rgba(255,225,160,0.8)">
-              <animate attributeName="opacity" values="1;0.3;1" dur="2.8s" repeatCount="indefinite" />
+              {!reducedMotion && (
+                <animate attributeName="opacity" values="1;0.3;1" dur="2.8s" repeatCount="indefinite" />
+              )}
             </circle>
             <circle cx="155" cy="225" r="1.7" fill="rgba(255,210,140,0.85)">
-              <animate attributeName="opacity" values="0.4;1;0.4" dur="4.1s" repeatCount="indefinite" />
+              {!reducedMotion && (
+                <animate attributeName="opacity" values="0.4;1;0.4" dur="4.1s" repeatCount="indefinite" />
+              )}
             </circle>
             <circle cx="105" cy="255" r="1.2" fill="rgba(255,225,170,0.75)">
-              <animate attributeName="opacity" values="0.5;1;0.5" dur="3.2s" repeatCount="indefinite" />
+              {!reducedMotion && (
+                <animate attributeName="opacity" values="0.5;1;0.5" dur="3.2s" repeatCount="indefinite" />
+              )}
             </circle>
           </g>
           {overflow > 0 && (
@@ -589,6 +641,11 @@ function Jar({ sealed, delivered, total, totalEver, opened, onToggle }: JarProps
           text-align: center;
           max-width: 280px;
         }
+        @media (prefers-reduced-motion: reduce) {
+          .jar { transition: none; }
+          .jar:hover { transform: translateX(-50%); }
+          .jar :global(.lid) { transition: none; }
+        }
       `}</style>
     </button>
   )
@@ -627,7 +684,7 @@ function HangingTag({ label, count, onPrev, onNext, canPrev, canNext }: TagProps
               className="nav prev"
               onClick={onPrev}
               disabled={!canPrev}
-              aria-label="previous"
+              aria-label={`Previous ${label}`}
             >‹</button>
             <div className="label">
               <div className="title">
@@ -641,7 +698,7 @@ function HangingTag({ label, count, onPrev, onNext, canPrev, canNext }: TagProps
               className="nav next"
               onClick={onNext}
               disabled={!canNext}
-              aria-label="next"
+              aria-label={`Next ${label}`}
             >›</button>
           </div>
         </div>
@@ -775,20 +832,26 @@ function HangingTag({ label, count, onPrev, onNext, canPrev, canNext }: TagProps
           cursor: not-allowed;
         }
         @media (max-width: 640px) {
+          /* On mobile the tag stacks UNDER the jar instead of dangling
+             beside it (which overflowed the viewport on iPhone-class widths).
+             Jar SVG is 290 tall anchored to top:0 of jar-block; tag sits
+             centered below it, leaving the dotted rope hidden. */
           .hang {
-            /* Smaller jar (240×290 inside a 320×360 block):
-               jar left = (320-240)/2 = 40
-               right neck x = 40 + 210*(240/280) = 40 + 180 = 220
-               neck top y  = (360-290) + 58*(290/340) ≈ 70 + 49 = 119 */
-            top: 119px;
-            left: 220px;
+            top: 300px;
+            left: 50%;
+            transform: translateX(-50%);
+          }
+          .rope {
+            display: none;
           }
           .tag-wrap {
-            top: 64px;
-            left: 8px;
+            position: relative;
+            top: 0;
+            left: 0;
+            transform: rotate(-3deg);
           }
           .tag {
-            width: 150px;
+            width: 160px;
           }
           .title {
             font-size: 17px;
