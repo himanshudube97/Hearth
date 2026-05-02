@@ -1,8 +1,8 @@
 # Finish E2EE for own entries
 
 **Date:** 2026-05-01
-**Scope:** Wire up end-to-end encryption for the user's own journal data — entries, photos, doodles, scrapbooks. Settings-only opt-in. Mutually exclusive with server-side encryption (per-entry, not per-user).
-**Surface:** Browser write/read paths for entries; photo storage; scrapbook; backfill flow; SetupModal/UnlockModal; user-facing privacy doc.
+**Scope:** Wire up end-to-end encryption for the user's own journal data — entries, photos, doodles, scrapbooks. Profile-page opt-in. Mutually exclusive with server-side encryption (per-entry, not per-user).
+**Surface:** Browser write/read paths for entries; photo storage; scrapbook; backfill flow; 4-step setup wizard; UnlockModal/RecoveryModal; profile-page E2EE controls; user-facing privacy doc.
 **Out of scope:** Friend letters (Spec B). Friend letter delivery continues on the existing server-encryption + email path until Spec B redesigns the cross-recipient flow.
 
 ## Problem
@@ -21,18 +21,20 @@ This spec finishes E2EE so it actually works, extends coverage beyond text, and 
 2. **Cover everything the user creates.** Text, text preview, mood, tags, song, photos (bytes), doodles (strokes), self-letter metadata, scrapbook items.
 3. **Backfill existing entries on enable.** A user who toggles E2EE on with N existing server-encrypted entries gets all N migrated to E2EE in their browser. Server-encrypted plaintext copies are dropped. Resumable across tab closes via localStorage checkpoint.
 4. **Storage adapter for photos.** Browser code is identical for dev and prod. Server-side adapter routes encrypted bytes to local Postgres (dev) or Supabase Storage (prod) based on env var.
-5. **7-day TTL for the master key in localStorage.** "Remember for 7 days" is the default checked option in UnlockModal, framed to users as "so you don't forget your daily key."
-6. **Two docs.** A user-facing privacy page (~400 words, plain English) and a developer/architecture doc (~1500 words).
-7. **Single integrated delivery.** All work lands in one branch. No phased rollout, no feature flags.
+5. **7-day TTL for the master key in localStorage.** "Remember for 7 days" is the default checked option in UnlockModal, framed to users as "so you don't forget your daily key." localStorage holds only a cache of the unwrapped master key; clearing it is non-destructive (user can always re-derive from daily key or recovery key).
+6. **4-step setup wizard.** Replaces the existing 7-step wizard. Compresses intro/confirm/recovery-scenarios into one screen, then daily key, save keys, done+backfill. Recovery key downloaded as a file by default. Daily key file is an optional download.
+7. **Recovery key rotation.** User who remembers their daily key can generate a new recovery key from their profile page. New `update-recovery-key` endpoint. No data re-encryption — only the recovery wrapper changes.
+8. **Two docs.** A user-facing privacy page (~400 words, plain English) and a developer/architecture doc (~1500 words).
+9. **Single integrated delivery.** All work lands in one branch. No phased rollout, no feature flags.
 
 ## Non-goals
 
 - **Friend letters (cross-recipient E2EE).** Deferred to Spec B. Current friend-letter delivery (cron → Resend → email) keeps working for both E2EE and non-E2EE users; recipient email stays plaintext as the cron requires it.
 - **Server-side full-text search.** Not built today. E2EE makes server-side search impossible by design. Client-side search across decrypted-in-memory entries is acceptable for journaling-app scale.
-- **E2EE on signup / first-entry prompt.** Settings-only opt-in. No new entry points beyond the existing settings panel.
+- **E2EE on signup / first-entry prompt.** Profile-only opt-in. No new entry points beyond the profile page.
 - **Multi-device key sync.** Each new browser/device unlocks independently with daily key (or recovery key). No cross-device push of the master key.
 - **Recovery without keys.** Lose both daily key and recovery key, data is unrecoverable. No backdoor.
-- **Recovery key rotation.** Recovery key is permanent. Users who think it's exposed must disable E2EE and re-enable, which is forbidden while entries exist (so effectively: not supported in v1).
+- **Email/cloud/Gmail integration for keys.** No `mailto:` link, no "send to my Gmail," no "upload to Drive" button. Keys are downloaded to the user's device only; what they do with the file after is their decision. Server never has the keys to email even if it wanted to.
 - **Audit logging.** No "who accessed what when" log.
 - **Orphan blob cleanup job.** Acknowledged as a v1.1 chore.
 - **Mood-based stats endpoint for E2EE users.** Mood histograms for E2EE users are computed client-side after decryption. The server-side stats endpoint returns counts only for these users.
@@ -108,28 +110,147 @@ The user-facing privacy doc must disclose this honestly: "We can see when you wr
 
 ## Setup & unlock flow
 
-### Settings panel (only entry point)
+### Profile page (only entry point)
 
-New "End-to-end encryption" section:
+E2EE controls live on the user's profile page (`/me`), not a separate settings panel:
 
 - **Toggle**: enable / disable. Disable is hidden once any E2EE entry exists (one-way street for v1).
-- **Lock journal** button: clears master key from localStorage immediately, forces re-unlock.
-- **Change daily key**: re-runs the wrap-with-new-passphrase flow against the existing master key.
+- **Lock journal** button: clears master key from localStorage immediately, forces re-unlock on next access.
+- **Change daily key**: re-runs the wrap-with-new-passphrase flow against the existing master key. Requires unlocked session.
+- **Generate new recovery key**: new — generates a fresh recovery key, rewraps the master key with the new recovery wrapping key, replaces server-stored `encryptedMasterKeyRecovery` + `recoveryKeyHash`. Old recovery key file becomes invalid. Requires unlocked session.
 - **Status line**: "Encrypted on [date]. Unlocked on this device until [expiresAt]."
 
-### Setup flow (toggle on → SetupModal)
+### 4-step setup wizard
 
-Existing 7-step wizard runs. On `complete`:
+Replaces the existing 7-step wizard. Triggered by toggling E2EE on from the profile page.
 
-1. Master key generated (in browser, never sent).
-2. Recovery key generated (in browser, shown once, user copies/saves).
-3. Master key wrapped twice (daily-key-derived wrapping key + recovery-key-derived wrapping key).
-4. Recovery key SHA-256 hashed for verification.
-5. POST `/api/e2ee/setup` with the wrapped blobs + IVs + salt + hash.
-6. Master key cached in localStorage as `{ key: <base64>, expiresAt: now + 7d }`.
-7. Backfill triggered (next section). Toast: "Migrating your N entries…"
+**Step 1 — What this means + recovery rules**
 
-Modal copy update: "Your existing N entries will also be encrypted. This may take a moment."
+Single screen. Three sections stacked: a brief description of what E2EE means, the can/cannot recover matrix, and a single confirmation checkbox (which gates the Continue button).
+
+```
+End-to-End Encryption
+
+Your journal will be encrypted with a key only you know.
+Not even Hearth can read your entries, photos, or doodles.
+
+How recovery works:
+  ✅ You CAN recover your journal if you have either your daily key or
+     your recovery key, on any device.
+  ❌ You CANNOT recover your journal if you lose both keys. There is no
+     password reset — by design.
+
+[ ] I understand that if I lose both my daily key and recovery key,
+    my journal cannot be recovered — not even by Hearth.
+
+[ Cancel ]   [ Continue ]   ← disabled until checkbox checked
+```
+
+The previous typed-phrase confirmation ("I understand I may lose my data") is replaced by this single checkbox. Less ceremonial; same hard gate.
+
+**Step 2 — Set your daily key**
+
+```
+Create your daily key
+
+This is what you'll type to unlock your journal day-to-day.
+
+  Daily key:           [ ____________________ ]
+  Confirm daily key:   [ ____________________ ]
+
+  • Minimum 8 characters
+  • You'll re-enter this every 7 days, or on a new device
+
+[ Back ]   [ Create keys ]
+```
+
+On submit: master key generated, recovery key generated, both wrapping operations run, POST `/api/e2ee/setup`. Master key cached in localStorage with 7-day TTL. Move to step 3.
+
+**Step 3 — Save your keys**
+
+```
+Save your recovery key
+
+Your recovery key:
+  ┌─────────────────────────────────────────────┐
+  │   7K3M-X9PL-2QRT-A8FH-K9LM-2PQR             │
+  └─────────────────────────────────────────────┘
+
+  [ 📋 Copy ]   [ ⬇  Download as file ]
+
+Want to also download your daily key as a file?
+
+  [ ⬇  Download daily key as file ]
+  (Optional — many users prefer to remember their daily key)
+
+⚠  If you lose both keys, your journal cannot be recovered.
+
+[ ] I've saved my recovery key.
+
+[ Back ]   [ Continue ]   ← disabled until checkbox checked
+```
+
+No "where to store this" guidance. No email/cloud/Gmail buttons. User decides what to do with the downloaded file(s).
+
+**Step 4 — Done + backfill running**
+
+```
+✅  Your journal is now end-to-end encrypted
+
+Migrating your existing 47 entries…
+████████░░░░░░░░░░  18 / 47
+
+You can keep using Hearth normally — migration runs in the background.
+
+[ Start writing ]
+```
+
+Surfaces the backfill progress so the user understands what's happening. Closing this screen does not cancel the backfill — the toast continues in the corner.
+
+### Recovery key file format
+
+`hearth-recovery-key.txt`:
+
+```
+HEARTH RECOVERY KEY
+====================
+
+Account: user@email.com
+Generated: May 1, 2026
+
+Recovery Key:
+
+    7K3M-X9PL-2QRT-A8FH-K9LM-2PQR
+
+To recover access:
+  1. Open Hearth → "Forgot daily key? Use recovery key"
+  2. Enter the key above
+  3. Set a new daily key
+
+If you lose both your daily key and this recovery key,
+your encrypted journal cannot be recovered.
+```
+
+### Daily key file format (only if user clicks the optional download)
+
+`hearth-daily-key.txt`:
+
+```
+HEARTH DAILY KEY
+====================
+
+Account: user@email.com
+Generated: May 1, 2026
+
+Daily Key:
+
+    [the user's chosen passphrase]
+
+This is the password you chose to unlock your journal.
+
+If you lose both your daily key and your recovery key,
+your encrypted journal cannot be recovered.
+```
 
 ### Unlock flow (new browser/device, or 7-day TTL expired)
 
@@ -147,7 +268,7 @@ UnlockModal:
             → cache as { key, expiresAt: now + 7d }
 ```
 
-### RecoveryModal flow (forgot daily key)
+### RecoveryModal flow (forgot daily key, use recovery key)
 
 ```
 1. User enters recovery key (24-char XXXX-XXXX-…)
@@ -163,12 +284,36 @@ UnlockModal:
 
 The master key never changes. Existing E2EE entries continue to decrypt with the same key. The recovery key remains valid for future use.
 
+### Generate new recovery key flow (from profile page, daily key remembered)
+
+Symmetric to the daily-key rotation. Requires the user to be unlocked (so master key is in memory).
+
+```
+1. User clicks "Generate new recovery key" on profile page
+2. Confirmation: "Your old recovery key will stop working. Continue?"
+3. Browser generates new recovery key (24 chars)
+4. PBKDF2(newRecoveryKey, deterministic salt) → new wrapping key
+5. AES_GCM_encrypt(masterKey, newWrappingKey, freshIV) → new encryptedMasterKeyRecovery
+6. SHA256(newRecoveryKey) → new recoveryKeyHash
+7. POST /api/e2ee/update-recovery-key with { encryptedMasterKeyRecovery, recoveryKeyIV, recoveryKeyHash }
+8. Server replaces only those three fields. Daily-key blob unchanged.
+9. Browser shows new recovery key with same Copy/Download UI as setup step 3.
+10. User saves new key. Old recovery key file is now invalid.
+```
+
+No data re-encryption. Master key, daily key, and all existing E2EE entries are unchanged.
+
+### localStorage is a cache, not a source of truth
+
+The master key in localStorage is a *cached unwrapped copy*. The "real" master key home is wrapped on the server. Reconstructed any time the user has one of the two keys. So clearing localStorage (manually, by browser cleanup, by private mode close, by PWA reinstall, by storage eviction) is non-destructive — the user re-unlocks with daily key on next open. This is the same path as the 7-day TTL expiring naturally.
+
 ### Edge cases
 
-- User closes Setup wizard mid-flow: no DB changes have happened (server `setup` only fires after recovery-key verification). Safe to abort.
+- User closes Setup wizard mid-flow: no DB changes have happened (server `setup` only fires after step 3 confirmation). Safe to abort.
 - User closes app during backfill: per-entry checkpoint in localStorage. Resume on next unlock.
-- User loses both keys: data genuinely unrecoverable. SetupModal already requires typing "I understand I may lose my data."
+- User loses both keys: data genuinely unrecoverable. Step 1 checkbox confirmation already required.
 - User unlocks on a new device: only daily key (or recovery key) works. Master key never leaves the original browser.
+- User clears localStorage but remembers daily key: re-unlocks normally on next open.
 
 ## Read & write flows (daily use)
 
@@ -405,9 +550,12 @@ model Scrapbook {
 
 ### Setup & unlock UX
 
-- `src/components/e2ee/SetupModal.tsx` *(extend)* — copy update for "your existing entries will also be encrypted"
+- `src/components/e2ee/SetupModal.tsx` *(rewrite)* — collapse 7 steps into 4 (intro+recovery-scenarios → daily key → save keys → done+backfill). Add daily-key optional download. Wire backfill progress into step 4.
 - `src/components/e2ee/UnlockModal.tsx` *(extend)* — "Remember for 7 days" default checked
+- `src/components/e2ee/RecoveryModal.tsx` *(extend)* — wired in current code; no functional change but verify copy matches new wizard tone
+- `src/components/e2ee/RotateRecoveryKeyModal.tsx` *(new)* — invoked from profile page; generates new recovery key, shows + downloads, calls `/api/e2ee/update-recovery-key`
 - `src/components/e2ee/BackfillToast.tsx` *(new)* — non-blocking corner progress toast
+- `src/app/me/page.tsx` *(extend)* — add E2EE controls section (toggle, lock, change daily key, generate new recovery key, status line)
 
 ### Write path (the currently-broken piece)
 
@@ -434,6 +582,7 @@ model Scrapbook {
 - `src/app/api/scrapbooks/route.ts` *(extend)* — accept `encryptionType: 'e2ee'` + IVs
 - `src/app/api/entries/backfill-batch/route.ts` *(new)* — GET plaintext batch
 - `src/app/api/scrapbooks/backfill-batch/route.ts` *(new)* — same for scrapbooks
+- `src/app/api/e2ee/update-recovery-key/route.ts` *(new)* — POST `{ encryptedMasterKeyRecovery, recoveryKeyIV, recoveryKeyHash }`. Replaces only those fields. Symmetric to existing `update-daily-key`.
 
 ### Backfill orchestration
 
@@ -456,7 +605,7 @@ model Scrapbook {
 ### Docs
 
 - `docs/e2ee-architecture.md` *(new)* — developer/contributor/auditor doc, ~1500 words. Covers crypto stack (PBKDF2/AES-GCM/IV handling), key wrapping, photo flow, backfill, threat model, what server can/can't see.
-- `src/app/security/page.tsx` *(new)* — user-facing privacy page, ~400 words. Plain English. Covers: what E2EE means, what we can't see, what we can see, what happens if you lose your daily key, what happens if you lose both keys. Linked from Settings → "How E2EE works."
+- `src/app/security/page.tsx` *(new)* — user-facing privacy page, ~400 words. Plain English. Covers: what E2EE means, what we can't see, what we can see, what happens if you lose your daily key, what happens if you lose both keys. Linked from profile → "How E2EE works."
 
 ### Files explicitly NOT touched (Spec B territory)
 
@@ -471,13 +620,15 @@ model Scrapbook {
 - **Photo upload memory pressure.** Large photos (several MB) being read as ArrayBuffer + encrypted in memory could spike RAM. Mitigation: stream where possible, but for now accept that 10MB photos will use 10-20MB RAM during upload. Acceptable.
 - **Backfill interrupted mid-photo.** Resume logic must handle partial photo migration: if entry's text fields are migrated but photos aren't, that entry's encryption state is inconsistent. Mitigation: per-entry atomic migration — encrypt all fields locally first, then send a single PUT that updates everything together. The PUT replaces the row.
 - **Mood histograms degrading to client-side.** Could be slow for users with thousands of entries. Mitigation: aggregate once, cache in Zustand, don't recompute unless entries change.
-- **Recovery key loss.** Out of our control. Strongly emphasized in SetupModal copy ("Save this somewhere safe — write it down or use a password manager").
+- **Recovery key loss.** Out of our control. The wizard's step 1 checkbox makes the consequence explicit; the recovery key file itself states the consequence in the body. No further moralizing about where to store it — that's the user's choice.
 
 ## Success criteria
 
-1. Toggle E2EE on in Settings → SetupModal completes → master key in localStorage with 7-day TTL → backfill toast appears → all existing entries migrated within minutes (depending on count) → write a new entry with text + photo + doodle + mood + song + tags → close tab → reopen → enter daily key → entry renders correctly with all fields decrypted.
+1. Toggle E2EE on in profile → 4-step wizard completes (recovery key downloaded, daily key file optionally downloaded) → master key in localStorage with 7-day TTL → backfill toast appears → all existing entries migrated within minutes (depending on count) → write a new entry with text + photo + doodle + mood + song + tags → close tab → reopen → enter daily key → entry renders correctly with all fields decrypted.
 2. Disable E2EE shows "not allowed while entries exist" message after first E2EE entry.
 3. Lose daily key → enter recovery key in RecoveryModal → set new daily key → existing entries continue to decrypt.
-4. Server admin with full DB and Supabase Storage access cannot read any user's E2EE-flagged content. Verifiable by inspecting Postgres rows + Supabase blobs directly.
-5. Browser performance: write+encrypt of a draft with one 5MB photo completes in <1s on a typical phone. List page render with 50 E2EE entries (no photos) completes in <500ms.
-6. Both docs published. User-facing doc accessible at `/security`. Developer doc in `docs/e2ee-architecture.md`.
+4. Generate new recovery key from profile → old recovery key file fails verification → new recovery key successfully unlocks via RecoveryModal → existing entries continue to decrypt.
+5. Clear localStorage manually → reopen Hearth → UnlockModal appears → enter daily key → entries decrypt normally (verifies localStorage-as-cache invariant).
+6. Server admin with full DB and Supabase Storage access cannot read any user's E2EE-flagged content. Verifiable by inspecting Postgres rows + Supabase blobs directly.
+7. Browser performance: write+encrypt of a draft with one 5MB photo completes in <1s on a typical phone. List page render with 50 E2EE entries (no photos) completes in <500ms.
+8. Both docs published. User-facing doc accessible at `/security`. Developer doc in `docs/e2ee-architecture.md`.
