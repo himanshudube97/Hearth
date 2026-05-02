@@ -4,17 +4,21 @@ import React, { memo, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import PhotoSlot from './PhotoSlot'
 import CameraModal from './CameraModal'
+import { useE2EEStore } from '@/store/e2ee'
+import { encryptBytes, encryptString } from '@/lib/e2ee/crypto'
 
-interface Photo {
+export interface Photo {
   id?: string
-  url: string
+  url?: string
+  encryptedRef?: string
+  encryptedRefIV?: string
   rotation: number
   position: 1 | 2
 }
 
 interface PhotoBlockProps {
   photos: Photo[]
-  onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
+  onPhotoAdd?: (position: 1 | 2, photo: Pick<Photo, 'url' | 'encryptedRef' | 'encryptedRefIV'>) => void
   /** When set, each filled polaroid shows a × on hover that calls this with
    *  the slot position. Omit for read-only entries. */
   onPhotoRemove?: (position: 1 | 2) => void
@@ -41,12 +45,46 @@ const PhotoBlock = memo(function PhotoBlock({
     return async (file: File) => {
       if (!onPhotoAdd) return
 
-      // Read file as data URL
+      const state = useE2EEStore.getState()
+      const masterKey = state.masterKey
+      const isE2EEReady = state.isEnabled && state.isUnlocked && masterKey !== null
+
+      if (isE2EEReady && masterKey) {
+        // E2EE path: encrypt the raw bytes, upload as opaque blob
+        try {
+          const buffer = await file.arrayBuffer()
+          const { ciphertext, iv } = await encryptBytes(buffer, masterKey)
+          // Convert base64 ciphertext to raw bytes for the upload body
+          const binaryStr = atob(ciphertext)
+          const cipherBytes = new Uint8Array(binaryStr.length)
+          for (let i = 0; i < binaryStr.length; i++) {
+            cipherBytes[i] = binaryStr.charCodeAt(i)
+          }
+          const res = await fetch('/api/photos', {
+            method: 'POST',
+            body: cipherBytes,
+            headers: { 'Content-Type': 'application/octet-stream' },
+          })
+          if (!res.ok) throw new Error(`photo upload failed: ${res.status}`)
+          const { handle } = (await res.json()) as { handle: string }
+          // Encrypt the {handle, iv} reference so the server stores only opaque data
+          const refEncrypted = await encryptString(JSON.stringify({ handle, iv }), masterKey)
+          onPhotoAdd(position, {
+            encryptedRef: refEncrypted.ciphertext,
+            encryptedRefIV: refEncrypted.iv,
+          })
+        } catch (err) {
+          console.error('E2EE photo upload failed:', err)
+        }
+        return
+      }
+
+      // Non-E2EE path: read as data URL (existing behavior)
       const reader = new FileReader()
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string
         if (dataUrl) {
-          onPhotoAdd(position, dataUrl)
+          onPhotoAdd(position, { url: dataUrl })
         }
       }
       reader.readAsDataURL(file)
@@ -62,7 +100,9 @@ const PhotoBlock = memo(function PhotoBlock({
 
   const handleCameraCapture = useCallback((dataUrl: string) => {
     if (onPhotoAdd) {
-      onPhotoAdd(activePosition, dataUrl)
+      // Camera captures always produce a data URL — E2EE upload not applicable here
+      // (camera modal doesn't give us a File/ArrayBuffer, only a JPEG data URL)
+      onPhotoAdd(activePosition, { url: dataUrl })
     }
   }, [onPhotoAdd, activePosition])
 

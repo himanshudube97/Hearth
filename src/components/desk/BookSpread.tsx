@@ -24,7 +24,9 @@ const HTMLFlipBook = dynamic(() => import('react-pageflip'), { ssr: false })
 
 interface Photo {
   id?: string
-  url: string
+  url?: string
+  encryptedRef?: string
+  encryptedRefIV?: string
   rotation: number
   position: 1 | 2
 }
@@ -199,8 +201,10 @@ export default function BookSpread() {
           const activePhotos: Photo[] = (active.photos || []).map((p) => ({
             id: p.id,
             url: p.url,
+            encryptedRef: p.encryptedRef,
+            encryptedRefIV: p.encryptedRefIV,
             rotation: p.rotation,
-            position: p.position,
+            position: p.position as 1 | 2,
           }))
           setPendingPhotos(activePhotos)
           autosaveRef.current.reset(active.id)
@@ -248,6 +252,8 @@ export default function BookSpread() {
       song: journal.currentSong || null,
       photos: pendingPhotosRef.current.map((p) => ({
         url: p.url,
+        encryptedRef: p.encryptedRef,
+        encryptedRefIV: p.encryptedRefIV,
         position: p.position,
         rotation: p.rotation,
         spread: 1,
@@ -402,10 +408,10 @@ export default function BookSpread() {
     })
   }, [])
 
-  const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
+  const handlePhotoAdd = useCallback((position: 1 | 2, photoData: Pick<Photo, 'url' | 'encryptedRef' | 'encryptedRefIV'>) => {
     const rotation = position === 1 ? -8 + Math.floor(Math.random() * 6) : 5 + Math.floor(Math.random() * 6)
     const newPhoto: Photo = {
-      url: dataUrl,
+      ...photoData,
       position,
       rotation,
     }
