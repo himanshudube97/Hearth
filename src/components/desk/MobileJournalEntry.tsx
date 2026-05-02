@@ -17,7 +17,9 @@ import { getClientTz } from '@/lib/entry-lock-client'
 
 interface Photo {
   id?: string
-  url: string
+  url?: string
+  encryptedRef?: string
+  encryptedRefIV?: string
   rotation: number
   position: 1 | 2
 }
@@ -155,13 +157,13 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
     setCurrentSong(value)
   }, [setCurrentSong])
 
-  const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
+  const handlePhotoAdd = useCallback((position: 1 | 2, photoData: Pick<Photo, 'url' | 'encryptedRef' | 'encryptedRefIV'>) => {
     const rotation = position === 1
       ? -8 + Math.floor(Math.random() * 6)
       : 5 + Math.floor(Math.random() * 6)
     setPendingPhotos(prev => [
       ...prev.filter(p => p.position !== position),
-      { url: dataUrl, position, rotation },
+      { ...photoData, position, rotation },
     ])
   }, [])
 
@@ -176,7 +178,12 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
     try {
       const html = '<p>' + fullText.replace(/\n/g, '</p><p>') + '</p>'
       const photos = pendingPhotos.map(p => ({
-        url: p.url, position: p.position, rotation: p.rotation, spread: 1,
+        url: p.url,
+        encryptedRef: p.encryptedRef,
+        encryptedRefIV: p.encryptedRefIV,
+        position: p.position,
+        rotation: p.rotation,
+        spread: 1,
       }))
       const doodles = currentDoodleStrokes.length > 0
         ? [{ strokes: currentDoodleStrokes }]
@@ -484,7 +491,7 @@ function PhotosDoodlePage({
 }: {
   colors: ReturnType<typeof getGlassDiaryColors>
   photos: Photo[]
-  onPhotoAdd: (position: 1 | 2, dataUrl: string) => void
+  onPhotoAdd: (position: 1 | 2, photo: Pick<Photo, 'url' | 'encryptedRef' | 'encryptedRefIV'>) => void
   doodleStrokes: StrokeData[]
   onStrokesChange: (strokes: StrokeData[]) => void
   canSave: boolean

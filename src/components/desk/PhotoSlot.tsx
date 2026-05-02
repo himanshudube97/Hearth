@@ -3,10 +3,13 @@
 import React, { memo, useRef, useCallback, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
+import { usePhotoSrc } from '@/hooks/usePhotoSrc'
 
 interface PhotoSlotProps {
   photo?: {
-    url: string
+    url?: string
+    encryptedRef?: string
+    encryptedRefIV?: string
     rotation: number
   } | null
   position: 1 | 2
@@ -167,6 +170,9 @@ const PhotoSlot = memo(function PhotoSlot({
     onCameraCapture?.()
   }, [onCameraCapture])
 
+  // Resolve the image src — handles both plain URL and E2EE encrypted ref
+  const resolvedSrc = usePhotoSrc(photo ?? {})
+
   // If photo exists, show the polaroid
   if (photo) {
     const filledRotation = photo.rotation || defaultRotation
@@ -210,11 +216,18 @@ const PhotoSlot = memo(function PhotoSlot({
             className="w-full overflow-hidden"
             style={{ aspectRatio: '4/5' }}
           >
-            <img
-              src={photo.url}
-              alt="Journal photo"
-              className="w-full h-full object-cover"
-            />
+            {resolvedSrc ? (
+              <img
+                src={resolvedSrc}
+                alt="Journal photo"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div
+                className="w-full h-full flex items-center justify-center"
+                style={{ background: 'rgba(60,40,20,0.06)' }}
+              />
+            )}
           </div>
 
           {/* Remove button — appears on hover when removal is allowed.

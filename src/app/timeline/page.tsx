@@ -362,11 +362,11 @@ export default function TimelinePage() {
                   }}
                 >
                   {name}
-                  {monthData && (
+                  {monthData && monthData.avgMood !== null && (
                     <span
                       className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
                       style={{
-                        background: theme.moods[monthData.avgMood as keyof typeof theme.moods],
+                        background: theme.moods[Math.round(monthData.avgMood) as keyof typeof theme.moods],
                       }}
                     />
                   )}

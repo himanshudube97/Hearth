@@ -16,8 +16,9 @@ model User {
   profile   Json? // Stores answers to thoughtful "about me" questions
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
-  entries   JournalEntry[]
-  scrapbooks Scrapbook[]
+  entries        JournalEntry[]
+  scrapbooks     Scrapbook[]
+  encryptedBlobs EncryptedBlob[]
 
   // Lemon Squeezy subscription fields
   lemonSqueezyCustomerId String?   @unique
@@ -76,6 +77,7 @@ model JournalEntry {
   // E2EE fields
   encryptionType String  @default("server") // "server" | "e2ee"
   e2eeIV         String? // IV for E2EE entries (client-side encryption)
+  e2eeIVs        Json?   // per-field IVs map for E2EE entries: { text, textPreview, mood, tags, song, ... }
 
   // Multi-spread page layout fields
   spreads    Int     @default(1) // Number of spreads (1-3)
@@ -111,9 +113,11 @@ model EntryPhoto {
   entryId   String
   spread    Int // Which spread (1, 2, or 3)
   position  Int // 1 or 2 (left or right photo in the polaroid layout)
-  url       String // Data URL (phase 1) or cloud URL (phase 2)
-  rotation  Int      @default(0) // Tilt angle for polaroid effect (-15 to 15)
-  createdAt DateTime @default(now())
+  url            String   // Data URL (phase 1) or cloud URL (phase 2)
+  rotation       Int      @default(0) // Tilt angle for polaroid effect (-15 to 15)
+  encryptedRef   String?  // ciphertext of {handle, iv} — set when parent entry is E2EE
+  encryptedRefIV String?  // IV for encryptedRef
+  createdAt      DateTime @default(now())
 
   entry JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
@@ -144,11 +148,23 @@ model Scrapbook {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String?  // encrypted (AES-256-GCM, ciphertext format from src/lib/encryption.ts)
-  items     String   @db.Text // encrypted JSON blob (ScrapbookItem[])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  title          String?  // encrypted (AES-256-GCM, ciphertext format from src/lib/encryption.ts)
+  items          String   @db.Text // encrypted JSON blob (ScrapbookItem[])
+  encryptionType String   @default("server")
+  e2eeIVs        Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([userId, updatedAt(sort: Desc)])
   @@map("scrapbooks")
+}
+
+model EncryptedBlob {
+  id         String   @id @default(cuid())
+  userId     String
+  ciphertext String   @db.Text
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

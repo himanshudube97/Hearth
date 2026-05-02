@@ -123,7 +123,7 @@ export default function RecoveryModal() {
       }
 
       // Store master key and refresh key data
-      await storeMasterKey(masterKey, false)
+      await storeMasterKey(masterKey, 0)
       await fetchKeyData()
 
       setStep('complete')
@@ -313,7 +313,7 @@ export default function RecoveryModal() {
               onClick={async () => {
                 // Skip setting new daily key, just use the master key
                 if (masterKey) {
-                  await storeMasterKey(masterKey, false)
+                  await storeMasterKey(masterKey, 0)
                   handleClose()
                 }
               }}

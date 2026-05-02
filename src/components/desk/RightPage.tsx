@@ -39,7 +39,9 @@ function getSvgPathFromStroke(stroke: number[][]): string {
 
 interface Photo {
   id?: string
-  url: string
+  url?: string
+  encryptedRef?: string
+  encryptedRefIV?: string
   rotation: number
   position: 1 | 2
 }
@@ -59,7 +61,7 @@ interface RightPageProps {
   entry: Entry | null
   isNewEntry: boolean
   photos?: Photo[]
-  onPhotoAdd?: (position: 1 | 2, dataUrl: string) => void
+  onPhotoAdd?: (position: 1 | 2, photo: Pick<Photo, 'url' | 'encryptedRef' | 'encryptedRefIV'>) => void
   onPhotoRemove?: (position: 1 | 2) => void
   onNavigateLeft?: (targetLeft?: number) => void
   onBackspaceAcrossSpine?: () => void
@@ -263,8 +265,8 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
     setDoodleStrokes(strokes)
   }, [setDoodleStrokes])
 
-  const handlePhotoAdd = useCallback((position: 1 | 2, dataUrl: string) => {
-    onPhotoAdd?.(position, dataUrl)
+  const handlePhotoAdd = useCallback((position: 1 | 2, photo: Pick<Photo, 'url' | 'encryptedRef' | 'encryptedRefIV'>) => {
+    onPhotoAdd?.(position, photo)
   }, [onPhotoAdd])
 
   const refreshPrompt = useCallback(() => {

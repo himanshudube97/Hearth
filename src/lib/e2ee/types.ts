@@ -17,6 +17,7 @@ export interface E2EEKeyData {
   recoveryKeyHash: string | null
   encryptedMasterKeyRecovery: string | null
   recoveryKeyIV: string | null
+  e2eeSetupAt: string | null
 }
 
 export interface EncryptedEntry {

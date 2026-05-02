@@ -21,7 +21,7 @@ export default function UnlockModal() {
   } = useE2EEStore()
 
   const [dailyKey, setDailyKey] = useState('')
-  const [remember, setRemember] = useState(false)
+  const [remember, setRemember] = useState(true)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -47,7 +47,7 @@ export default function UnlockModal() {
       )
 
       // Store master key and close modal
-      await storeMasterKey(masterKey, remember)
+      await storeMasterKey(masterKey, remember ? 7 : 0)
       setShowUnlockModal(false)
       setDailyKey('')
     } catch {
@@ -137,7 +137,7 @@ export default function UnlockModal() {
                     style={{ accentColor: theme.accent.primary }}
                   />
                   <span className="text-sm" style={{ color: theme.text.secondary }}>
-                    Remember on this device
+                    Remember for 7 days (so you don't forget your daily key)
                   </span>
                 </label>
 
