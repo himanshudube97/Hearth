@@ -274,6 +274,18 @@ export default function JarSentView({
             0 14px 22px -8px rgba(0,0,0,0.18),
             0 1px 0 rgba(255,255,255,0.25) inset;
         }
+        @media (max-width: 640px) {
+          .jar-block {
+            width: 320px;
+            height: 360px;
+          }
+          .jar-block :global(svg) {
+            width: 240px;
+            height: 290px;
+          }
+          /* On narrow screens the tag sits under the jar's right shoulder
+             instead of dangling beside it. */
+        }
       `}</style>
     </section>
   )
@@ -761,6 +773,26 @@ function HangingTag({ label, count, onPrev, onNext, canPrev, canNext }: TagProps
         .nav:disabled {
           opacity: 0.25;
           cursor: not-allowed;
+        }
+        @media (max-width: 640px) {
+          .hang {
+            /* Smaller jar (240×290 inside a 320×360 block):
+               jar left = (320-240)/2 = 40
+               right neck x = 40 + 210*(240/280) = 40 + 180 = 220
+               neck top y  = (360-290) + 58*(290/340) ≈ 70 + 49 = 119 */
+            top: 119px;
+            left: 220px;
+          }
+          .tag-wrap {
+            top: 64px;
+            left: 8px;
+          }
+          .tag {
+            width: 150px;
+          }
+          .title {
+            font-size: 17px;
+          }
         }
       `}</style>
     </div>
