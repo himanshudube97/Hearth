@@ -354,18 +354,15 @@ export function parseSalt(saltBase64: string): Uint8Array {
 // ============================================
 
 const MASTER_KEY_STORAGE_KEY = 'hearth-e2ee-master-key'
+const DEFAULT_TTL_MS = 7 * 24 * 60 * 60 * 1000  // 7 days
 
-/**
- * Export master key to storable format
- */
+/** Export master key to base64. */
 export async function exportMasterKey(masterKey: CryptoKey): Promise<string> {
   const exported = await crypto.subtle.exportKey('raw', masterKey)
   return arrayBufferToBase64(exported)
 }
 
-/**
- * Import master key from stored format
- */
+/** Import master key from base64. */
 export async function importMasterKey(keyBase64: string): Promise<CryptoKey> {
   const keyData = base64ToArrayBuffer(keyBase64)
   return crypto.subtle.importKey(
@@ -377,48 +374,76 @@ export async function importMasterKey(keyBase64: string): Promise<CryptoKey> {
   )
 }
 
-/**
- * Store master key in session/local storage
- */
-export async function storeMasterKeyLocally(
-  masterKey: CryptoKey,
-  persistent: boolean = false
-): Promise<void> {
-  const exported = await exportMasterKey(masterKey)
-  const storage = persistent ? localStorage : sessionStorage
-  storage.setItem(MASTER_KEY_STORAGE_KEY, exported)
+interface StoredKey {
+  key: string         // base64
+  expiresAt: number   // ms epoch (0 = no TTL, sessionStorage)
 }
 
 /**
- * Load master key from session/local storage
+ * Store master key in localStorage with a TTL (default 7 days).
+ * Pass ttlMs = 0 to use sessionStorage (cleared when tab closes).
+ */
+export async function storeMasterKeyLocally(
+  masterKey: CryptoKey,
+  ttlMs: number = DEFAULT_TTL_MS
+): Promise<void> {
+  const exported = await exportMasterKey(masterKey)
+  if (ttlMs <= 0) {
+    sessionStorage.setItem(MASTER_KEY_STORAGE_KEY, JSON.stringify({ key: exported, expiresAt: 0 }))
+    return
+  }
+  const payload: StoredKey = { key: exported, expiresAt: Date.now() + ttlMs }
+  localStorage.setItem(MASTER_KEY_STORAGE_KEY, JSON.stringify(payload))
+}
+
+/**
+ * Load master key from storage. Returns null if missing or expired.
+ * If expired, also clears the stored value.
  */
 export async function loadMasterKeyLocally(): Promise<CryptoKey | null> {
-  // Try sessionStorage first, then localStorage
-  const stored = sessionStorage.getItem(MASTER_KEY_STORAGE_KEY) ||
-                 localStorage.getItem(MASTER_KEY_STORAGE_KEY)
-  if (!stored) return null
+  const raw =
+    localStorage.getItem(MASTER_KEY_STORAGE_KEY) ||
+    sessionStorage.getItem(MASTER_KEY_STORAGE_KEY)
+  if (!raw) return null
+
+  let parsed: StoredKey
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    clearMasterKeyLocally()
+    return null
+  }
+
+  if (parsed.expiresAt > 0 && Date.now() > parsed.expiresAt) {
+    clearMasterKeyLocally()
+    return null
+  }
 
   try {
-    return await importMasterKey(stored)
+    return await importMasterKey(parsed.key)
   } catch {
-    // Invalid key data, clear it
     clearMasterKeyLocally()
     return null
   }
 }
 
-/**
- * Clear master key from both storages
- */
+/** Remove master key from both storages. */
 export function clearMasterKeyLocally(): void {
-  sessionStorage.removeItem(MASTER_KEY_STORAGE_KEY)
   localStorage.removeItem(MASTER_KEY_STORAGE_KEY)
+  sessionStorage.removeItem(MASTER_KEY_STORAGE_KEY)
 }
 
-/**
- * Check if master key is stored locally
- */
+/** True if a (non-expired) master key is stored. */
 export function hasMasterKeyLocally(): boolean {
-  return !!(sessionStorage.getItem(MASTER_KEY_STORAGE_KEY) ||
-            localStorage.getItem(MASTER_KEY_STORAGE_KEY))
+  const raw =
+    localStorage.getItem(MASTER_KEY_STORAGE_KEY) ||
+    sessionStorage.getItem(MASTER_KEY_STORAGE_KEY)
+  if (!raw) return false
+  try {
+    const parsed: StoredKey = JSON.parse(raw)
+    if (parsed.expiresAt > 0 && Date.now() > parsed.expiresAt) return false
+    return true
+  } catch {
+    return false
+  }
 }

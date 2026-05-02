@@ -47,7 +47,7 @@ export default function UnlockModal() {
       )
 
       // Store master key and close modal
-      await storeMasterKey(masterKey, remember)
+      await storeMasterKey(masterKey, remember ? 7 : 0)
       setShowUnlockModal(false)
       setDailyKey('')
     } catch {

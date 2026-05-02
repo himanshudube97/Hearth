@@ -126,7 +126,7 @@ export default function SetupModal() {
       }
 
       // Store master key locally and update state
-      await storeMasterKey(masterKey, false)
+      await storeMasterKey(masterKey, 0)
       setEnabled(true)
       await fetchKeyData()
 

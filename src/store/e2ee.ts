@@ -33,7 +33,7 @@ interface E2EEState {
   setLoading: (loading: boolean) => void
 
   // Async actions
-  storeMasterKey: (key: CryptoKey, persistent?: boolean) => Promise<void>
+  storeMasterKey: (key: CryptoKey, ttlDays?: number) => Promise<void>
   loadMasterKey: () => Promise<CryptoKey | null>
   clearMasterKey: () => void
   initialize: () => Promise<void>
@@ -62,8 +62,8 @@ export const useE2EEStore = create<E2EEState>((set, get) => ({
   setLoading: (loading) => set({ loading }),
 
   // Store master key in browser storage
-  storeMasterKey: async (key, persistent = false) => {
-    await storeMasterKeyLocally(key, persistent)
+  storeMasterKey: async (key, ttlDays = 7) => {
+    await storeMasterKeyLocally(key, ttlDays * 24 * 60 * 60 * 1000)
     set({ masterKey: key, isUnlocked: true })
   },
 
