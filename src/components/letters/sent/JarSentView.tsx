@@ -132,7 +132,7 @@ export default function JarSentView({
         minHeight: '100vh',
         background:
           'radial-gradient(ellipse at 50% -10%, var(--paper-1), transparent 55%), linear-gradient(180deg, var(--bg-1), var(--bg-2))',
-        padding: '100px 56px 100px',
+        padding: '170px 56px 100px',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -414,7 +414,7 @@ function Jar({ sealed, delivered, total, totalEver, opened, onToggle }: JarProps
         transform: 'translateX(-50%)',
       }}
     >
-      <svg width="320" height="388" viewBox="0 0 280 340" fill="none">
+      <svg width="320" height="388" viewBox="0 0 280 340" fill="none" style={{ overflow: 'visible' }}>
         <defs>
           <radialGradient id="jar-glow" cx="50%" cy="95%" r="65%">
             <stop offset="0%" stopColor="rgba(255, 218, 170, 0.55)" />
