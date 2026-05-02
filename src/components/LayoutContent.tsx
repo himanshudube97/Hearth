@@ -10,6 +10,8 @@ import PageTransition from '@/components/PageTransition'
 import DeskSettingsPanel from '@/components/desk/DeskSettingsPanel'
 import AmbientSoundLayer from '@/components/AmbientSoundLayer'
 import { InstallPrompt } from '@/components/InstallPrompt'
+import FullscreenButton from '@/components/FullscreenButton'
+import FullscreenPrompt from '@/components/FullscreenPrompt'
 import { useThemeStore } from '@/store/theme'
 import { useApplyCursorStyles } from '@/hooks/useApplyCursorStyles'
 
@@ -57,6 +59,7 @@ export default function LayoutContent({
         {children}
         <CursorPicker />
         <ThemeSwitcher />
+        <FullscreenPrompt />
         <InstallPrompt />
       </>
     )
@@ -77,6 +80,7 @@ export default function LayoutContent({
         <AmbientSoundLayer />
         {children}
         <Navigation />
+        <FullscreenButton />
         <DeskSettingsPanel />
         <InstallPrompt />
       </>
@@ -93,10 +97,11 @@ export default function LayoutContent({
           {children}
         </PageTransition>
       </main>
-      {/* Gear is rendered at the layout root so it's NOT inside <main> /
-          <PageTransition> — those wrappers have transforms during the
-          page-transition animation, which would otherwise become the
-          containing block for the gear's `position: fixed`. */}
+      {/* Gear + fullscreen are rendered at the layout root so they're NOT
+          inside <main> / <PageTransition> — those wrappers have transforms
+          during the page-transition animation, which would otherwise become
+          the containing block for their `position: fixed`. */}
+      <FullscreenButton />
       <DeskSettingsPanel />
       <InstallPrompt />
     </>

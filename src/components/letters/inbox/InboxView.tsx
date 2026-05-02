@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PostalSky from './PostalSky'
 import Lamp from './Lamp'
@@ -42,6 +42,29 @@ export default function InboxView({ onUnreadCountChange }: Props) {
   const yearMin = yearsWithLetters.length ? Math.min(...yearsWithLetters) : today.getFullYear()
   const yearMax = today.getFullYear()
   const monthMaxForCurrentYear = today.getMonth()
+
+  // Once we've loaded the inbox for the first time, jump to the month that
+  // actually has letters — preferring the most recent unread, falling back
+  // to the most recent overall. Without this, the inbox lands on today's
+  // month by default; if the user's letters arrived earlier, the postbox
+  // would appear empty and clicking it would do nothing visible.
+  const hasSnappedRef = useRef(false)
+  useEffect(() => {
+    if (hasSnappedRef.current) return
+    if (letters.length === 0) return
+    hasSnappedRef.current = true
+
+    const sortedDesc = [...letters].sort((a, b) => {
+      const at = a.unlockDate ? Date.parse(a.unlockDate) : 0
+      const bt = b.unlockDate ? Date.parse(b.unlockDate) : 0
+      return bt - at
+    })
+    const target = sortedDesc.find((l) => !l.isViewed) ?? sortedDesc[0]
+    if (!target?.unlockDate) return
+    const d = new Date(target.unlockDate)
+    setYear(d.getFullYear())
+    setMonthIdx(d.getMonth())
+  }, [letters])
 
   const currentLetters: InboxLetter[] =
     grouped[year]?.[MONTHS[monthIdx]] ?? []
