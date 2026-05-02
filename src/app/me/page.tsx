@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 import { useThemeStore } from '@/store/theme'
 import { useAuthStore } from '@/store/auth'
 import { useProfileStore, ProfileKey } from '@/store/profile'
 import { useE2EEStore } from '@/store/e2ee'
 import DatePicker from '@/components/DatePicker'
+import RotateRecoveryKeyModal from '@/components/e2ee/RotateRecoveryKeyModal'
 
 interface Question {
   key: ProfileKey
@@ -282,7 +284,33 @@ const QuestionCard = memo(function QuestionCard({
 // E2EE Settings Component
 const E2EESettings = memo(function E2EESettings() {
   const { theme } = useThemeStore()
-  const { isEnabled, isUnlocked, setShowSetupModal, loading: e2eeLoading } = useE2EEStore()
+  const {
+    isEnabled,
+    isUnlocked,
+    keyData,
+    setShowSetupModal,
+    setShowUnlockModal,
+    clearMasterKey,
+    loading: e2eeLoading,
+  } = useE2EEStore()
+
+  const [showRotate, setShowRotate] = useState(false)
+  const [expiresAt, setExpiresAt] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!isUnlocked) {
+      setExpiresAt(null)
+      return
+    }
+    try {
+      const raw = localStorage.getItem('hearth-e2ee-master-key')
+      if (!raw) { setExpiresAt(null); return }
+      const parsed = JSON.parse(raw) as { expiresAt: number }
+      setExpiresAt(parsed.expiresAt > 0 ? parsed.expiresAt : null)
+    } catch {
+      setExpiresAt(null)
+    }
+  }, [isUnlocked])
 
   return (
     <motion.div
@@ -319,74 +347,105 @@ const E2EESettings = memo(function E2EESettings() {
           </svg>
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 space-y-3">
           <h3
-            className="text-base font-medium mb-1"
+            className="text-base font-medium"
             style={{ color: theme.text.primary }}
           >
-            End-to-End Encryption
+            End-to-end encryption
           </h3>
-          <p
-            className="text-sm mb-4"
-            style={{ color: theme.text.secondary }}
-          >
-            {isEnabled
-              ? isUnlocked
-                ? 'Your new entries are encrypted on your device. Only you can read them.'
-                : 'E2EE is enabled but locked. Unlock to access your encrypted entries.'
-              : 'Encrypt your journal entries with a key only you know. Not even we can read them.'}
-          </p>
 
-          {!isEnabled ? (
-            <motion.button
-              onClick={() => setShowSetupModal(true)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              disabled={e2eeLoading}
-              className="px-4 py-2 rounded-xl text-sm font-medium"
-              style={{
-                background: theme.accent.primary,
-                color: '#fff',
-                opacity: e2eeLoading ? 0.5 : 1,
-              }}
-            >
-              {e2eeLoading ? 'Loading...' : 'Enable E2EE'}
-            </motion.button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
+          {!isEnabled && (
+            <>
+              <p
+                className="text-sm"
+                style={{ color: theme.text.secondary }}
+              >
+                Encrypt your journal entries with a key only you know. Not even we can read them.
+              </p>
+              <motion.button
+                onClick={() => setShowSetupModal(true)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={e2eeLoading}
+                className="px-4 py-2 rounded-xl text-sm font-medium"
                 style={{
-                  background: isUnlocked ? `${theme.accent.primary}20` : `${theme.accent.warm}20`,
-                  color: isUnlocked ? theme.accent.primary : theme.accent.warm,
+                  background: theme.accent.primary,
+                  color: '#fff',
+                  opacity: e2eeLoading ? 0.5 : 1,
                 }}
               >
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: isUnlocked ? theme.accent.primary : theme.accent.warm,
-                  }}
-                />
-                {isUnlocked ? 'Active & Unlocked' : 'Locked'}
-              </span>
-            </div>
+                {e2eeLoading ? 'Loading...' : 'Enable end-to-end encryption'}
+              </motion.button>
+            </>
           )}
+
+          {isEnabled && (
+            <>
+              <p className="text-xs" style={{ color: theme.text.secondary }}>
+                {keyData?.e2eeSetupAt
+                  ? `Encrypted on ${new Date(keyData.e2eeSetupAt).toLocaleDateString()}.`
+                  : 'Encrypted.'}
+              </p>
+              <p className="text-xs" style={{ color: theme.text.secondary }}>
+                {isUnlocked
+                  ? expiresAt
+                    ? `Unlocked on this device until ${new Date(expiresAt).toLocaleString()}.`
+                    : 'Unlocked on this device (session only).'
+                  : 'Locked.'}
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  onClick={() => clearMasterKey()}
+                  className="px-3 py-1.5 rounded-lg text-xs"
+                  style={{
+                    background: theme.glass.bg,
+                    border: `1px solid ${theme.glass.border}`,
+                    color: theme.text.muted,
+                  }}
+                >
+                  Lock journal
+                </button>
+                <button
+                  onClick={() => setShowUnlockModal(true)}
+                  className="px-3 py-1.5 rounded-lg text-xs"
+                  style={{
+                    background: theme.glass.bg,
+                    border: `1px solid ${theme.glass.border}`,
+                    color: theme.text.muted,
+                  }}
+                >
+                  Change daily key
+                </button>
+                <button
+                  onClick={() => setShowRotate(true)}
+                  disabled={!isUnlocked}
+                  className="px-3 py-1.5 rounded-lg text-xs"
+                  style={{
+                    background: theme.glass.bg,
+                    border: `1px solid ${theme.glass.border}`,
+                    color: theme.text.muted,
+                    opacity: isUnlocked ? 1 : 0.5,
+                    cursor: isUnlocked ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  Generate new recovery key
+                </button>
+              </div>
+            </>
+          )}
+
+          <Link
+            href="/security"
+            className="text-xs underline block pt-1"
+            style={{ color: theme.text.muted }}
+          >
+            How E2EE works →
+          </Link>
         </div>
       </div>
 
-      {isEnabled && (
-        <div
-          className="mt-4 pt-4"
-          style={{ borderTop: `1px solid ${theme.glass.border}` }}
-        >
-          <p
-            className="text-xs"
-            style={{ color: theme.text.muted }}
-          >
-            New entries you create will be encrypted. Existing entries from before enabling E2EE remain server-encrypted.
-          </p>
-        </div>
-      )}
+      <RotateRecoveryKeyModal open={showRotate} onClose={() => setShowRotate(false)} />
     </motion.div>
   )
 })
