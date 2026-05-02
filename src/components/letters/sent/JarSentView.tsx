@@ -200,6 +200,7 @@ export default function JarSentView({
             sealed={sealed}
             delivered={delivered}
             total={total}
+            totalEver={stamps.length}
             opened={opened}
             onToggle={() => setOpened(o => !o)}
           />
@@ -331,11 +332,12 @@ interface JarProps {
   sealed: number
   delivered: number
   total: number
+  totalEver: number
   opened: boolean
   onToggle: () => void
 }
 
-function Jar({ sealed, delivered, total, opened, onToggle }: JarProps) {
+function Jar({ sealed, delivered, total, totalEver, opened, onToggle }: JarProps) {
   const CAP = 14
   const sealedShown = Math.min(sealed, Math.max(0, CAP - delivered))
   const deliveredShown = Math.min(delivered, CAP)
@@ -520,11 +522,17 @@ function Jar({ sealed, delivered, total, opened, onToggle }: JarProps) {
         </g>
       </svg>
 
-      <div className="legend">
-        <span className="dot sealed" /> {sealed} sealed
-        <span className="sep">·</span>
-        <span className="dot delivered" /> {delivered} delivered
-      </div>
+      {totalEver === 0 ? (
+        <div className="empty-state">
+          you haven&rsquo;t sealed any letters yet — your jar is waiting
+        </div>
+      ) : (
+        <div className="legend">
+          <span className="dot sealed" /> {sealed} sealed
+          <span className="sep">·</span>
+          <span className="dot delivered" /> {delivered} delivered
+        </div>
+      )}
 
       <style jsx>{`
         .jar {
@@ -559,6 +567,16 @@ function Jar({ sealed, delivered, total, opened, onToggle }: JarProps) {
         .legend .dot.sealed   { background: var(--accent-primary); }
         .legend .dot.delivered{ background: color-mix(in oklab, var(--text-primary) 30%, transparent); }
         .legend .sep { opacity: 0.5; margin: 0 4px; }
+        .empty-state {
+          margin-top: 6px;
+          font-family: 'Cormorant Garamond', serif;
+          font-style: italic;
+          font-size: 12.5px;
+          color: var(--text-muted);
+          letter-spacing: 0.3px;
+          text-align: center;
+          max-width: 280px;
+        }
       `}</style>
     </button>
   )
