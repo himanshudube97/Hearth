@@ -235,6 +235,77 @@ export async function decryptEntry(
 }
 
 // ============================================
+// String/Bytes Helpers
+// ============================================
+
+/** Encrypt a UTF-8 string with the master key. Returns base64 ciphertext + iv. */
+export async function encryptString(
+  plaintext: string,
+  masterKey: CryptoKey
+): Promise<{ ciphertext: string; iv: string }> {
+  const encoder = new TextEncoder()
+  const iv = generateRandomBytes(IV_LENGTH)
+  const encrypted = await crypto.subtle.encrypt(
+    { name: ALGORITHM, iv: iv as BufferSource },
+    masterKey,
+    encoder.encode(plaintext)
+  )
+  return {
+    ciphertext: arrayBufferToBase64(encrypted),
+    iv: arrayBufferToBase64(iv.buffer as ArrayBuffer),
+  }
+}
+
+/** Decrypt a base64 ciphertext + iv back to a UTF-8 string. */
+export async function decryptString(
+  ciphertextBase64: string,
+  ivBase64: string,
+  masterKey: CryptoKey
+): Promise<string> {
+  const decoder = new TextDecoder()
+  const ciphertext = base64ToArrayBuffer(ciphertextBase64)
+  const iv = base64ToArrayBuffer(ivBase64)
+  const decrypted = await crypto.subtle.decrypt(
+    { name: ALGORITHM, iv: new Uint8Array(iv) },
+    masterKey,
+    ciphertext
+  )
+  return decoder.decode(decrypted)
+}
+
+/** Encrypt raw bytes (e.g., a photo's ArrayBuffer). Returns base64 ciphertext + iv. */
+export async function encryptBytes(
+  plaintext: ArrayBuffer,
+  masterKey: CryptoKey
+): Promise<{ ciphertext: string; iv: string }> {
+  const iv = generateRandomBytes(IV_LENGTH)
+  const encrypted = await crypto.subtle.encrypt(
+    { name: ALGORITHM, iv: iv as BufferSource },
+    masterKey,
+    plaintext
+  )
+  return {
+    ciphertext: arrayBufferToBase64(encrypted),
+    iv: arrayBufferToBase64(iv.buffer as ArrayBuffer),
+  }
+}
+
+/** Decrypt base64 ciphertext + iv back to raw bytes. */
+export async function decryptBytes(
+  ciphertextBase64: string,
+  ivBase64: string,
+  masterKey: CryptoKey
+): Promise<ArrayBuffer> {
+  const ciphertext = base64ToArrayBuffer(ciphertextBase64)
+  const iv = base64ToArrayBuffer(ivBase64)
+  return crypto.subtle.decrypt(
+    { name: ALGORITHM, iv: new Uint8Array(iv) },
+    masterKey,
+    ciphertext
+  )
+}
+
+// ============================================
 // Verification
 // ============================================
 
