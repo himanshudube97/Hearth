@@ -5,62 +5,58 @@ import Stamp from './Stamp'
 import ReceiptModal from './ReceiptModal'
 import type { SentStamp } from '../letterTypes'
 
-const MOCK: SentStamp[] = [
-  { id: '1', recipientName: 'future me', sealedAt: '2026-05-01T10:00:00Z', unlockDate: '2026-05-08T10:00:00Z', isDelivered: false, letterPeekedAt: null },
-  { id: '2', recipientName: 'rito',      sealedAt: '2026-04-20T10:00:00Z', unlockDate: '2026-04-27T10:00:00Z', isDelivered: false, letterPeekedAt: null },
-  { id: '3', recipientName: 'future me', sealedAt: '2026-04-12T10:00:00Z', unlockDate: '2026-04-19T10:00:00Z', isDelivered: true,  letterPeekedAt: null },
-  { id: '4', recipientName: 'ANJU',      sealedAt: '2026-03-19T10:00:00Z', unlockDate: '2026-03-26T10:00:00Z', isDelivered: true,  letterPeekedAt: null },
-  { id: '5', recipientName: 'future me', sealedAt: '2026-03-08T10:00:00Z', unlockDate: '2026-03-15T10:00:00Z', isDelivered: true,  letterPeekedAt: null },
-  { id: '6', recipientName: 'future me', sealedAt: '2026-02-22T10:00:00Z', unlockDate: '2026-02-27T10:00:00Z', isDelivered: true,  letterPeekedAt: null },
-  { id: '7', recipientName: 'mom',       sealedAt: '2026-02-14T10:00:00Z', unlockDate: '2026-02-21T10:00:00Z', isDelivered: true,  letterPeekedAt: null },
-  { id: '8', recipientName: 'future me', sealedAt: '2026-02-05T10:00:00Z', unlockDate: '2026-02-12T10:00:00Z', isDelivered: true,  letterPeekedAt: null },
-  { id: '9', recipientName: 'sam',       sealedAt: '2026-01-25T10:00:00Z', unlockDate: '2026-02-01T10:00:00Z', isDelivered: true,  letterPeekedAt: null },
-  { id: '10', recipientName: 'future me',sealedAt: '2026-01-10T10:00:00Z', unlockDate: '2026-01-17T10:00:00Z', isDelivered: true,  letterPeekedAt: null },
-]
-
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 type Mode = 'monthly' | 'yearly'
 
-// Calendar bounds: Hearth launched in 2026; never navigate past today.
-const LAUNCH_YEAR = 2026
-const LAUNCH_MONTH = 0 // January
+interface JarSentViewProps {
+  stamps: SentStamp[]
+  /** First valid (year, month) — defaults to (2026, 0) i.e. Jan 2026 (Hearth launch). */
+  launchYear?: number
+  launchMonth?: number
+}
 
 function todayYM() {
   const now = new Date()
   return { y: now.getFullYear(), m: now.getMonth() }
 }
 
-function canGoPrev(mode: Mode, year: number, month: number): boolean {
-  if (mode === 'yearly') return year > LAUNCH_YEAR
-  return year > LAUNCH_YEAR || (year === LAUNCH_YEAR && month > LAUNCH_MONTH)
-}
-function canGoNext(mode: Mode, year: number, month: number): boolean {
-  const t = todayYM()
-  if (mode === 'yearly') return year < t.y
-  return year < t.y || (year === t.y && month < t.m)
-}
-function clampToBounds(year: number, month: number): { y: number; m: number } {
-  const t = todayYM()
-  if (year > t.y || (year === t.y && month > t.m)) return { y: t.y, m: t.m }
-  if (year < LAUNCH_YEAR || (year === LAUNCH_YEAR && month < LAUNCH_MONTH)) {
-    return { y: LAUNCH_YEAR, m: LAUNCH_MONTH }
-  }
-  return { y: year, m: month }
-}
-
-export default function JarShelfDemo() {
-  const [stamps] = useState<SentStamp[]>(MOCK)
+export default function JarSentView({
+  stamps,
+  launchYear = 2026,
+  launchMonth = 0,
+}: JarSentViewProps) {
   const [open, setOpen] = useState<SentStamp | null>(null)
   const [opened, setOpened] = useState(false)
   const [mode, setMode] = useState<Mode>('monthly')
 
+  const canGoPrev = (mode: Mode, year: number, month: number): boolean => {
+    if (mode === 'yearly') return year > launchYear
+    return year > launchYear || (year === launchYear && month > launchMonth)
+  }
+  const canGoNext = (mode: Mode, year: number, month: number): boolean => {
+    const t = todayYM()
+    if (mode === 'yearly') return year < t.y
+    return year < t.y || (year === t.y && month < t.m)
+  }
+  const clampToBounds = (year: number, month: number): { y: number; m: number } => {
+    const t = todayYM()
+    if (year > t.y || (year === t.y && month > t.m)) return { y: t.y, m: t.m }
+    if (year < launchYear || (year === launchYear && month < launchMonth)) {
+      return { y: launchYear, m: launchMonth }
+    }
+    return { y: year, m: month }
+  }
+
   const mostRecent = useMemo(() => {
-    if (!stamps.length) return { y: new Date().getFullYear(), m: new Date().getMonth() }
+    if (!stamps.length) {
+      const t = todayYM()
+      return clampToBounds(t.y, t.m)
+    }
     const sorted = [...stamps].sort((a, b) => +new Date(b.sealedAt) - +new Date(a.sealedAt))
     const d = new Date(sorted[0].sealedAt)
-    return { y: d.getFullYear(), m: d.getMonth() }
-  }, [stamps])
+    return clampToBounds(d.getFullYear(), d.getMonth())
+  }, [stamps]) // eslint-disable-line react-hooks/exhaustive-deps -- launchYear/launchMonth captured intentionally; bounds are stable per mount
 
   const [year, setYear] = useState(mostRecent.y)
   const [month, setMonth] = useState(mostRecent.m)
@@ -110,7 +106,7 @@ export default function JarShelfDemo() {
       // yearly: clamp year alone
       const t = todayYM()
       if (year > t.y) setYear(t.y)
-      else if (year < LAUNCH_YEAR) setYear(LAUNCH_YEAR)
+      else if (year < launchYear) setYear(launchYear)
     }
     setMode(m)
   }
