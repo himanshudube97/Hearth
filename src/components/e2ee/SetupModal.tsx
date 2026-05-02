@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useE2EEStore } from '@/store/e2ee'
+import { useAuthStore } from '@/store/auth'
 import {
   generateMasterKey,
   generateRecoveryKey,
@@ -15,31 +16,92 @@ import {
   hashRecoveryKey,
 } from '@/lib/e2ee/crypto'
 
-const CONFIRMATION_PHRASE = 'I understand I may lose my data'
+type Step = 'intro' | 'daily-key' | 'save-keys' | 'done'
 
-type Step = 'intro' | 'confirm1' | 'confirm2' | 'daily-key' | 'recovery-key' | 'verify-recovery' | 'complete'
+const STEPS: Step[] = ['intro', 'daily-key', 'save-keys', 'done']
+
+function downloadRecoveryKey(key: string, email: string) {
+  const date = new Date().toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  })
+  const content = `HEARTH RECOVERY KEY
+====================
+
+Account: ${email}
+Generated: ${date}
+
+Recovery Key:
+
+    ${key}
+
+To recover access:
+  1. Open Hearth → "Forgot daily key? Use recovery key"
+  2. Enter the key above
+  3. Set a new daily key
+
+If you lose both your daily key and this recovery key,
+your encrypted journal cannot be recovered.
+`
+  const blob = new Blob([content], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'hearth-recovery-key.txt'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function downloadDailyKey(key: string, email: string) {
+  const date = new Date().toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  })
+  const content = `HEARTH DAILY KEY
+====================
+
+Account: ${email}
+Generated: ${date}
+
+Daily Key:
+
+    ${key}
+
+This is the password you chose to unlock your journal.
+
+If you lose both your daily key and your recovery key,
+your encrypted journal cannot be recovered.
+`
+  const blob = new Blob([content], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'hearth-daily-key.txt'
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 export default function SetupModal() {
   const { theme } = useThemeStore()
   const { showSetupModal, setShowSetupModal, setEnabled, storeMasterKey, fetchKeyData } = useE2EEStore()
+  const user = useAuthStore(s => s.user)
+  const email = user?.email ?? ''
 
   const [step, setStep] = useState<Step>('intro')
+  const [agreedIntro, setAgreedIntro] = useState(false)
   const [dailyKey, setDailyKey] = useState('')
   const [confirmDailyKey, setConfirmDailyKey] = useState('')
   const [recoveryKey, setRecoveryKey] = useState('')
-  const [verifyPhrase, setVerifyPhrase] = useState('')
-  const [verifyRecovery, setVerifyRecovery] = useState('')
+  const [savedRecovery, setSavedRecovery] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const resetState = useCallback(() => {
     setStep('intro')
+    setAgreedIntro(false)
     setDailyKey('')
     setConfirmDailyKey('')
     setRecoveryKey('')
-    setVerifyPhrase('')
-    setVerifyRecovery('')
+    setSavedRecovery(false)
     setError('')
     setLoading(false)
     setCopied(false)
@@ -56,17 +118,17 @@ export default function SetupModal() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleDownloadRecoveryKey = () => {
-    const blob = new Blob(
-      [`Hearth Recovery Key\n\n${recoveryKey}\n\nStore this securely. You'll need it if you forget your daily key.`],
-      { type: 'text/plain' }
-    )
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'hearth-recovery-key.txt'
-    a.click()
-    URL.revokeObjectURL(url)
+  const validateDailyKey = () => {
+    if (dailyKey.length < 8) {
+      setError('Daily key must be at least 8 characters')
+      return false
+    }
+    if (dailyKey !== confirmDailyKey) {
+      setError('Daily keys do not match')
+      return false
+    }
+    setError('')
+    return true
   }
 
   const handleSetupComplete = async () => {
@@ -125,13 +187,13 @@ export default function SetupModal() {
         throw new Error(data.error || 'Failed to setup E2EE')
       }
 
-      // Store master key locally and update state
-      await storeMasterKey(masterKey, 0)
+      // Store master key locally (7-day TTL) and update state
+      await storeMasterKey(masterKey, 7)
       setEnabled(true)
       await fetchKeyData()
 
-      // Move to recovery key step
-      setStep('recovery-key')
+      // Move to save-keys step
+      setStep('save-keys')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Setup failed')
     } finally {
@@ -139,31 +201,9 @@ export default function SetupModal() {
     }
   }
 
-  const validateDailyKey = () => {
-    if (dailyKey.length < 8) {
-      setError('Daily key must be at least 8 characters')
-      return false
-    }
-    if (dailyKey !== confirmDailyKey) {
-      setError('Daily keys do not match')
-      return false
-    }
-    setError('')
-    return true
-  }
-
-  const validateRecoveryVerification = () => {
-    const normalizedInput = verifyRecovery.replace(/-/g, '').toUpperCase()
-    const normalizedKey = recoveryKey.replace(/-/g, '').toUpperCase()
-    if (normalizedInput !== normalizedKey.slice(0, 8)) {
-      setError('Recovery key verification failed. Please check the first 8 characters.')
-      return false
-    }
-    setError('')
-    return true
-  }
-
   if (!showSetupModal) return null
+
+  const currentStepIndex = STEPS.indexOf(step)
 
   const renderStep = () => {
     switch (step) {
@@ -177,7 +217,7 @@ export default function SetupModal() {
             className="space-y-6"
           >
             <div className="text-center">
-              <div className="text-4xl mb-4">
+              <div className="mb-4">
                 <svg className="w-16 h-16 mx-auto" viewBox="0 0 24 24" fill="none" stroke={theme.accent.primary} strokeWidth="1.5">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -197,15 +237,32 @@ export default function SetupModal() {
               style={{ background: `${theme.accent.warm}15`, border: `1px solid ${theme.accent.warm}30` }}
             >
               <p style={{ color: theme.text.primary }}>
-                <strong>What you need to know:</strong>
+                <strong>How recovery works:</strong>
               </p>
               <ul className="space-y-2" style={{ color: theme.text.secondary }}>
-                <li>You'll create a <strong>daily key</strong> (like a password) to unlock your journal</li>
-                <li>You'll receive a <strong>recovery key</strong> to use if you forget your daily key</li>
-                <li>If you lose both keys, <strong>your data cannot be recovered</strong></li>
-                <li>New entries will be encrypted; existing entries stay as they are</li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-0.5 shrink-0">✅</span>
+                  <span>You <strong>CAN</strong> recover your journal if you have either your daily key or your recovery key, on any device.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-0.5 shrink-0">❌</span>
+                  <span>You <strong>CANNOT</strong> recover your journal if you lose both keys. There is no "reset password" — by design.</span>
+                </li>
               </ul>
             </div>
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agreedIntro}
+                onChange={(e) => setAgreedIntro(e.target.checked)}
+                className="mt-1 shrink-0 accent-current w-4 h-4 rounded"
+                style={{ accentColor: theme.accent.primary }}
+              />
+              <span className="text-sm" style={{ color: theme.text.secondary }}>
+                I understand that if I lose both my daily key and recovery key, my journal cannot be recovered — not even by Hearth.
+              </span>
+            </label>
 
             <div className="flex gap-3">
               <button
@@ -220,163 +277,17 @@ export default function SetupModal() {
                 Maybe Later
               </button>
               <button
-                onClick={() => setStep('confirm1')}
-                className="flex-1 py-3 rounded-xl text-sm font-medium"
+                onClick={() => setStep('daily-key')}
+                disabled={!agreedIntro}
+                className="flex-1 py-3 rounded-xl text-sm font-medium transition-opacity"
                 style={{
                   background: theme.accent.primary,
                   color: '#fff',
+                  opacity: agreedIntro ? 1 : 0.4,
+                  cursor: agreedIntro ? 'pointer' : 'not-allowed',
                 }}
               >
                 Continue
-              </button>
-            </div>
-          </motion.div>
-        )
-
-      case 'confirm1':
-        return (
-          <motion.div
-            key="confirm1"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
-          >
-            <div className="text-center">
-              <div className="text-4xl mb-4">
-                <svg className="w-12 h-12 mx-auto" viewBox="0 0 24 24" fill="none" stroke={theme.accent.warm} strokeWidth="1.5">
-                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-light mb-2" style={{ color: theme.text.primary }}>
-                First Confirmation
-              </h2>
-              <p className="text-sm" style={{ color: theme.text.secondary }}>
-                Please read carefully before continuing.
-              </p>
-            </div>
-
-            <div
-              className="p-4 rounded-xl text-sm space-y-4"
-              style={{ background: `${theme.accent.warm}10`, border: `1px solid ${theme.accent.warm}25` }}
-            >
-              <p style={{ color: theme.text.primary }}>
-                <strong>This action is serious and cannot be easily undone.</strong>
-              </p>
-              <p style={{ color: theme.text.secondary }}>
-                Once E2EE is enabled, your new journal entries will be encrypted with keys
-                that only exist on your device. If you lose access to your keys:
-              </p>
-              <ul className="list-disc list-inside space-y-1" style={{ color: theme.text.secondary }}>
-                <li>We cannot recover your encrypted entries</li>
-                <li>No password reset is possible</li>
-                <li>Your encrypted data will be permanently inaccessible</li>
-              </ul>
-            </div>
-
-            <p className="text-center text-sm" style={{ color: theme.text.muted }}>
-              Are you sure you want to continue?
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep('intro')}
-                className="flex-1 py-3 rounded-xl text-sm"
-                style={{
-                  background: theme.glass.bg,
-                  border: `1px solid ${theme.glass.border}`,
-                  color: theme.text.muted,
-                }}
-              >
-                Go Back
-              </button>
-              <button
-                onClick={() => setStep('confirm2')}
-                className="flex-1 py-3 rounded-xl text-sm font-medium"
-                style={{
-                  background: theme.accent.warm,
-                  color: '#fff',
-                }}
-              >
-                Yes, Continue
-              </button>
-            </div>
-          </motion.div>
-        )
-
-      case 'confirm2':
-        const isPhraseCorrect = verifyPhrase.toLowerCase().trim() === CONFIRMATION_PHRASE.toLowerCase()
-        return (
-          <motion.div
-            key="confirm2"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
-          >
-            <div className="text-center">
-              <div className="text-4xl mb-4">
-                <svg className="w-12 h-12 mx-auto" viewBox="0 0 24 24" fill="none" stroke={theme.accent.warm} strokeWidth="1.5">
-                  <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-light mb-2" style={{ color: theme.text.primary }}>
-                Final Confirmation
-              </h2>
-              <p className="text-sm" style={{ color: theme.text.secondary }}>
-                Type the phrase below to confirm you understand.
-              </p>
-            </div>
-
-            <div
-              className="p-4 rounded-xl text-center"
-              style={{ background: theme.glass.bg, border: `1px solid ${theme.glass.border}` }}
-            >
-              <p className="text-sm mb-1" style={{ color: theme.text.muted }}>
-                Please type:
-              </p>
-              <p className="text-lg font-medium" style={{ color: theme.accent.warm }}>
-                "{CONFIRMATION_PHRASE}"
-              </p>
-            </div>
-
-            <input
-              type="text"
-              value={verifyPhrase}
-              onChange={(e) => setVerifyPhrase(e.target.value)}
-              placeholder="Type the phrase above..."
-              className="w-full p-4 rounded-xl text-sm outline-none"
-              style={{
-                background: theme.glass.bg,
-                border: `1px solid ${isPhraseCorrect ? theme.accent.primary : theme.glass.border}`,
-                color: theme.text.primary,
-              }}
-            />
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep('confirm1')}
-                className="flex-1 py-3 rounded-xl text-sm"
-                style={{
-                  background: theme.glass.bg,
-                  border: `1px solid ${theme.glass.border}`,
-                  color: theme.text.muted,
-                }}
-              >
-                Go Back
-              </button>
-              <button
-                onClick={() => setStep('daily-key')}
-                disabled={!isPhraseCorrect}
-                className="flex-1 py-3 rounded-xl text-sm font-medium transition-opacity"
-                style={{
-                  background: isPhraseCorrect ? theme.accent.primary : theme.text.muted,
-                  color: '#fff',
-                  opacity: isPhraseCorrect ? 1 : 0.5,
-                  cursor: isPhraseCorrect ? 'pointer' : 'not-allowed',
-                }}
-              >
-                I Understand
               </button>
             </div>
           </motion.div>
@@ -392,7 +303,7 @@ export default function SetupModal() {
             className="space-y-6"
           >
             <div className="text-center">
-              <div className="text-4xl mb-4">
+              <div className="mb-4">
                 <svg className="w-12 h-12 mx-auto" viewBox="0 0 24 24" fill="none" stroke={theme.accent.primary} strokeWidth="1.5">
                   <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                 </svg>
@@ -401,19 +312,19 @@ export default function SetupModal() {
                 Create Your Daily Key
               </h2>
               <p className="text-sm" style={{ color: theme.text.secondary }}>
-                This is like a password you'll use to unlock your journal.
+                This is what you'll type to unlock your journal day-to-day.
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-xs mb-2" style={{ color: theme.text.muted }}>
-                  Daily Key (min 8 characters)
+                  Daily Key
                 </label>
                 <input
                   type="password"
                   value={dailyKey}
-                  onChange={(e) => setDailyKey(e.target.value)}
+                  onChange={(e) => { setDailyKey(e.target.value); setError('') }}
                   placeholder="Enter your daily key..."
                   className="w-full p-4 rounded-xl text-sm outline-none"
                   style={{
@@ -431,7 +342,7 @@ export default function SetupModal() {
                 <input
                   type="password"
                   value={confirmDailyKey}
-                  onChange={(e) => setConfirmDailyKey(e.target.value)}
+                  onChange={(e) => { setConfirmDailyKey(e.target.value); setError('') }}
                   placeholder="Confirm your daily key..."
                   className="w-full p-4 rounded-xl text-sm outline-none"
                   style={{
@@ -442,6 +353,10 @@ export default function SetupModal() {
                 />
               </div>
 
+              <p className="text-xs" style={{ color: theme.text.muted }}>
+                Minimum 8 characters. You'll re-enter this every 7 days, or on a new device.
+              </p>
+
               {error && (
                 <p className="text-sm text-center" style={{ color: theme.accent.warm }}>
                   {error}
@@ -451,7 +366,7 @@ export default function SetupModal() {
 
             <div className="flex gap-3">
               <button
-                onClick={() => setStep('confirm2')}
+                onClick={() => setStep('intro')}
                 className="flex-1 py-3 rounded-xl text-sm"
                 style={{
                   background: theme.glass.bg,
@@ -468,30 +383,31 @@ export default function SetupModal() {
                   }
                 }}
                 disabled={loading || dailyKey.length < 8 || dailyKey !== confirmDailyKey}
-                className="flex-1 py-3 rounded-xl text-sm font-medium"
+                className="flex-1 py-3 rounded-xl text-sm font-medium transition-opacity"
                 style={{
                   background: theme.accent.primary,
                   color: '#fff',
                   opacity: loading || dailyKey.length < 8 || dailyKey !== confirmDailyKey ? 0.5 : 1,
+                  cursor: loading || dailyKey.length < 8 || dailyKey !== confirmDailyKey ? 'not-allowed' : 'pointer',
                 }}
               >
-                {loading ? 'Setting up...' : 'Create Keys'}
+                {loading ? 'Setting up...' : 'Continue'}
               </button>
             </div>
           </motion.div>
         )
 
-      case 'recovery-key':
+      case 'save-keys':
         return (
           <motion.div
-            key="recovery-key"
+            key="save-keys"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
             <div className="text-center">
-              <div className="text-4xl mb-4">
+              <div className="mb-4">
                 <svg className="w-12 h-12 mx-auto" viewBox="0 0 24 24" fill="none" stroke={theme.accent.primary} strokeWidth="1.5">
                   <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -504,6 +420,7 @@ export default function SetupModal() {
               </p>
             </div>
 
+            {/* Recovery key display */}
             <div
               className="p-4 rounded-xl text-center"
               style={{ background: theme.glass.bg, border: `1px solid ${theme.accent.primary}50` }}
@@ -512,13 +429,14 @@ export default function SetupModal() {
                 Your Recovery Key
               </p>
               <p
-                className="text-lg font-mono tracking-wide select-all"
+                className="text-lg font-mono tracking-wide select-all break-all"
                 style={{ color: theme.accent.primary }}
               >
                 {recoveryKey}
               </p>
             </div>
 
+            {/* Copy + Download recovery key */}
             <div className="flex gap-3">
               <button
                 onClick={handleCopyRecoveryKey}
@@ -536,7 +454,7 @@ export default function SetupModal() {
                 {copied ? 'Copied!' : 'Copy'}
               </button>
               <button
-                onClick={handleDownloadRecoveryKey}
+                onClick={() => downloadRecoveryKey(recoveryKey, email)}
                 className="flex-1 py-3 rounded-xl text-sm flex items-center justify-center gap-2"
                 style={{
                   background: theme.glass.bg,
@@ -549,69 +467,61 @@ export default function SetupModal() {
                   <polyline points="7 10 12 15 17 10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-                Download
+                Download as file
               </button>
             </div>
 
-            <button
-              onClick={() => setStep('verify-recovery')}
-              className="w-full py-3 rounded-xl text-sm font-medium"
-              style={{
-                background: theme.accent.primary,
-                color: '#fff',
-              }}
+            {/* Optional daily key download */}
+            <div
+              className="pt-4 border-t space-y-3"
+              style={{ borderColor: `${theme.glass.border}` }}
             >
-              I've Saved It
-            </button>
-          </motion.div>
-        )
-
-      case 'verify-recovery':
-        return (
-          <motion.div
-            key="verify-recovery"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
-          >
-            <div className="text-center">
-              <div className="text-4xl mb-4">
-                <svg className="w-12 h-12 mx-auto" viewBox="0 0 24 24" fill="none" stroke={theme.accent.primary} strokeWidth="1.5">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <p className="text-xs" style={{ color: theme.text.muted }}>
+                Want to also download your daily key as a file?
+              </p>
+              <button
+                onClick={() => downloadDailyKey(dailyKey, email)}
+                className="w-full py-2.5 rounded-xl text-sm flex items-center justify-center gap-2"
+                style={{
+                  background: theme.glass.bg,
+                  border: `1px solid ${theme.glass.border}`,
+                  color: theme.text.secondary,
+                }}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-              </div>
-              <h2 className="text-xl font-light mb-2" style={{ color: theme.text.primary }}>
-                Verify Your Recovery Key
-              </h2>
-              <p className="text-sm" style={{ color: theme.text.secondary }}>
-                Enter the first 8 characters to confirm you've saved it.
+                Download daily key as file
+              </button>
+              <p className="text-xs" style={{ color: theme.text.muted }}>
+                (Optional — many users prefer to remember their daily key)
               </p>
             </div>
 
-            <input
-              type="text"
-              value={verifyRecovery}
-              onChange={(e) => setVerifyRecovery(e.target.value.toUpperCase())}
-              placeholder="First 8 characters..."
-              maxLength={8}
-              className="w-full p-4 rounded-xl text-sm text-center font-mono tracking-wider outline-none uppercase"
-              style={{
-                background: theme.glass.bg,
-                border: `1px solid ${theme.glass.border}`,
-                color: theme.text.primary,
-              }}
-            />
+            {/* Warning */}
+            <p className="text-sm text-center" style={{ color: theme.accent.warm }}>
+              ⚠ If you lose both keys, your journal cannot be recovered.
+            </p>
 
-            {error && (
-              <p className="text-sm text-center" style={{ color: theme.accent.warm }}>
-                {error}
-              </p>
-            )}
+            {/* Confirmation checkbox */}
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={savedRecovery}
+                onChange={(e) => setSavedRecovery(e.target.checked)}
+                className="mt-1 shrink-0 w-4 h-4 rounded"
+                style={{ accentColor: theme.accent.primary }}
+              />
+              <span className="text-sm" style={{ color: theme.text.secondary }}>
+                I've saved my recovery key.
+              </span>
+            </label>
 
             <div className="flex gap-3">
               <button
-                onClick={() => setStep('recovery-key')}
+                onClick={() => setStep('daily-key')}
                 className="flex-1 py-3 rounded-xl text-sm"
                 style={{
                   background: theme.glass.bg,
@@ -623,28 +533,28 @@ export default function SetupModal() {
               </button>
               <button
                 onClick={() => {
-                  if (validateRecoveryVerification()) {
-                    setStep('complete')
-                  }
+                  // TODO(task-23): trigger useBackfill().runBackfill() here
+                  setStep('done')
                 }}
-                disabled={verifyRecovery.length < 8}
-                className="flex-1 py-3 rounded-xl text-sm font-medium"
+                disabled={!savedRecovery}
+                className="flex-1 py-3 rounded-xl text-sm font-medium transition-opacity"
                 style={{
                   background: theme.accent.primary,
                   color: '#fff',
-                  opacity: verifyRecovery.length < 8 ? 0.5 : 1,
+                  opacity: savedRecovery ? 1 : 0.4,
+                  cursor: savedRecovery ? 'pointer' : 'not-allowed',
                 }}
               >
-                Verify
+                Continue
               </button>
             </div>
           </motion.div>
         )
 
-      case 'complete':
+      case 'done':
         return (
           <motion.div
-            key="complete"
+            key="done"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
@@ -654,7 +564,6 @@ export default function SetupModal() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', duration: 0.5, delay: 0.2 }}
-              className="text-6xl"
             >
               <svg className="w-20 h-20 mx-auto" viewBox="0 0 24 24" fill="none" stroke={theme.accent.primary} strokeWidth="1.5">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -663,11 +572,10 @@ export default function SetupModal() {
 
             <div>
               <h2 className="text-xl font-light mb-2" style={{ color: theme.text.primary }}>
-                E2EE is Now Active
+                Your journal is now end-to-end encrypted ✅
               </h2>
               <p className="text-sm" style={{ color: theme.text.secondary }}>
-                Your new journal entries will be encrypted with end-to-end encryption.
-                Only you can read them.
+                Migrating your existing entries… (this runs in the background)
               </p>
             </div>
 
@@ -689,7 +597,7 @@ export default function SetupModal() {
                 color: '#fff',
               }}
             >
-              Start Writing
+              Start writing
             </button>
           </motion.div>
         )
@@ -715,7 +623,7 @@ export default function SetupModal() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto p-6 rounded-2xl"
+            className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto p-6 rounded-2xl overflow-y-auto max-h-[90vh]"
             style={{
               background: theme.bg.primary,
               border: `1px solid ${theme.glass.border}`,
@@ -733,14 +641,14 @@ export default function SetupModal() {
               </svg>
             </button>
 
-            {/* Progress indicator */}
+            {/* Progress indicator — 4 segments */}
             <div className="flex gap-1 mb-6">
-              {(['intro', 'confirm1', 'confirm2', 'daily-key', 'recovery-key', 'verify-recovery', 'complete'] as Step[]).map((s, i) => (
+              {STEPS.map((s, i) => (
                 <div
                   key={s}
                   className="flex-1 h-1 rounded-full transition-colors"
                   style={{
-                    background: (['intro', 'confirm1', 'confirm2', 'daily-key', 'recovery-key', 'verify-recovery', 'complete'] as Step[]).indexOf(step) >= i
+                    background: currentStepIndex >= i
                       ? theme.accent.primary
                       : `${theme.text.muted}30`,
                   }}
