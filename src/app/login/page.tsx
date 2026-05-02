@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, Suspense, type CSSProperties } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
+import { useThemeStore } from '@/store/theme'
 
 const isDevAuth = process.env.NEXT_PUBLIC_USE_DEV_AUTH === 'true' || process.env.USE_DEV_AUTH === 'true'
 
@@ -11,6 +12,23 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
   const error = searchParams.get('error')
+  const theme = useThemeStore(s => s.theme)
+
+  // The page uses var(--text-primary)/var(--card-bg)/etc throughout, but those
+  // tokens aren't set globally — only feature islands (letters/scrapbook) inject
+  // them. Without this, the login text falls back to body's foreground (#e8e8e8)
+  // and becomes illegible on every light theme. Map the active theme onto the
+  // tokens this page consumes.
+  const themeVars = {
+    '--text-primary': theme.text.primary,
+    '--text-secondary': theme.text.secondary,
+    '--text-muted': theme.text.muted,
+    '--accent-primary': theme.accent.primary,
+    '--card-bg': theme.glass.bg,
+    '--card-border': theme.glass.border,
+    '--input-bg': `color-mix(in oklab, ${theme.bg.secondary} 60%, transparent)`,
+    '--input-border': `color-mix(in oklab, ${theme.text.primary} 18%, transparent)`,
+  } as CSSProperties
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -75,7 +93,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4" style={themeVars}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Background from '@/components/Background'
 import Navigation from '@/components/Navigation'
-import ThemeSwitcher from '@/components/ThemeSwitcher'
-import CursorPicker from '@/components/CursorPicker'
 import PageTransition from '@/components/PageTransition'
 import DeskSettingsPanel from '@/components/desk/DeskSettingsPanel'
 import AmbientSoundLayer from '@/components/AmbientSoundLayer'
@@ -31,9 +29,9 @@ export default function LayoutContent({
   // per-scrapbook canvas at /scrapbook/[id] keeps the padded <main> wrapper.
   const isScrapbookListingPage = pathname === '/scrapbook'
 
-  // Apply the active cursor styles globally. Used to live inside
-  // CursorPicker, but the writing page no longer renders that picker (it
-  // uses the desk gear panel instead) — so this lives at the layout level.
+  // Apply the active cursor styles globally. The cursor selection now
+  // lives entirely in the gear's DeskSettingsPanel, but the style
+  // injection runs at the layout level so it applies to every page.
   useApplyCursorStyles()
 
   useEffect(() => {
@@ -53,12 +51,12 @@ export default function LayoutContent({
   }
 
   if (isLandingPage || isPricingPage) {
-    // Landing & Pricing - no navigation (public pages)
+    // Landing & Pricing - no navigation (public pages). The corner gear
+    // is the single settings entry point everywhere now, including here.
     return (
       <>
         {children}
-        <CursorPicker />
-        <ThemeSwitcher />
+        <DeskSettingsPanel />
         <FullscreenPrompt />
         <InstallPrompt />
       </>
@@ -71,8 +69,8 @@ export default function LayoutContent({
   // on top of this Background, /letters lays its postcard over it.
   //
   // The gear-driven DeskSettingsPanel is the single settings entry point on
-  // every authed page (theme, cursor, animations, sound — and page opacity
-  // on /write). It replaces the older floating ThemeSwitcher + CursorPicker.
+  // every page now (theme, cursor, animations, sound — and page opacity on
+  // /write). Landing/pricing render it via the public-pages branch above.
   if (isWritingPage || isLettersPage || isScrapbookListingPage) {
     return (
       <>

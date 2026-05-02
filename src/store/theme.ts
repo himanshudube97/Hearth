@@ -5,11 +5,11 @@ import { themes, Theme, ThemeName } from '@/lib/themes'
 const LEGACY_THEME_REMAP: Record<string, ThemeName> = {
   cherryBlossom: 'rose',
   winterSunset: 'hearth',
-  northernLights: 'rivendell',
+  northernLights: 'rose',
   mistyMountains: 'linen',
   gentleRain: 'ocean',
-  cosmos: 'rivendell',
-  midnight: 'rivendell',
+  cosmos: 'rose',
+  midnight: 'rose',
   candlelight: 'hearth',
   oceanTwilight: 'ocean',
   quietSnow: 'linen',
@@ -21,10 +21,10 @@ const LEGACY_THEME_REMAP: Record<string, ThemeName> = {
 }
 
 function resolveThemeName(name: string | undefined): ThemeName {
-  if (!name) return 'rivendell'
+  if (!name) return 'rose'
   if (name in themes) return name as ThemeName
   if (name in LEGACY_THEME_REMAP) return LEGACY_THEME_REMAP[name]
-  return 'rivendell'
+  return 'rose'
 }
 
 interface ThemeStore {
@@ -36,8 +36,8 @@ interface ThemeStore {
 export const useThemeStore = create<ThemeStore>()(
   persist(
     (set) => ({
-      themeName: 'rivendell',
-      theme: themes.rivendell,
+      themeName: 'rose',
+      theme: themes.rose,
       setTheme: (name: ThemeName) => set({
         themeName: name,
         theme: themes[name],
