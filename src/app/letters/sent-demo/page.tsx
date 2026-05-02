@@ -1,5 +1,9 @@
 'use client'
 
+// Offline preview of the sent-letters jar view, populated with mock data.
+// Useful for design review without seeding a test account. The live view
+// at /letters (sent tab) renders the same component with real data.
+
 import LettersTokens from '@/components/letters/LettersTokens'
 import JarSentView from '@/components/letters/sent/JarSentView'
 import type { SentStamp } from '@/components/letters/letterTypes'
