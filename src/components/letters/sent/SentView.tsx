@@ -8,10 +8,12 @@ export default function SentView() {
   const [stamps, setStamps] = useState<SentStamp[]>([])
 
   useEffect(() => {
+    let cancelled = false
     fetch('/api/letters/sent')
       .then(r => r.json())
-      .then(d => setStamps(d.stamps || []))
+      .then(d => { if (!cancelled) setStamps(d.stamps || []) })
       .catch(() => {})
+    return () => { cancelled = true }
   }, [])
 
   return <JarSentView stamps={stamps} />
