@@ -5,6 +5,7 @@ import type { StrokeData } from '@/store/journal'
 import type { EntryStyle } from '@/lib/entry-style'
 import { useDeskStore, type AutosaveStatus } from '@/store/desk'
 import { getClientTz } from '@/lib/entry-lock-client'
+import { useE2EE } from './useE2EE'
 
 const DEBOUNCE_MS = 1500
 const RETRY_DELAY_MS = 2000
@@ -13,7 +14,14 @@ export interface AutosaveDraft {
   text: string
   mood: number
   song: string | null
-  photos: { url: string; position: number; rotation: number; spread: number }[]
+  photos: {
+    url?: string                 // mark optional to support E2EE-uploaded photos
+    encryptedRef?: string        // set when E2EE photo upload
+    encryptedRefIV?: string      // IV for encryptedRef
+    position: number
+    rotation: number
+    spread: number
+  }[]
   doodles: { strokes: StrokeData[]; spread: number }[]
   // Per-entry display style. Always present in the draft (possibly empty {}),
   // sent to the server only when non-empty so existing letter saves don't
@@ -63,6 +71,12 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
   const inFlightRef = useRef(false)
   const dirtyRef = useRef(false)
 
+  const { encryptEntryData, isE2EEReady } = useE2EE()
+  const encryptEntryDataRef = useRef(encryptEntryData)
+  const isE2EEReadyRef = useRef(isE2EEReady)
+  encryptEntryDataRef.current = encryptEntryData
+  isE2EEReadyRef.current = isE2EEReady
+
   const performSaveRef = useRef<(retryCount?: number) => Promise<void>>(async () => {})
 
   performSaveRef.current = async (retryCount = 0) => {
@@ -85,25 +99,38 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
       'Content-Type': 'application/json',
       'X-User-TZ': getClientTz(),
     }
-    const body = JSON.stringify({
+
+    const baseDraft: Record<string, unknown> = {
       text: draft.text,
+      textPreview: createTextPreview(draft.text),
       mood: draft.mood,
       song: draft.song,
+      // Pass through letter metadata only when present in the draft
+      ...(draft.senderName !== undefined ? { senderName: draft.senderName } : {}),
+      ...(draft.recipientName !== undefined ? { recipientName: draft.recipientName } : {}),
+      ...(draft.letterLocation !== undefined ? { letterLocation: draft.letterLocation } : {}),
+      // Doodles transit through encryption — strokes JSON gets encrypted
+      doodles: draft.doodles,
+    }
+
+    const encryptedFields = isE2EEReadyRef.current
+      ? await encryptEntryDataRef.current(baseDraft as Parameters<typeof encryptEntryDataRef.current>[0])
+      : null
+
+    const body = JSON.stringify({
+      ...(encryptedFields ?? baseDraft),
+      // Photos and structural fields stay outside the encryption layer
       photos: draft.photos.map(p => ({
         url: p.url,
+        encryptedRef: p.encryptedRef,
+        encryptedRefIV: p.encryptedRefIV,
         position: p.position,
         rotation: p.rotation,
         spread: p.spread ?? 1,
       })),
-      doodles: draft.doodles,
       ...(draft.style && Object.keys(draft.style).length > 0 ? { style: draft.style } : {}),
-      // Letter fields — only included when present, so journal saves stay
-      // identical on the wire.
       ...(draft.entryType !== undefined ? { entryType: draft.entryType } : {}),
       ...(draft.recipientEmail !== undefined ? { recipientEmail: draft.recipientEmail } : {}),
-      ...(draft.recipientName !== undefined ? { recipientName: draft.recipientName } : {}),
-      ...(draft.senderName !== undefined ? { senderName: draft.senderName } : {}),
-      ...(draft.letterLocation !== undefined ? { letterLocation: draft.letterLocation } : {}),
       ...(draft.unlockDate !== undefined ? { unlockDate: draft.unlockDate } : {}),
     })
 
@@ -186,4 +213,9 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
   }, [])
 
   return { entryId, flush, reset, trigger }
+}
+
+function createTextPreview(html: string, max = 150): string {
+  const text = html.replace(/<[^>]*>/g, '').trim()
+  return text.length <= max ? text : text.slice(0, max).trim() + '...'
 }
