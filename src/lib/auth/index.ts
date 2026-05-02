@@ -63,12 +63,13 @@ async function getSupabaseUser(): Promise<AuthUser | null> {
   })
 
   if (!user) {
+    const provider = supabaseUser.app_metadata?.provider || 'email'
     user = await prisma.user.create({
       data: {
         email: supabaseUser.email,
         name: supabaseUser.user_metadata?.full_name || supabaseUser.email.split('@')[0],
-        avatar: supabaseUser.user_metadata?.avatar_url,
-        provider: 'google',
+        avatar: supabaseUser.user_metadata?.avatar_url || null,
+        provider,
       },
     })
   }

@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
 import { isEntryLocked, validateAppendOnlyDiff } from '@/lib/entry-lock'
 import { parseStyle } from '@/lib/entry-style'
+import { uploadPhotos } from '@/lib/storage'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string, maxLength = 150): string {
@@ -232,15 +233,16 @@ export async function PUT(
 
     // Add new photos if provided (append-only)
     if (newPhotos && newPhotos.length > 0) {
+      const uploadedNewPhotos = await uploadPhotos(newPhotos, id)
       await prisma.entryPhoto.createMany({
-        data: newPhotos.map((p: { url: string; position: number; spread: number; rotation?: number }) => ({
+        data: uploadedNewPhotos.map((p: { url: string; position: number; spread: number; rotation?: number }) => ({
           entryId: id,
           url: p.url,
           position: p.position,
           spread: p.spread,
           rotation: p.rotation ?? 0,
         })),
-        skipDuplicates: true, // Skip if photo already exists at position/spread
+        skipDuplicates: true,
       })
     }
 
@@ -273,8 +275,9 @@ export async function PUT(
     if (!locked && Array.isArray(photos)) {
       await prisma.entryPhoto.deleteMany({ where: { entryId: id } })
       if (photos.length > 0) {
+        const uploadedPhotos = await uploadPhotos(photos, id)
         await prisma.entryPhoto.createMany({
-          data: photos.map((p: { url: string; position: number; spread?: number; rotation?: number }) => ({
+          data: uploadedPhotos.map((p: { url: string; position: number; spread?: number; rotation?: number }) => ({
             entryId: id,
             url: p.url,
             position: p.position,

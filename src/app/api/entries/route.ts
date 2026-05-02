@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
 import { isEntryLocked, utcInstantForLocalDate, localDatePartsNow } from '@/lib/entry-lock'
 import { parseStyle } from '@/lib/entry-style'
+import { uploadPhotos } from '@/lib/storage'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string | null | undefined, maxLength = 150): string {
@@ -226,6 +227,11 @@ export async function POST(request: NextRequest) {
 
     console.log('[POST /api/entries] Creating entry for user:', user.id, 'photos:', photos?.length || 0, 'doodles:', doodles?.length || 0)
 
+    // Upload photos to storage before creating entry (entry ID not yet known — use temp key)
+    const uploadedPhotos = photos && photos.length > 0
+      ? await uploadPhotos(photos, `tmp-${user.id}-${Date.now()}`)
+      : photos
+
     const entry = await prisma.journalEntry.create({
       data: {
         text: encryptedText,
@@ -260,9 +266,9 @@ export async function POST(request: NextRequest) {
             }
           : undefined,
         // Create photos
-        photos: photos && photos.length > 0
+        photos: uploadedPhotos && uploadedPhotos.length > 0
           ? {
-              create: photos.map((p: { url: string; position: number; spread: number; rotation?: number }) => ({
+              create: uploadedPhotos.map((p: { url: string; position: number; spread: number; rotation?: number }) => ({
                 url: p.url,
                 position: p.position,
                 spread: p.spread,
