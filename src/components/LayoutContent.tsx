@@ -25,6 +25,9 @@ export default function LayoutContent({
   const isPricingPage = pathname === '/pricing'
   const isWritingPage = pathname === '/write'
   const isLettersPage = pathname.startsWith('/letters')
+  // /scrapbook (the listing) is a full-bleed scene like /letters; the
+  // per-scrapbook canvas at /scrapbook/[id] keeps the padded <main> wrapper.
+  const isScrapbookListingPage = pathname === '/scrapbook'
 
   // Apply the active cursor styles globally. Used to live inside
   // CursorPicker, but the writing page no longer renders that picker (it
@@ -67,7 +70,7 @@ export default function LayoutContent({
   // The gear-driven DeskSettingsPanel is the single settings entry point on
   // every authed page (theme, cursor, animations, sound — and page opacity
   // on /write). It replaces the older floating ThemeSwitcher + CursorPicker.
-  if (isWritingPage || isLettersPage) {
+  if (isWritingPage || isLettersPage || isScrapbookListingPage) {
     return (
       <>
         <Background />
