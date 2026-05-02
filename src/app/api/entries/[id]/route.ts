@@ -88,6 +88,8 @@ export async function PUT(
       select: {
         userId: true,
         encryptionType: true,
+        e2eeIV: true,
+        e2eeIVs: true,
         createdAt: true,
         text: true,
         song: true,
@@ -110,7 +112,7 @@ export async function PUT(
 
     const body = await request.json()
     const {
-      text, mood, song, tags, encryptionType, e2eeIV,
+      text, mood, song, tags, encryptionType, e2eeIV, e2eeIVs,
       spreads, appendText, newPhotos, newDoodles,
       style,
       // Full-replacement doodle/photo lists (autosave wire format). When the
@@ -201,6 +203,11 @@ export async function PUT(
     if (spreads !== undefined) updateData.spreads = spreads
     if (encryptionType !== undefined) updateData.encryptionType = encryptionType
     if (e2eeIV !== undefined) updateData.e2eeIV = e2eeIV
+    // Clear legacy e2eeIV when transitioning from server to e2ee encryption
+    if (encryptionType === 'e2ee' && existing.encryptionType === 'server') {
+      updateData.e2eeIV = null
+    }
+    if (e2eeIVs !== undefined) updateData.e2eeIVs = e2eeIVs
 
     // Letter fields. recipientEmail is plaintext (cron job needs it to look up
     // user / send the email). recipientName / senderName / letterLocation get

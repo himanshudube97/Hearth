@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     const {
       text, mood, song, tags, doodles, entryType, unlockDate, isSealed,
       recipientEmail, recipientName, senderName, letterLocation,
-      encryptionType, e2eeIV,
+      encryptionType, e2eeIV, e2eeIVs,
       // New fields
       photos, spreads,
       // New: per-entry style
@@ -246,6 +246,7 @@ export async function POST(request: NextRequest) {
         // E2EE fields
         encryptionType: encryptionType || 'server',
         e2eeIV: e2eeIV || null,
+        e2eeIVs: e2eeIVs ?? undefined,
         // New multi-spread fields
         spreads: spreads ?? 1,
         isArchived: false,
