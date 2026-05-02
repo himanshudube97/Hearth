@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useE2EEStore } from '@/store/e2ee'
 import { useAuthStore } from '@/store/auth'
+import { useBackfill } from '@/hooks/useBackfill'
 import {
   generateMasterKey,
   generateRecoveryKey,
@@ -84,6 +85,7 @@ export default function SetupModal() {
   const { showSetupModal, setShowSetupModal, setEnabled, storeMasterKey, fetchKeyData } = useE2EEStore()
   const user = useAuthStore(s => s.user)
   const email = user?.email ?? ''
+  const { runBackfill } = useBackfill()
 
   const [step, setStep] = useState<Step>('intro')
   const [agreedIntro, setAgreedIntro] = useState(false)
@@ -533,7 +535,7 @@ export default function SetupModal() {
               </button>
               <button
                 onClick={() => {
-                  // TODO(task-23): trigger useBackfill().runBackfill() here
+                  runBackfill().catch(err => console.error('backfill error', err))
                   setStep('done')
                 }}
                 disabled={!savedRecovery}

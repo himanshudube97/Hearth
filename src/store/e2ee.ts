@@ -23,6 +23,15 @@ interface E2EEState {
   loading: boolean
   initialized: boolean
 
+  // Backfill progress
+  backfillProgress: {
+    status: 'idle' | 'running' | 'paused' | 'done' | 'error'
+    migrated: number
+    total: number
+    lastCursor: string | null
+    failedIds: string[]
+  }
+
   // Actions
   setEnabled: (enabled: boolean) => void
   setMasterKey: (key: CryptoKey | null) => void
@@ -31,6 +40,7 @@ interface E2EEState {
   setShowUnlockModal: (show: boolean) => void
   setShowRecoveryModal: (show: boolean) => void
   setLoading: (loading: boolean) => void
+  setBackfillProgress: (patch: Partial<E2EEState['backfillProgress']>) => void
 
   // Async actions
   storeMasterKey: (key: CryptoKey, ttlDays?: number) => Promise<void>
@@ -51,6 +61,13 @@ export const useE2EEStore = create<E2EEState>((set, get) => ({
   showRecoveryModal: false,
   loading: false,
   initialized: false,
+  backfillProgress: {
+    status: 'idle' as const,
+    migrated: 0,
+    total: 0,
+    lastCursor: null,
+    failedIds: [] as string[],
+  },
 
   // Setters
   setEnabled: (enabled) => set({ isEnabled: enabled }),
@@ -60,6 +77,12 @@ export const useE2EEStore = create<E2EEState>((set, get) => ({
   setShowUnlockModal: (show) => set({ showUnlockModal: show }),
   setShowRecoveryModal: (show) => set({ showRecoveryModal: show }),
   setLoading: (loading) => set({ loading }),
+  setBackfillProgress: (patch) =>
+    set(s => {
+      const next = { ...s.backfillProgress, ...patch }
+      try { localStorage.setItem('hearth-backfill-progress', JSON.stringify(next)) } catch {}
+      return { backfillProgress: next }
+    }),
 
   // Store master key in browser storage
   storeMasterKey: async (key, ttlDays = 7) => {
@@ -103,6 +126,12 @@ export const useE2EEStore = create<E2EEState>((set, get) => ({
     set({ loading: true })
 
     try {
+      // Hydrate backfill progress from localStorage
+      try {
+        const raw = localStorage.getItem('hearth-backfill-progress')
+        if (raw) set({ backfillProgress: JSON.parse(raw) })
+      } catch {}
+
       // Fetch E2EE status from server
       const keyData = await state.fetchKeyData()
 
