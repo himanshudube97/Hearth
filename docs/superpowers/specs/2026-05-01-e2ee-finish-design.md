@@ -604,7 +604,7 @@ model Scrapbook {
 
 ### Docs
 
-- `docs/e2ee-architecture.md` *(new)* — developer/contributor/auditor doc, ~1500 words. Covers crypto stack (PBKDF2/AES-GCM/IV handling), key wrapping, photo flow, backfill, threat model, what server can/can't see.
+- `docs/e2ee-architecture.md` *(new)* — developer/contributor/auditor doc, ~1500 words. Covers crypto stack (PBKDF2/AES-GCM/IV handling), key wrapping, photo flow, backfill, threat model, what server can/can't see. Includes a dedicated **"Adding new encrypted fields"** section: the 3-step recipe (extend `encryptDraft`/`decryptEntry`, add IV slot to `e2eeIVs`, server stores ciphertext as-is when `encryptionType === 'e2ee'`) with a worked example. Also covers the limits — what cannot be added without breaking E2EE (server-side processing of plaintext, AI on entry content, server-side search).
 - `src/app/security/page.tsx` *(new)* — user-facing privacy page, ~400 words. Plain English. Covers: what E2EE means, what we can't see, what we can see, what happens if you lose your daily key, what happens if you lose both keys. Linked from profile → "How E2EE works."
 
 ### Files explicitly NOT touched (Spec B territory)
