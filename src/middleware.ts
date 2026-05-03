@@ -4,7 +4,14 @@ import { createServerClient } from '@supabase/ssr'
 import * as jose from 'jose'
 import { isEmailVerified } from '@/lib/auth/email-verified'
 
-const PUBLIC_PATHS = ['/login', '/api/auth', '/api/webhooks', '/api/webhooks/lemonsqueezy']
+const PUBLIC_PATHS = [
+  '/login',
+  '/api/auth',
+  '/api/webhooks',
+  '/api/webhooks/lemonsqueezy',
+  '/api/letter',
+  '/letter',
+]
 const PUBLIC_EXACT_PATHS = ['/', '/pricing', '/forgot', '/reset', '/verify']
 const STATIC_PATHS = ['/_next', '/favicon.ico', '/images', '/icons', '/manifest.json', '/sw.js', '/workbox']
 
