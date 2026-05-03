@@ -9,6 +9,7 @@ import { useProfileStore, ProfileKey } from '@/store/profile'
 import { useE2EEStore } from '@/store/e2ee'
 import DatePicker from '@/components/DatePicker'
 import RotateRecoveryKeyModal from '@/components/e2ee/RotateRecoveryKeyModal'
+import ReminderControls from '@/components/reminders/ReminderControls'
 
 interface Question {
   key: ProfileKey
@@ -584,6 +585,21 @@ export default function MePage() {
           className="flex-1 h-px"
           style={{ background: theme.glass.border }}
         />
+      </motion.div>
+
+      {/* Gentle reminders */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="p-6 rounded-2xl mb-8"
+        style={{
+          background: theme.glass.bg,
+          backdropFilter: `blur(${theme.glass.blur})`,
+          border: `1px solid ${theme.glass.border}`,
+        }}
+      >
+        <ReminderControls />
       </motion.div>
 
       {/* E2EE Settings */}
