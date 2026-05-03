@@ -26,11 +26,17 @@ EMAIL + DOMAIN
 [ ]  7. Resend account, API key created
 [ ]  7. Sender domain added in Resend, DNS records published, verified
 
+WEB PUSH (gentle reminders)
+[ ]  7b. VAPID keypair generated, all four VAPID env vars set on the host
+
 DEPLOY
 [ ]  8. Production env vars set on hosting target
 [ ]  9. prisma migrate deploy run against prod database
-[ ]  9. Cron scheduler hitting /api/cron/deliver-letters and /api/cron/sweep-orphaned-blobs
-[ ] 10. Post-deploy smoke test passes
+[ ]  9. cron-job.org account + 3 cronjobs created:
+        - daily   /api/cron/deliver-letters
+        - 15-min  /api/cron/send-reminders
+        - few-hr  /api/cron/sweep-orphaned-blobs
+[ ] 10. Post-deploy smoke test passes (incl. test reminder from /me)
 ```
 
 ---
@@ -245,6 +251,13 @@ RESEND_API_KEY=re_<value>
 # Cron — auth header for /api/cron/* routes
 CRON_SECRET=<openssl rand -hex 32>
 
+# Web Push (VAPID) — for gentle nightly reminders
+# Generate with: docker compose exec app npx web-push generate-vapid-keys
+VAPID_PUBLIC_KEY=<base64url public key>
+VAPID_PRIVATE_KEY=<base64url private key — server only>
+VAPID_SUBJECT=mailto:support@hearth.app
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=<same as VAPID_PUBLIC_KEY, exposed to browser>
+
 # Lemon Squeezy (optional — only if you're charging for it)
 LEMONSQUEEZY_API_KEY=<...>
 LEMONSQUEEZY_STORE_ID=<...>
@@ -260,7 +273,7 @@ NEXT_PUBLIC_APP_URL=https://hearth.app
 DEV_JWT_SECRET=<any string ≥ 32 chars>
 ```
 
-**⚠ Don't leak `SUPABASE_SERVICE_ROLE_KEY`, `ENCRYPTION_KEY`, `RESEND_API_KEY`, `CRON_SECRET`, or `LEMONSQUEEZY_API_KEY`.** They go in the host's environment-variable settings, never into client code or a public file.
+**⚠ Don't leak `SUPABASE_SERVICE_ROLE_KEY`, `ENCRYPTION_KEY`, `RESEND_API_KEY`, `CRON_SECRET`, `VAPID_PRIVATE_KEY`, or `LEMONSQUEEZY_API_KEY`.** They go in the host's environment-variable settings, never into client code or a public file. (`VAPID_PUBLIC_KEY` and `NEXT_PUBLIC_VAPID_PUBLIC_KEY` are intentionally public.)
 
 ---
 
@@ -277,11 +290,72 @@ After env vars are set on the host:
      npx prisma migrate deploy
      ```
    - This applies all migrations in `prisma/migrations/` in order, including the `remove_mood_from_entry` migration. **If you have any production data with mood values you want to keep, don't run this — back up first.** Otherwise you're fine, this branch's migrations are: `add_letter_access_token`, `add_orphaned_blob`, `remove_mood_from_entry`.
-3. **Set up cron:** point a scheduler at:
-   - `POST /api/cron/deliver-letters` — daily, around 9am UTC works
-   - `POST /api/cron/sweep-orphaned-blobs` — every few hours
-   Both need the `Authorization: Bearer ${CRON_SECRET}` header.
-   Vercel's built-in cron works; Upstash QStash, EasyCron, or a simple GitHub Actions schedule also fine.
+3. **Set up cron** — see Section 9b below.
+
+---
+
+## 9b. Cron jobs via cron-job.org (~10 min, free)
+
+The app has three cron endpoints. All three need `Authorization: Bearer ${CRON_SECRET}` and are idempotent (safe to retry).
+
+| Endpoint | Cadence | Why |
+|---|---|---|
+| `/api/cron/deliver-letters` | daily | Sends time-delayed friend letters whose `unlockDate` has arrived. |
+| `/api/cron/send-reminders` | every 15 min | Fires per-user nightly push reminders inside their evening window. The 15-min cadence is load-bearing — coarser means missed slots. |
+| `/api/cron/sweep-orphaned-blobs` | every few hours | Garbage-collects encrypted photo blobs whose entries were deleted. |
+
+**Why not Vercel Cron?** Hobby tier only allows once/day; the reminder cron needs 15-min cadence which requires Vercel Pro. cron-job.org is free, supports per-minute precision, and lets you stay on Vercel Hobby. (If you're already on Pro, use [vercel.json](https://vercel.com/docs/cron-jobs) instead.)
+
+### Step 1: Smoke-test each route from your laptop first
+```bash
+# Replace <HOST> and <CRON> with your real values
+curl -i -H "Authorization: Bearer <CRON>" https://<HOST>/api/cron/deliver-letters
+curl -i -H "Authorization: Bearer <CRON>" https://<HOST>/api/cron/send-reminders
+curl -i -H "Authorization: Bearer <CRON>" https://<HOST>/api/cron/sweep-orphaned-blobs
+```
+Expect `200` with a JSON body. `401` = secret mismatch. `500 "VAPID not configured"` on `send-reminders` = VAPID env vars missing on the host.
+
+### Step 2: Create an account at cron-job.org
+Free, email verification only. https://cron-job.org
+
+### Step 3: Create three cronjobs
+
+For each one, click **Create cronjob** and fill:
+
+**A. send-reminders (every 15 min)**
+- **Title**: `hearth send-reminders`
+- **URL**: `https://<HOST>/api/cron/send-reminders`
+- **Schedule** (Common tab): "every 15 minutes" — or Advanced: `Minutes: */15`, others `*`
+- **Advanced → Request method**: `GET`
+- **Advanced → HTTP headers**: add one
+  - Name: `Authorization`
+  - Value: `Bearer <your-cron-secret>` (literal "Bearer " + the secret)
+- **Notifications**: enable "notify on failure" (recommended)
+- Save.
+
+**B. deliver-letters (daily)**
+- **Title**: `hearth deliver-letters`
+- **URL**: `https://<HOST>/api/cron/deliver-letters`
+- **Schedule** (Advanced): `Minutes: 0, Hours: 9` (= 9am UTC daily — pick whatever suits)
+- Same `Authorization` header as above.
+- Save.
+
+**C. sweep-orphaned-blobs (every 4 hours)**
+- **Title**: `hearth sweep-orphaned-blobs`
+- **URL**: `https://<HOST>/api/cron/sweep-orphaned-blobs`
+- **Schedule** (Advanced): `Minutes: 0, Hours: */4`
+- Same `Authorization` header.
+- Save.
+
+### Step 4: Verify
+- Click "Execute now" on each — execution history should show `200` with a JSON body.
+- After 30 minutes, check the history for `send-reminders` — there should be ~2 entries, both `200`. Most will report `0 fired` until a real user's evening window matches.
+
+### What can go wrong
+- **Header pasted wrong**: cron-job.org will show `401` in execution history. Re-check that the value starts with the literal word `Bearer ` (with the trailing space).
+- **URL has typo**: shows `404`. Double-check the path.
+- **App not yet deployed / DNS not propagated**: shows connection error. Wait for the deploy to finish.
+- **`send-reminders` returns `500` with "VAPID not configured"**: the four `VAPID_*` env vars aren't set on the host. Add them in your hosting provider's dashboard, redeploy, retry.
 
 ---
 
@@ -292,6 +366,7 @@ After env vars are set on the host:
 3. Toggle E2EE on, confirm both key files download.
 4. Try the forgot-password flow end-to-end.
 5. Send yourself a friend letter with an unlock date 1 day out, manually fire the cron once, confirm magic link works.
+6. **Reminders**: write your first entry → opt-in card appears → click "Surprise me" → permission prompt → accept. Visit `/me` → "Send a test reminder" → notification fires within seconds. Tap it → opens `/write?write=1` and lands on a fresh new-entry spread.
 
 ---
 
