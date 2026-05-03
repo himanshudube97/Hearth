@@ -1,0 +1,177 @@
+import { NextRequest, NextResponse } from 'next/server'
+import webpush from 'web-push'
+import { prisma } from '@/lib/db'
+import { isCurrentWindowTarget, targetMinutesPastSeven } from '@/lib/reminder-schedule'
+import { pickReminderLine, REMINDER_TITLE } from '@/lib/reminder-messages'
+import { decryptJson } from '@/lib/encryption'
+
+let configured = false
+function configureVapid() {
+  if (configured) return
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:support@hearth.app',
+    process.env.VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!,
+  )
+  configured = true
+}
+
+function localWallClockISO(now: Date, tz: string): string {
+  // Build an ISO-like string representing the wall-clock time in the given TZ.
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  })
+  const parts = Object.fromEntries(fmt.formatToParts(now).map(p => [p.type, p.value]))
+  // 'en-CA' gives YYYY-MM-DD and HH:MM:SS — but hour can be '24' for midnight in some impls
+  const hh = parts.hour === '24' ? '00' : parts.hour
+  return `${parts.year}-${parts.month}-${parts.day}T${hh}:${parts.minute}:${parts.second}`
+}
+
+function localDateStr(now: Date, tz: string): string {
+  return localWallClockISO(now, tz).slice(0, 10)
+}
+
+function startOfLocalDayUTC(now: Date, tz: string): Date {
+  const dateStr = localDateStr(now, tz)
+  // Construct midnight in the user's TZ as a UTC instant.
+  // Trick: parse "YYYY-MM-DDT00:00:00" as if it were UTC, then offset back by the TZ's offset at that instant.
+  const naiveUtc = new Date(`${dateStr}T00:00:00Z`)
+  const tzOffsetMinutes = (() => {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      timeZoneName: 'longOffset',
+    })
+    const parts = fmt.formatToParts(naiveUtc)
+    const offsetPart = parts.find(p => p.type === 'timeZoneName')?.value || 'GMT+00:00'
+    const m = offsetPart.match(/GMT([+-])(\d{2}):(\d{2})/)
+    if (!m) return 0
+    const sign = m[1] === '+' ? 1 : -1
+    return sign * (parseInt(m[2], 10) * 60 + parseInt(m[3], 10))
+  })()
+  return new Date(naiveUtc.getTime() - tzOffsetMinutes * 60_000)
+}
+
+export async function GET(request: NextRequest | Request) {
+  const auth = request.headers.get('authorization')
+  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    configureVapid()
+  } catch {
+    return NextResponse.json({ error: 'VAPID not configured' }, { status: 500 })
+  }
+
+  const now = new Date()
+
+  // Step 1: auto-pause anyone at or past 7 ignored
+  const pauseResult = await prisma.pushSubscription.updateMany({
+    where: { pausedAt: null, consecutiveIgnored: { gte: 7 } },
+    data: { pausedAt: now },
+  })
+
+  // Step 2: load active subscriptions
+  const subs = await prisma.pushSubscription.findMany({
+    where: { pausedAt: null },
+  })
+
+  let fired = 0
+  let skippedAlreadyJournaled = 0
+  let skippedNotInWindow = 0
+  let skippedAlreadyFiredToday = 0
+
+  for (const sub of subs) {
+    const tz = sub.tz || 'UTC'
+    const dateStr = localDateStr(now, tz)
+    const startOfToday = startOfLocalDayUTC(now, tz)
+
+    // Already fired today? Single-fire-per-day guarantee.
+    if (sub.lastFiredAt && sub.lastFiredAt >= startOfToday) {
+      skippedAlreadyFiredToday++
+      continue
+    }
+
+    const userRow = await prisma.user.findUnique({
+      where: { id: sub.userId },
+      select: { profile: true },
+    })
+    const profile = userRow?.profile
+      ? (decryptJson<Record<string, unknown>>(userRow.profile as string) ?? {})
+      : {}
+    const reminderTime = typeof profile.reminderTime === 'string' ? profile.reminderTime : null
+
+    const target = reminderTime
+      ? targetMinutesPastSeven({ mode: 'override', time: reminderTime })
+      : targetMinutesPastSeven({ mode: 'default', userId: sub.userId, dateStr })
+
+    const nowLocalISO = localWallClockISO(now, tz)
+    if (!isCurrentWindowTarget({ nowLocalISO, targetMinutesPastSeven: target })) {
+      skippedNotInWindow++
+      continue
+    }
+
+    // Skip if user already journaled today
+    const todayEntry = await prisma.journalEntry.findFirst({
+      where: { userId: sub.userId, createdAt: { gte: startOfToday } },
+      select: { id: true },
+    })
+    if (todayEntry) {
+      skippedAlreadyJournaled++
+      // Reset ignored counter (they're engaged)
+      await prisma.pushSubscription.update({
+        where: { id: sub.id },
+        data: { consecutiveIgnored: 0 },
+      })
+      continue
+    }
+
+    // Update ignored counter for the *previous* fire
+    let nextIgnored = sub.consecutiveIgnored
+    if (sub.lastFiredAt) {
+      const wroteSinceLastFire = await prisma.journalEntry.findFirst({
+        where: { userId: sub.userId, createdAt: { gte: sub.lastFiredAt } },
+        select: { id: true },
+      })
+      nextIgnored = wroteSinceLastFire ? 0 : sub.consecutiveIgnored + 1
+    }
+
+    // Send the push
+    const payload = JSON.stringify({ title: REMINDER_TITLE, body: pickReminderLine() })
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        payload
+      )
+      await prisma.pushSubscription.update({
+        where: { id: sub.id },
+        data: { lastFiredAt: now, consecutiveIgnored: nextIgnored },
+      })
+      fired++
+    } catch (err: unknown) {
+      const statusCode = (err as { statusCode?: number })?.statusCode
+      const message = err instanceof Error ? err.message : String(err)
+      if (statusCode === 410 || statusCode === 404) {
+        // Subscription expired — clean up
+        await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {})
+      } else {
+        console.error('push send failed', sub.id, message)
+      }
+    }
+  }
+
+  return NextResponse.json({
+    fired,
+    skippedAlreadyJournaled,
+    skippedNotInWindow,
+    skippedAlreadyFiredToday,
+    paused: pauseResult.count,
+  })
+}
+
+export async function POST(request: NextRequest) {
+  return GET(request)
+}
