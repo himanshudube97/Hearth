@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { decryptJson, encryptJson } from '@/lib/encryption'
 
 const ALLOWED_KEYS = new Set([
   'reminderTime',
@@ -25,13 +26,17 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'No valid fields' }, { status: 400 })
   }
 
+  // User.profile stores an encrypted JSON blob (see src/app/api/profile/route.ts)
+  // — decrypt, merge, re-encrypt to coexist with profile-question keys.
   const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { profile: true } })
-  const existingProfile = (dbUser?.profile as Record<string, unknown> | null) ?? {}
+  const existingProfile = dbUser?.profile
+    ? (decryptJson<Record<string, unknown>>(dbUser.profile as string) ?? {})
+    : {}
   const nextProfile = { ...existingProfile, ...updates }
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { profile: nextProfile },
+    data: { profile: encryptJson(nextProfile) },
   })
 
   return NextResponse.json({ ok: true, profile: nextProfile })
