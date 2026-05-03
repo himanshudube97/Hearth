@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useE2EEStore } from '@/store/e2ee'
+import { useAuthStore } from '@/store/auth'
 import {
   deriveKeyFromRecoveryKey,
   deriveKeyFromPassphrase,
@@ -13,11 +14,13 @@ import {
   generateSalt,
   parseSalt,
 } from '@/lib/e2ee/crypto'
+import { downloadDailyKeyFile } from '@/lib/e2ee/download-keys'
 
 type Step = 'recovery' | 'new-daily-key' | 'complete'
 
 export default function RecoveryModal() {
   const { theme } = useThemeStore()
+  const userEmail = useAuthStore(s => s.user?.email)
   const {
     showRecoveryModal,
     setShowRecoveryModal,
@@ -125,6 +128,11 @@ export default function RecoveryModal() {
       // Store master key and refresh key data
       await storeMasterKey(masterKey, 0)
       await fetchKeyData()
+
+      // Auto-download the new daily key so the user has a fresh local
+      // backup of the value they just typed. The recovery key is
+      // unchanged in this flow, so we don't re-emit it here.
+      downloadDailyKeyFile(newDailyKey, userEmail)
 
       setStep('complete')
     } catch (err) {
