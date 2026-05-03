@@ -32,9 +32,10 @@ WEB PUSH (gentle reminders)
 DEPLOY
 [ ]  8. Production env vars set on hosting target
 [ ]  9. prisma migrate deploy run against prod database
-[ ]  9. cron-job.org account + 3 cronjobs created:
+[ ]  9. cron-job.org account + 4 cronjobs created:
         - daily   /api/cron/deliver-letters
         - 15-min  /api/cron/send-reminders
+        - 15-min  /api/cron/expire-stranger-notes
         - few-hr  /api/cron/sweep-orphaned-blobs
 [ ] 10. Post-deploy smoke test passes (incl. test reminder from /me)
 ```
@@ -296,12 +297,13 @@ After env vars are set on the host:
 
 ## 9b. Cron jobs via cron-job.org (~10 min, free)
 
-The app has three cron endpoints. All three need `Authorization: Bearer ${CRON_SECRET}` and are idempotent (safe to retry).
+The app has four cron endpoints. All four need `Authorization: Bearer ${CRON_SECRET}` and are idempotent (safe to retry).
 
 | Endpoint | Cadence | Why |
 |---|---|---|
 | `/api/cron/deliver-letters` | daily | Sends time-delayed friend letters whose `unlockDate` has arrived. |
 | `/api/cron/send-reminders` | every 15 min | Fires per-user nightly push reminders inside their evening window. The 15-min cadence is load-bearing — coarser means missed slots. |
+| `/api/cron/expire-stranger-notes` | every 15 min | Sweeps expired stranger notes/replies and retries queued matches. |
 | `/api/cron/sweep-orphaned-blobs` | every few hours | Garbage-collects encrypted photo blobs whose entries were deleted. |
 
 **Why not Vercel Cron?** Hobby tier only allows once/day; the reminder cron needs 15-min cadence which requires Vercel Pro. cron-job.org is free, supports per-minute precision, and lets you stay on Vercel Hobby. (If you're already on Pro, use [vercel.json](https://vercel.com/docs/cron-jobs) instead.)
@@ -311,6 +313,7 @@ The app has three cron endpoints. All three need `Authorization: Bearer ${CRON_S
 # Replace <HOST> and <CRON> with your real values
 curl -i -H "Authorization: Bearer <CRON>" https://<HOST>/api/cron/deliver-letters
 curl -i -H "Authorization: Bearer <CRON>" https://<HOST>/api/cron/send-reminders
+curl -i -H "Authorization: Bearer <CRON>" https://<HOST>/api/cron/expire-stranger-notes
 curl -i -H "Authorization: Bearer <CRON>" https://<HOST>/api/cron/sweep-orphaned-blobs
 ```
 Expect `200` with a JSON body. `401` = secret mismatch. `500 "VAPID not configured"` on `send-reminders` = VAPID env vars missing on the host.
@@ -318,7 +321,7 @@ Expect `200` with a JSON body. `401` = secret mismatch. `500 "VAPID not configur
 ### Step 2: Create an account at cron-job.org
 Free, email verification only. https://cron-job.org
 
-### Step 3: Create three cronjobs
+### Step 3: Create four cronjobs
 
 For each one, click **Create cronjob** and fill:
 
@@ -340,7 +343,14 @@ For each one, click **Create cronjob** and fill:
 - Same `Authorization` header as above.
 - Save.
 
-**C. sweep-orphaned-blobs (every 4 hours)**
+**C. expire-stranger-notes (every 15 min)**
+- **Title**: `hearth expire-stranger-notes`
+- **URL**: `https://<HOST>/api/cron/expire-stranger-notes`
+- **Schedule** (Common tab): "every 15 minutes" — or Advanced: `Minutes: */15`, others `*`
+- Same `Authorization` header.
+- Save.
+
+**D. sweep-orphaned-blobs (every 4 hours)**
 - **Title**: `hearth sweep-orphaned-blobs`
 - **URL**: `https://<HOST>/api/cron/sweep-orphaned-blobs`
 - **Schedule** (Advanced): `Minutes: 0, Hours: */4`
