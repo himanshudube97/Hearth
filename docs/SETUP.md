@@ -1,8 +1,37 @@
 # Hearth Setup Guide
 
-Everything you need to do (mostly outside the codebase) to take this branch from clean checkout to a running production deployment. Reads top-to-bottom: do **dev first** (Steps 1–3) so you can verify locally, then **production** (Steps 4–8) once dev is happy.
+Everything you need to do (mostly outside the codebase) to take this branch from clean checkout to a running production deployment. Reads top-to-bottom: do **dev first** (Steps 1–3) so you can verify locally, then **production** (Steps 4–9) once dev is happy.
 
-The `feat/add_supabase` branch is already wired for all of this — you mainly need to fill in env vars and click some dashboard buttons.
+The `feat/add_supabase` branch is already wired for all of this — you mainly need to fill in env vars and click some dashboard buttons. **No CLI linking step is needed.** The codebase reads `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` from env at runtime and creates the clients lazily — that's the entire wiring.
+
+---
+
+## Quick checklist (track as you go)
+
+```
+DEV
+[ ]  1. Docker app running locally
+[ ]  2. .env has DATABASE_URL, DIRECT_URL, DEV_JWT_SECRET, ENCRYPTION_KEY, CRON_SECRET
+[ ]  3. Verified /forgot, /reset, /verify, E2EE setup, magic link
+
+SUPABASE
+[ ]  4. Project created, 3 keys copied (URL, anon, service_role)
+[ ]  4. Database connection strings copied (pooler 6543 + direct 5432)
+[ ]  5. Storage bucket "hearth-photos" created, set Private
+[ ]  6. Auth: Confirm-email enabled, email templates branded
+[ ]  6. Auth: Site URL + Redirect URLs added
+[ ]  6. (optional) Google OAuth provider configured
+
+EMAIL + DOMAIN
+[ ]  7. Resend account, API key created
+[ ]  7. Sender domain added in Resend, DNS records published, verified
+
+DEPLOY
+[ ]  8. Production env vars set on hosting target
+[ ]  9. prisma migrate deploy run against prod database
+[ ]  9. Cron scheduler hitting /api/cron/deliver-letters and /api/cron/sweep-orphaned-blobs
+[ ] 10. Post-deploy smoke test passes
+```
 
 ---
 
@@ -112,44 +141,50 @@ Compose a friend letter with an unlock date in the past (force via Prisma Studio
 
 ## 4. Supabase: create the project (~5 min)
 
-1. Go to [supabase.com](https://supabase.com) → **New project**.
+1. Go to [supabase.com/dashboard/projects](https://supabase.com/dashboard/projects) → **New project**.
 2. Pick a region closest to your users.
 3. Project name: anything (e.g. `hearth-prod`).
 4. Set a strong database password (you won't need it day-to-day; Supabase manages the connection).
 5. Wait ~1 minute for provisioning.
 
-**After creation, grab three values from Settings → API:**
+**After creation, grab three values from [the API settings page](https://supabase.com/dashboard/project/_/settings/api)** *(the `_` in that URL auto-routes to your active project — every link below works the same way)*:
 - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
 - `anon` `public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `service_role` `secret` key → `SUPABASE_SERVICE_ROLE_KEY` (server-only, never expose in client code)
 
-**Set up the database connection string for your prod env:**
-- Settings → Database → Connection string → **URI**.
-- Use the **Connection pooling** URI (port 6543) for `DATABASE_URL`.
-- Use the **Direct connection** URI (port 5432) for `DIRECT_URL`. Prisma needs this for migrations.
+**Database connection strings** — open [Settings → Database](https://supabase.com/dashboard/project/_/settings/database):
+- Scroll to **Connection string** → **URI** tab.
+- Toggle **Use connection pooling**: ON → copy → that's your `DATABASE_URL` (port 6543).
+- Toggle **Use connection pooling**: OFF → copy → that's your `DIRECT_URL` (port 5432). Prisma needs both: pooler for the app, direct for migrations.
+
+> **No CLI linking command runs.** You are not running `supabase link` or `supabase init` — those are for projects that use Supabase migrations (we use Prisma instead). Env vars are the only wiring.
 
 ---
 
 ## 5. Supabase: storage bucket (~2 min)
 
-1. Storage → **New bucket** → name it `hearth-photos`.
-2. Set **Public**: OFF (this is critical — photos are encrypted ciphertext, but defense in depth).
-3. Add to your prod env: `SUPABASE_STORAGE_BUCKET=hearth-photos`, `PHOTO_STORAGE=supabase`.
-4. Optional but recommended: Storage → Policies → add a policy that *only* the service role can read/write the bucket. The Hearth backend uses the service role key, so this just removes the surface area if anything else ever connects.
+Open [Storage](https://supabase.com/dashboard/project/_/storage/buckets):
+
+1. Click **New bucket** → name it `hearth-photos`.
+2. **Public bucket**: OFF (critical — even though photos are encrypted ciphertext, public access is unnecessary surface area).
+3. **File size limit**: 50 MB is plenty for compressed photos.
+4. Click **Save**.
+5. Add to your prod env: `SUPABASE_STORAGE_BUCKET=hearth-photos`, `PHOTO_STORAGE=supabase`.
+6. Optional but recommended: open [Storage → Policies](https://supabase.com/dashboard/project/_/storage/policies) → New policy → restrict reads/writes to the service role only. The Hearth backend uses the service-role key, so this is purely defense in depth.
 
 ---
 
 ## 6. Supabase: auth setup (~10 min)
 
 ### 6a. Email/password + verification
-- Authentication → **Settings** → ensure **"Confirm email"** is enabled.
-- Authentication → **Email Templates** → customize the **"Confirm signup"** and **"Reset Password"** templates with your branding.
+- Open [Authentication → Providers](https://supabase.com/dashboard/project/_/auth/providers) → confirm **Email** is enabled, with **Confirm email** ON.
+- Open [Authentication → Email Templates](https://supabase.com/dashboard/project/_/auth/templates) → customize the **Confirm signup** and **Reset Password** templates with your branding.
 - The default Supabase email service sends ~3–4 auth emails/hour on the free tier. Fine for early users; if you outgrow it, set custom SMTP later (you can point it at Resend).
 
 ### 6b. URL Configuration
-Authentication → **URL Configuration**:
-- **Site URL**: `https://hearth.app`
-- **Redirect URLs** (add each):
+Open [Authentication → URL Configuration](https://supabase.com/dashboard/project/_/auth/url-configuration):
+- **Site URL**: `https://hearth.app` (replace with your domain)
+- **Redirect URLs** (add each on its own line):
   - `https://hearth.app/api/auth/callback`
   - `https://hearth.app/reset`
   - `http://localhost:3111/api/auth/callback` (local dev)
@@ -159,11 +194,11 @@ Authentication → **URL Configuration**:
 Skip if you only want email/password initially.
 
 1. Open [Google Cloud Console](https://console.cloud.google.com) → create or pick a project.
-2. **APIs & Services** → **OAuth consent screen** → fill in app name, user support email, dev contact. App type: External (unless you have a Google Workspace).
-3. **APIs & Services** → **Credentials** → **Create Credentials** → **OAuth client ID** → Web application.
-4. **Authorized redirect URIs**: add the URI shown in Supabase under **Authentication → Providers → Google** (looks like `https://<project-ref>.supabase.co/auth/v1/callback`).
-5. Copy the Client ID + Client Secret.
-6. Back in Supabase: **Authentication → Providers → Google** → **Enabled** ON, paste Client ID + Secret, save.
+2. [APIs & Services → OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent) → fill in app name, user support email, dev contact. App type: **External** (unless you have a Google Workspace).
+3. [APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials) → **Create Credentials** → **OAuth client ID** → Web application.
+4. **Authorized redirect URIs**: add the URI shown in [Supabase → Auth → Providers → Google](https://supabase.com/dashboard/project/_/auth/providers) (it looks like `https://<project-ref>.supabase.co/auth/v1/callback`). Copy that URI from Supabase, paste into Google.
+5. Click **Create**, copy the Client ID + Client Secret.
+6. Back in [Supabase → Auth → Providers → Google](https://supabase.com/dashboard/project/_/auth/providers) → toggle **Enabled** ON → paste Client ID + Secret → Save.
 
 ---
 
@@ -171,12 +206,12 @@ Skip if you only want email/password initially.
 
 For sending letter emails (and optionally piping Supabase auth emails through it later for one consistent sender).
 
-1. [resend.com](https://resend.com) → sign up.
-2. **API Keys → Create API Key** → "Hearth production" → copy.
+1. Sign up at [resend.com](https://resend.com).
+2. Open [API Keys](https://resend.com/api-keys) → **Create API Key** → name it "Hearth production" → permissions: **Sending access** → copy. Save it now; Resend won't show it again.
 3. Add to prod env: `RESEND_API_KEY=re_<value>`.
-4. **Domains → Add Domain** → enter your sender domain (e.g. `hearth.app`).
+4. Open [Domains](https://resend.com/domains) → **Add Domain** → enter your sender domain (e.g. `hearth.app`).
 5. Resend shows ~3 DNS records (TXT for SPF, DKIM, optional DMARC). Add them at your DNS provider (Cloudflare, Namecheap, Route 53, whatever).
-6. Wait 5–30 minutes; click **Verify** in Resend.
+6. Wait 5–30 minutes for propagation; click **Verify** in Resend.
 7. Until DNS verifies, you can still test by sending **only to your own email** from the default `onboarding@resend.dev` sender. The code uses `letters@hearth.app` — change once verified, or change the sender in [src/lib/email.ts](src/lib/email.ts) for your domain.
 
 ---
