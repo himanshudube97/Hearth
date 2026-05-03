@@ -41,6 +41,7 @@ interface Entry {
   doodles?: Array<{ strokes: StrokeData[] }>
   createdAt: string
   style?: import('@/lib/entry-style').EntryStyle | null
+  encryptionType?: string
 }
 
 // Fixed page dimensions for the flipbook
@@ -192,6 +193,24 @@ export default function BookSpread() {
         setTotalSpreads(remainder.length + 1)
 
         if (active) {
+          // Guard against feeding an E2EE placeholder back into the editor.
+          // useE2EE.decryptEntryFromServer returns "[Encrypted — unlock to
+          // view]" or "[Decryption failed]" when the master key isn't
+          // available. Hydrating the draft from those strings means the next
+          // autosave overwrites the (still-encrypted) row with that
+          // placeholder text — corruption in slow motion. Skip hydration
+          // and let the effect re-run when isE2EEReady flips true.
+          const isE2EEPlaceholder =
+            active.encryptionType === 'e2ee' &&
+            (active.text?.includes('[Encrypted') ||
+              active.text?.includes('[Decryption failed]'))
+          if (isE2EEPlaceholder) {
+            // Bind autosave to this id so any future edits target the right
+            // row, but don't touch the draft / song / doodle / photo state.
+            // The effect re-runs when isE2EEReady flips, at which point the
+            // proper plaintext will be available and we hydrate normally.
+            autosaveRef.current.reset(active.id)
+          } else {
           // Hydrate active state from the entry. Uses the persisted page-break
           // marker when present so the boundary matches what was visible the
           // last time the user typed.
@@ -212,6 +231,7 @@ export default function BookSpread() {
           }))
           setPendingPhotos(activePhotos)
           autosaveRef.current.reset(active.id)
+          }
         }
 
         // Wait for the flipbook chunk too — only then flip `loading`,

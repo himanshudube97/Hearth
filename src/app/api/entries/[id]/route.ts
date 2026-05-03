@@ -4,7 +4,6 @@ import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
 import { isEntryLocked, validateAppendOnlyDiff } from '@/lib/entry-lock'
 import { parseStyle } from '@/lib/entry-style'
-import { uploadPhotos } from '@/lib/storage'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string, maxLength = 150): string {
@@ -234,16 +233,26 @@ export async function PUT(
       data: updateData,
     })
 
-    // Add new photos if provided (append-only)
+    // Add new photos if provided (append-only). Photo bytes are already in
+    // storage — the client uploaded them via /api/photos before sending this
+    // request, so we only persist the reference here.
     if (newPhotos && newPhotos.length > 0) {
-      const uploadedNewPhotos = await uploadPhotos(newPhotos, id)
       await prisma.entryPhoto.createMany({
-        data: uploadedNewPhotos.map((p: { url: string; position: number; spread: number; rotation?: number }) => ({
+        data: newPhotos.map((p: {
+          url?: string | null
+          position: number
+          spread: number
+          rotation?: number
+          encryptedRef?: string | null
+          encryptedRefIV?: string | null
+        }) => ({
           entryId: id,
-          url: p.url,
+          url: p.url ?? null,
           position: p.position,
           spread: p.spread,
           rotation: p.rotation ?? 0,
+          encryptedRef: p.encryptedRef ?? null,
+          encryptedRefIV: p.encryptedRefIV ?? null,
         })),
         skipDuplicates: true,
       })
@@ -278,14 +287,22 @@ export async function PUT(
     if (!locked && Array.isArray(photos)) {
       await prisma.entryPhoto.deleteMany({ where: { entryId: id } })
       if (photos.length > 0) {
-        const uploadedPhotos = await uploadPhotos(photos, id)
         await prisma.entryPhoto.createMany({
-          data: uploadedPhotos.map((p: { url: string; position: number; spread?: number; rotation?: number }) => ({
+          data: photos.map((p: {
+            url?: string | null
+            position: number
+            spread?: number
+            rotation?: number
+            encryptedRef?: string | null
+            encryptedRefIV?: string | null
+          }) => ({
             entryId: id,
-            url: p.url,
+            url: p.url ?? null,
             position: p.position,
             spread: p.spread ?? 1,
             rotation: p.rotation ?? 0,
+            encryptedRef: p.encryptedRef ?? null,
+            encryptedRefIV: p.encryptedRefIV ?? null,
           })),
         })
       }

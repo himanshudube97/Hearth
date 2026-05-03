@@ -57,3 +57,6 @@ public/swe-worker-*.js.map
 
 # brainstorming session mockups
 .superpowers/
+
+# Playwright MCP scratch artifacts (page snapshots, console logs)
+.playwright-mcp/

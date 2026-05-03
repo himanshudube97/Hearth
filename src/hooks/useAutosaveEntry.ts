@@ -70,11 +70,13 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
   const inFlightRef = useRef(false)
   const dirtyRef = useRef(false)
 
-  const { encryptEntryData, isE2EEReady } = useE2EE()
+  const { encryptEntryData, isE2EEReady, isE2EEEnabled } = useE2EE()
   const encryptEntryDataRef = useRef(encryptEntryData)
   const isE2EEReadyRef = useRef(isE2EEReady)
+  const isE2EEEnabledRef = useRef(isE2EEEnabled)
   encryptEntryDataRef.current = encryptEntryData
   isE2EEReadyRef.current = isE2EEReady
+  isE2EEEnabledRef.current = isE2EEEnabled
 
   const performSaveRef = useRef<(retryCount?: number) => Promise<void>>(async () => {})
 
@@ -87,6 +89,16 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
     }
     if (inFlightRef.current) {
       dirtyRef.current = true
+      return
+    }
+
+    // E2EE is enabled but the master key isn't loaded yet (e.g. user hasn't
+    // unlocked, or page just mounted). Saving now would push plaintext to a
+    // server that thinks the entry is E2EE — corrupting the row beyond
+    // recovery. Defer until the next trigger, by which point the user has
+    // hopefully unlocked.
+    if (isE2EEEnabledRef.current && !isE2EEReadyRef.current) {
+      setStatus('idle')
       return
     }
 

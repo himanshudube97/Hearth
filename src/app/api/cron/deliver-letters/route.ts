@@ -66,7 +66,12 @@ export async function GET(request: NextRequest) {
           doodleDataUrl = await strokesToDataUrl(strokes)
         }
 
-        const photos = (letter.photos || []).map((p: { url: string; position: number }) => ({ url: p.url, position: p.position }))
+        // Email rendering only handles photos with a directly-renderable URL
+        // (legacy data URLs / public URLs). Adapter-stored blobs and E2EE
+        // photos require a fetch, so we drop them from the email body.
+        const photos = (letter.photos || [])
+          .filter((p) => !!p.url && !p.url.startsWith('/api/photos/'))
+          .map((p) => ({ url: p.url as string, position: p.position }))
         const songLink = letter.song || null
 
         // Determine if this is a friend letter or self letter
@@ -153,11 +158,20 @@ export async function GET(request: NextRequest) {
                   encryptionType: letter.encryptionType,
                   userId: recipientUser.id,
                   photos: letter.photos.length > 0 ? {
-                    create: letter.photos.map((p: { url: string; position: number; spread: number; rotation: number }) => ({
+                    create: letter.photos.map((p: {
+                      url: string | null
+                      position: number
+                      spread: number
+                      rotation: number
+                      encryptedRef?: string | null
+                      encryptedRefIV?: string | null
+                    }) => ({
                       url: p.url,
                       position: p.position,
                       spread: p.spread,
                       rotation: p.rotation,
+                      encryptedRef: p.encryptedRef ?? null,
+                      encryptedRefIV: p.encryptedRefIV ?? null,
                     }))
                   } : undefined,
                   doodles: letter.doodles.length > 0 ? {

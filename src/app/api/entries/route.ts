@@ -5,7 +5,6 @@ import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
 import { isEntryLocked, utcInstantForLocalDate, localDatePartsNow } from '@/lib/entry-lock'
 import { parseStyle } from '@/lib/entry-style'
-import { uploadPhotos } from '@/lib/storage'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string | null | undefined, maxLength = 150): string {
@@ -215,11 +214,6 @@ export async function POST(request: NextRequest) {
 
     console.log('[POST /api/entries] Creating entry for user:', user.id, 'photos:', photos?.length || 0, 'doodles:', doodles?.length || 0)
 
-    // Upload photos to storage before creating entry (entry ID not yet known — use temp key)
-    const uploadedPhotos = photos && photos.length > 0
-      ? await uploadPhotos(photos, `tmp-${user.id}-${Date.now()}`)
-      : photos
-
     const entry = await prisma.journalEntry.create({
       data: {
         text: encryptedText,
@@ -253,14 +247,25 @@ export async function POST(request: NextRequest) {
               })),
             }
           : undefined,
-        // Create photos
-        photos: uploadedPhotos && uploadedPhotos.length > 0
+        // Create photos. Photo bytes themselves are uploaded client-side via
+        // /api/photos before this request lands; we only persist the reference
+        // (handle URL for non-E2EE, encryptedRef pair for E2EE).
+        photos: photos && photos.length > 0
           ? {
-              create: uploadedPhotos.map((p: { url: string; position: number; spread: number; rotation?: number }) => ({
-                url: p.url,
+              create: photos.map((p: {
+                url?: string | null
+                position: number
+                spread: number
+                rotation?: number
+                encryptedRef?: string | null
+                encryptedRefIV?: string | null
+              }) => ({
+                url: p.url ?? null,
                 position: p.position,
                 spread: p.spread,
                 rotation: p.rotation ?? 0,
+                encryptedRef: p.encryptedRef ?? null,
+                encryptedRefIV: p.encryptedRefIV ?? null,
               })),
             }
           : undefined,

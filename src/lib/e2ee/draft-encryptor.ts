@@ -35,8 +35,10 @@ export interface EncryptedDraft {
   recipientName?: string
   letterLocation?: string
   doodles?: Array<{
-    encryptedStrokes: string
-    e2eeIV: string
+    // Stored under `strokes` so the server's `Doodle.strokes Json` column
+    // accepts the payload as-is. The decryptor reads back from this nested
+    // shape; the server never inspects its contents.
+    strokes: { encryptedStrokes: string; e2eeIV: string }
     spread?: number
     positionInEntry?: number
   }>
@@ -83,9 +85,11 @@ export async function encryptDraft(
     out.doodles = []
     for (const d of draft.doodles) {
       const { ciphertext, iv } = await encryptString(JSON.stringify(d.strokes), masterKey)
+      // Nest under `strokes` so the server can store the payload directly in
+      // the existing `Doodle.strokes Json` column without needing to know
+      // about E2EE. Decryptor mirrors this shape.
       out.doodles.push({
-        encryptedStrokes: ciphertext,
-        e2eeIV: iv,
+        strokes: { encryptedStrokes: ciphertext, e2eeIV: iv },
         spread: d.spread,
         positionInEntry: d.positionInEntry,
       })
@@ -119,7 +123,11 @@ export async function decryptEntry(
   if (encrypted.doodles && encrypted.doodles.length > 0) {
     out.doodles = []
     for (const d of encrypted.doodles) {
-      const json = await decryptString(d.encryptedStrokes, d.e2eeIV, masterKey)
+      // Doodle ciphertext is nested under `strokes` (matches the server
+      // schema's existing `Doodle.strokes Json` column).
+      const cipher = (d as { strokes: { encryptedStrokes?: string; e2eeIV?: string } }).strokes
+      if (!cipher?.encryptedStrokes || !cipher?.e2eeIV) continue
+      const json = await decryptString(cipher.encryptedStrokes, cipher.e2eeIV, masterKey)
       out.doodles.push({
         strokes: JSON.parse(json),
         spread: d.spread,

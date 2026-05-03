@@ -151,7 +151,7 @@ model EntryPhoto {
   entryId   String
   spread    Int // Which spread (1, 2, or 3)
   position  Int // 1 or 2 (left or right photo in the polaroid layout)
-  url            String   // Data URL (phase 1) or cloud URL (phase 2)
+  url            String?  // Legacy data URL, or "/api/photos/{handle}" for adapter-stored plaintext blobs. Null when E2EE photo (use encryptedRef instead).
   rotation       Int      @default(0) // Tilt angle for polaroid effect (-15 to 15)
   encryptedRef   String?  // ciphertext of {handle, iv} — set when parent entry is E2EE
   encryptedRefIV String?  // IV for encryptedRef
