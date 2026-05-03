@@ -9,7 +9,7 @@ import { roseSizeForId } from './roseHash'
 interface RoseBloomsProps {
   memoryStars: MemoryStar[]
   onSelect: (s: MemoryStar) => void
-  getMoodColor: (mood: number) => string
+  glowColor: string
 }
 
 // Five blooms clustered around the trellis: 3 along the arch + 2 flanking the posts.
@@ -51,7 +51,7 @@ function useIsMobile(): boolean {
   return isMobile
 }
 
-export function RoseBlooms({ memoryStars, onSelect, getMoodColor }: RoseBloomsProps) {
+export function RoseBlooms({ memoryStars, onSelect, glowColor }: RoseBloomsProps) {
   const isMobile = useIsMobile()
   const anchors = isMobile ? MOBILE_ANCHORS : DESKTOP_ANCHORS
 
@@ -87,7 +87,7 @@ export function RoseBlooms({ memoryStars, onSelect, getMoodColor }: RoseBloomsPr
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 1.25, y: -4 }}
         >
-          <RoseSVG color={color} glow={getMoodColor(star.entry.mood)} size={size} />
+          <RoseSVG color={color} glow={glowColor} size={size} />
         </motion.button>
       ))}
     </div>

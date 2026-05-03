@@ -7,7 +7,7 @@ export interface LetterDiamondProps {
   leftPct: number
   topPct: number
   tilt: number       // degrees, applied on top of the 45° lozenge rotation
-  sealColor: string  // wax-seal color (mood)
+  sealColor: string  // wax-seal color
   glow: boolean
   delay: number
   ariaLabel: string  // e.g. "Memory from Aug 14, 2025"

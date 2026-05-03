@@ -238,7 +238,7 @@ function CosmosBackground({ theme }: { theme: Theme }) {
             top: '20%',
             width: '30%',
             height: '30%',
-            background: `radial-gradient(circle, ${theme.moods[4]}08 0%, transparent 70%)`,
+            background: `radial-gradient(circle, ${theme.accent.primary}08 0%, transparent 70%)`,
           }}
         />
         <div
@@ -248,7 +248,7 @@ function CosmosBackground({ theme }: { theme: Theme }) {
             bottom: '30%',
             width: '25%',
             height: '25%',
-            background: `radial-gradient(circle, ${theme.moods[2]}06 0%, transparent 70%)`,
+            background: `radial-gradient(circle, ${theme.accent.warm}06 0%, transparent 70%)`,
           }}
         />
       </motion.div>
@@ -381,16 +381,7 @@ export function ConstellationRenderer({
   setSelectedStar,
   theme,
 }: ConstellationRendererProps) {
-  const getMoodColor = (mood: number) => {
-    const colors = [
-      theme.moods[0],
-      theme.moods[1],
-      theme.moods[2],
-      theme.moods[3],
-      theme.moods[4],
-    ]
-    return colors[mood] || theme.accent.primary
-  }
+  const getEntryColor = () => theme.accent.primary
 
   if (loading) {
     return (
@@ -480,7 +471,7 @@ export function ConstellationRenderer({
           <MemoryStarSVG
             key={star.id}
             star={star}
-            color={getMoodColor(star.entry.mood)}
+            color={getEntryColor()}
             onClick={() => setSelectedStar(star)}
           />
         ))}
@@ -553,7 +544,6 @@ export function ConstellationRenderer({
         selectedStar={selectedStar}
         setSelectedStar={setSelectedStar}
         theme={theme}
-        getMoodColor={getMoodColor}
       />
     </motion.div>
   )

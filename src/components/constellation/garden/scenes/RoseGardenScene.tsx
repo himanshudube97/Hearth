@@ -33,17 +33,6 @@ export function RoseGardenScene({
   setSelectedStar,
   theme,
 }: RoseGardenSceneProps) {
-  const getMoodColor = (mood: number) => {
-    const colors = [
-      theme.moods[0],
-      theme.moods[1],
-      theme.moods[2],
-      theme.moods[3],
-      theme.moods[4],
-    ]
-    return colors[mood] || theme.accent.primary
-  }
-
   if (loading) {
     return (
       <motion.div
@@ -129,7 +118,7 @@ export function RoseGardenScene({
       <RoseBlooms
         memoryStars={memoryStars}
         onSelect={setSelectedStar}
-        getMoodColor={getMoodColor}
+        glowColor={theme.accent.warm}
       />
       <PetalDrift />
       <AmbientDrift theme={theme} creatures={['bee', 'bird']} />
@@ -196,7 +185,6 @@ export function RoseGardenScene({
         selectedStar={selectedStar}
         setSelectedStar={setSelectedStar}
         theme={theme}
-        getMoodColor={getMoodColor}
       />
     </motion.div>
   )

@@ -46,7 +46,6 @@ model JournalEntry {
   id          String    @id @default(cuid())
   text        String
   textPreview String? // First ~150 chars for list views, avoids sending full text
-  mood        Int       @default(2) // 0-4: Heavy, Low, Okay, Good, Radiant
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   song        String?
@@ -79,7 +78,7 @@ model JournalEntry {
   // E2EE fields
   encryptionType String  @default("server") // "server" | "e2ee"
   e2eeIV         String? // IV for E2EE entries (client-side encryption)
-  e2eeIVs        Json?   // per-field IVs map for E2EE entries: { text, textPreview, mood, tags, song, ... }
+  e2eeIVs        Json?   // per-field IVs map for E2EE entries: { text, textPreview, tags, song, ... }
 
   // Multi-spread page layout fields
   spreads    Int     @default(1) // Number of spreads (1-3)
@@ -91,8 +90,6 @@ model JournalEntry {
 
   // Indexes for scalable queries
   @@index([userId, createdAt(sort: Desc)]) // Timeline queries
-  @@index([userId, mood]) // Mood filtering
-  @@index([userId, createdAt, mood]) // Combined filters
   @@index([unlockDate, isDelivered]) // For cron job to find due letters
   @@index([userId, isArchived]) // For archive queries
   @@map("journal_entries")

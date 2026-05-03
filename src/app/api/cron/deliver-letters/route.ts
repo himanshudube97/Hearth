@@ -138,7 +138,6 @@ export async function GET(request: NextRequest) {
                 data: {
                   text: letter.text,
                   textPreview: letter.textPreview,
-                  mood: letter.mood,
                   song: letter.song,
                   entryType: 'letter',
                   unlockDate: letter.unlockDate,

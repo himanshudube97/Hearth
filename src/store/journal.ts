@@ -4,7 +4,6 @@ export interface JournalEntry {
   id: string
   text: string
   textPreview?: string
-  mood: number
   createdAt: string
   updatedAt: string
   song?: string
@@ -40,7 +39,6 @@ export interface StrokeData {
 
 interface JournalStore {
   entries: JournalEntry[]
-  currentMood: number
   currentText: string
   currentSong: string
   isLoading: boolean
@@ -50,7 +48,6 @@ interface JournalStore {
 
   setEntries: (entries: JournalEntry[]) => void
   addEntry: (entry: JournalEntry) => void
-  setCurrentMood: (mood: number) => void
   setCurrentText: (text: string) => void
   setCurrentSong: (song: string) => void
   setIsLoading: (loading: boolean) => void
@@ -64,7 +61,6 @@ interface JournalStore {
 
 export const useJournalStore = create<JournalStore>((set) => ({
   entries: [],
-  currentMood: 2,
   currentText: '',
   currentSong: '',
   isLoading: false,
@@ -74,7 +70,6 @@ export const useJournalStore = create<JournalStore>((set) => ({
 
   setEntries: (entries) => set({ entries }),
   addEntry: (entry) => set((state) => ({ entries: [entry, ...state.entries] })),
-  setCurrentMood: (mood) => set({ currentMood: mood }),
   setCurrentText: (text) => set({ currentText: text }),
   setCurrentSong: (song) => set({ currentSong: song }),
   setIsLoading: (loading) => set({ isLoading: loading }),
@@ -88,7 +83,6 @@ export const useJournalStore = create<JournalStore>((set) => ({
   resetCurrentEntry: () => set({
     currentText: '',
     currentSong: '',
-    currentMood: 2,
     currentDoodleStrokes: []
   }),
 }))

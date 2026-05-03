@@ -13,8 +13,6 @@ interface EntryCardProps {
 
 export default function EntryCard({ entry, onClick }: EntryCardProps) {
   const { theme } = useThemeStore()
-  const moodEmoji = theme.moodEmojis[entry.mood]
-  const moodColor = theme.moods[entry.mood as keyof typeof theme.moods]
 
   // Check if this is a sealed letter
   const isLetter = entry.entryType === 'letter' && entry.isSealed
@@ -75,12 +73,6 @@ export default function EntryCard({ entry, onClick }: EntryCardProps) {
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
-        <span
-          className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
-          style={{ background: `${moodColor}30` }}
-        >
-          {moodEmoji}
-        </span>
         <div className="flex-1">
           <span className="text-sm" style={{ color: theme.text.muted }}>
             {format(new Date(entry.createdAt), 'h:mm a')}

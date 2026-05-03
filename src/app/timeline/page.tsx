@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { format, isToday, isYesterday } from 'date-fns'
 import { useThemeStore } from '@/store/theme'
 import { JournalEntry } from '@/store/journal'
@@ -13,7 +13,6 @@ import EntryDetailModal from '@/components/EntryDetailModal'
 interface GroupedEntries {
   date: Date
   entries: JournalEntry[]
-  avgMood: number
 }
 
 export default function TimelinePage() {
@@ -33,8 +32,6 @@ export default function TimelinePage() {
   )
   const [searchQuery, setSearchQuery] = useState('')
   const [searchInput, setSearchInput] = useState('')
-  const [moodFilter, setMoodFilter] = useState<number[]>([])
-  const [showFilters, setShowFilters] = useState(false)
 
   // Modal state
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
@@ -50,7 +47,6 @@ export default function TimelinePage() {
   } = useEntries({
     month: searchQuery ? undefined : selectedMonth,
     search: searchQuery || undefined,
-    mood: moodFilter.length > 0 ? moodFilter : undefined,
     limit: 30,
   })
 
@@ -87,16 +83,10 @@ export default function TimelinePage() {
       groups[dateKey].push(entry)
     })
 
-    return Object.entries(groups).map(([dateStr, entries]) => {
-      const avgMood = Math.round(
-        entries.reduce((sum, e) => sum + e.mood, 0) / entries.length
-      )
-      return {
-        date: new Date(dateStr),
-        entries,
-        avgMood,
-      }
-    })
+    return Object.entries(groups).map(([dateStr, entries]) => ({
+      date: new Date(dateStr),
+      entries,
+    }))
   }, [entries])
 
 
@@ -142,15 +132,6 @@ export default function TimelinePage() {
     setSelectedMonth(month)
     setSearchQuery('')
     setSearchInput('')
-  }
-
-  // Toggle mood filter
-  const toggleMoodFilter = (mood: number) => {
-    setMoodFilter(prev =>
-      prev.includes(mood)
-        ? prev.filter(m => m !== mood)
-        : [...prev, mood]
-    )
   }
 
   const groups = groupedEntries()
@@ -227,72 +208,7 @@ export default function TimelinePage() {
             )}
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-2 rounded-full"
-            style={{
-              background: showFilters || moodFilter.length > 0
-                ? `${theme.accent.primary}30`
-                : theme.glass.bg,
-              border: `1px solid ${showFilters || moodFilter.length > 0 ? theme.accent.primary : theme.glass.border}`,
-              color: theme.text.primary,
-            }}
-          >
-            ☰
-          </motion.button>
         </motion.div>
-
-        {/* Mood filters */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-4 overflow-hidden"
-            >
-              <div
-                className="p-4 rounded-xl"
-                style={{ background: theme.glass.bg }}
-              >
-                <p className="text-xs mb-3" style={{ color: theme.text.muted }}>
-                  Filter by mood
-                </p>
-                <div className="flex gap-2 flex-wrap">
-                  {[0, 1, 2, 3, 4].map((mood) => (
-                    <button
-                      key={mood}
-                      onClick={() => toggleMoodFilter(mood)}
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-lg transition-transform"
-                      style={{
-                        background: moodFilter.includes(mood)
-                          ? `${theme.moods[mood as keyof typeof theme.moods]}50`
-                          : `${theme.moods[mood as keyof typeof theme.moods]}20`,
-                        border: moodFilter.includes(mood)
-                          ? `2px solid ${theme.moods[mood as keyof typeof theme.moods]}`
-                          : '2px solid transparent',
-                        transform: moodFilter.includes(mood) ? 'scale(1.1)' : 'scale(1)',
-                      }}
-                    >
-                      {theme.moodEmojis[mood]}
-                    </button>
-                  ))}
-                  {moodFilter.length > 0 && (
-                    <button
-                      onClick={() => setMoodFilter([])}
-                      className="px-3 py-1 rounded-full text-xs"
-                      style={{ color: theme.accent.primary }}
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Year selector */}
         {!searchQuery && (
@@ -362,14 +278,6 @@ export default function TimelinePage() {
                   }}
                 >
                   {name}
-                  {monthData && monthData.avgMood !== null && (
-                    <span
-                      className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
-                      style={{
-                        background: theme.moods[Math.round(monthData.avgMood) as keyof typeof theme.moods],
-                      }}
-                    />
-                  )}
                 </button>
               )
             })}
@@ -430,14 +338,6 @@ export default function TimelinePage() {
             >
               {/* Date header */}
               <div className="flex items-center gap-3 mb-4">
-                <span
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
-                  style={{
-                    background: `${theme.moods[group.avgMood as keyof typeof theme.moods]}30`,
-                  }}
-                >
-                  {theme.moodEmojis[group.avgMood]}
-                </span>
                 <div>
                   <h2 className="text-lg" style={{ color: theme.text.primary }}>
                     {formatDateLabel(group.date)}

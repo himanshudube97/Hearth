@@ -27,14 +27,12 @@ function localDateKey(date: Date, tz: string): string {
 interface MonthStats {
   month: string // "2024-02"
   entryCount: number
-  avgMood: number | null
   daysWithEntries: number
 }
 
 interface YearStats {
   year: number
   entryCount: number
-  avgMood: number | null
   months: MonthStats[]
 }
 
@@ -50,24 +48,10 @@ export async function GET(request: NextRequest) {
     // the right month/day on the shelf and in streak math, not the server's.
     const userTz = request.headers.get('x-user-tz') ?? 'UTC'
 
-    // Check whether the user has any E2EE entries. When they do, mood is stored
-    // as ciphertext and cannot be averaged server-side. We still return structural
-    // data (counts, streaks, years/months) but null out avgMood and set the
-    // clientAggregationRequired flag so the UI can show an appropriate message.
-    const e2eeCount = await prisma.journalEntry.count({
-      where: { userId: user.id, encryptionType: 'e2ee' },
-    })
-    const clientAggregationRequired = e2eeCount > 0
-
-    // Get all entries with minimal data for stats calculation.
-    // We fetch encryptionType so mood values from E2EE entries can be excluded
-    // from averages (they are ciphertext, not numeric moods).
     const entries = await prisma.journalEntry.findMany({
       where: { userId: user.id },
       select: {
         createdAt: true,
-        mood: true,
-        encryptionType: true,
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -80,7 +64,6 @@ export async function GET(request: NextRequest) {
         lastEntryDate: null,
         currentStreak: 0,
         longestStreak: 0,
-        clientAggregationRequired: false,
       })
     }
 
@@ -113,28 +96,15 @@ export async function GET(request: NextRequest) {
     yearMap.forEach((monthMap, year) => {
       const months: MonthStats[] = []
       let yearEntryCount = 0
-      let yearMoodSum = 0
-      let yearMoodCount = 0
 
       monthMap.forEach((data, month) => {
         const entryCount = data.entries.length
-        // Only include mood from server-encrypted entries; E2EE mood is ciphertext.
-        const serverEntries = data.entries.filter(e => e.encryptionType !== 'e2ee')
-        const avgMood =
-          serverEntries.length > 0
-            ? serverEntries.reduce((sum, e) => sum + e.mood, 0) / serverEntries.length
-            : null
-
         months.push({
           month,
           entryCount,
-          avgMood: avgMood !== null ? Math.round(avgMood * 10) / 10 : null,
           daysWithEntries: data.days.size,
         })
-
         yearEntryCount += entryCount
-        yearMoodSum += serverEntries.reduce((sum, e) => sum + e.mood, 0)
-        yearMoodCount += serverEntries.length
       })
 
       // Sort months in descending order
@@ -143,10 +113,6 @@ export async function GET(request: NextRequest) {
       years.push({
         year,
         entryCount: yearEntryCount,
-        avgMood:
-          yearMoodCount > 0
-            ? Math.round((yearMoodSum / yearMoodCount) * 10) / 10
-            : null,
         months,
       })
     })
@@ -203,7 +169,6 @@ export async function GET(request: NextRequest) {
       lastEntryDate: entries[0].createdAt,
       currentStreak,
       longestStreak,
-      clientAggregationRequired,
     })
   } catch (error) {
     console.error('Error fetching entry stats:', error)

@@ -59,9 +59,7 @@ export function LetterWall({ memoryStars, theme, onSelect }: LetterWallProps) {
     return { star, slot: slots[idx], tilt: p.tilt, glow: p.glow }
   })
 
-  const moodColor = (mood: number) =>
-    [theme.moods[0], theme.moods[1], theme.moods[2], theme.moods[3], theme.moods[4]][mood] ??
-    theme.accent.primary
+  const sealColor = theme.accent.primary
 
   return (
     <div className="absolute inset-0">
@@ -71,7 +69,7 @@ export function LetterWall({ memoryStars, theme, onSelect }: LetterWallProps) {
           leftPct={slot.left}
           topPct={slot.top}
           tilt={tilt}
-          sealColor={moodColor(star.entry.mood)}
+          sealColor={sealColor}
           glow={glow}
           delay={star.delay}
           ariaLabel={`Memory from ${format(new Date(star.entry.createdAt), 'MMM d, yyyy')}`}

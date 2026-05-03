@@ -8,7 +8,7 @@ import { oceanHashForId } from './oceanHash'
 interface PaperBoatsProps {
   memoryStars: MemoryStar[]
   onSelect: (s: MemoryStar) => void
-  getMoodColor: (mood: number) => string
+  glowColor: string
 }
 
 interface Slot {
@@ -42,7 +42,7 @@ function useIsMobile(): boolean {
 export function PaperBoats({
   memoryStars,
   onSelect,
-  getMoodColor,
+  glowColor,
 }: PaperBoatsProps) {
   const isMobile = useIsMobile()
 
@@ -77,7 +77,7 @@ export function PaperBoats({
             scale={hash.scale}
             phaseOffset={(slotIndex * 0.5) % 3.5}
             glow={hash.glow}
-            glowColor={getMoodColor(star.entry.mood)}
+            glowColor={glowColor}
             onClick={() => onSelect(star)}
             ariaLabel={`Open memory from ${new Date(
               star.entry.createdAt,

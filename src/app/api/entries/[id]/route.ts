@@ -94,7 +94,6 @@ export async function PUT(
         createdAt: true,
         text: true,
         song: true,
-        mood: true,
         entryType: true,
         isSealed: true,
         style: true,
@@ -113,7 +112,7 @@ export async function PUT(
 
     const body = await request.json()
     const {
-      text, mood, song, tags, encryptionType, e2eeIV, e2eeIVs,
+      text, song, tags, encryptionType, e2eeIV, e2eeIVs,
       spreads, appendText, newPhotos, newDoodles,
       style,
       // Full-replacement doodle/photo lists (autosave wire format). When the
@@ -162,8 +161,6 @@ export async function PUT(
         })),
         oldDoodleSpreads: existing.doodles.map((d) => d.spread),
         newDoodleSpreads: newDoodles?.map((d: { spread?: number }) => d.spread ?? 1),
-        oldMood: existing.mood,
-        newMood: mood,
       })
       if (!diff.ok) {
         return NextResponse.json({ error: diff.reason }, { status: 403 })
@@ -195,7 +192,6 @@ export async function PUT(
       }
     }
 
-    if (mood !== undefined) updateData.mood = mood
     if (style !== undefined) {
       updateData.style = parseStyle(style)
     }

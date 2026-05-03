@@ -49,7 +49,6 @@ interface Photo {
 interface Entry {
   id: string
   text: string
-  mood: number
   song?: string | null
   photos?: Photo[]
   doodles?: Array<{ strokes: StrokeData[] }>

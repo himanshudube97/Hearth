@@ -4,7 +4,7 @@ import type { ThemeName } from '@/lib/themes'
 
 export type ScrapbookItemType =
   | 'text' | 'sticker' | 'photo' | 'song' | 'doodle'
-  | 'clip' | 'mood' | 'stamp' | 'date'
+  | 'clip' | 'stamp' | 'date'
 
 export interface BaseItem {
   id: string
@@ -87,11 +87,6 @@ export interface ClipItemData extends BaseItem {
   lines: string[] // e.g. ['L TRAIN · 04·28·26', 'Bedford → 1st']
 }
 
-export interface MoodItemData extends BaseItem {
-  type: 'mood'
-  level: 0 | 1 | 2 | 3 | 4
-}
-
 export interface StampItemData extends BaseItem {
   type: 'stamp'
   topLine: string
@@ -112,7 +107,6 @@ export type ScrapbookItem =
   | SongItemData
   | DoodleItemData
   | ClipItemData
-  | MoodItemData
   | StampItemData
   | DateItemData
 
@@ -319,7 +313,6 @@ export function minSizeFor(type: ScrapbookItemType): { w: number; h: number } {
     case 'song':    return { w: 22, h: 6 }
     case 'doodle':  return { w: 12, h: 12 }
     case 'clip':    return { w: 16, h: 6 }
-    case 'mood':    return { w: 6, h: 6 }
     case 'stamp':   return { w: 10, h: 10 }
     case 'date':    return { w: 14, h: 4 }
   }
@@ -347,20 +340,6 @@ export function makeClipItem(
     z: nextZ(items),
     variant,
     lines,
-  }
-}
-
-export function makeMoodItem(level: 0 | 1 | 2 | 3 | 4, items: ScrapbookItem[]): MoodItemData {
-  return {
-    id: makeId(),
-    type: 'mood',
-    x: 50,
-    y: 55,
-    width: 8,
-    height: 8,
-    rotation: randomTilt(),
-    z: nextZ(items),
-    level,
   }
 }
 
@@ -406,16 +385,6 @@ export function makeDateItem(date: Date, items: ScrapbookItem[]): DateItemData {
   }
 }
 
-// Default mood color palette — reused by MoodItem and any other surface
-// that wants to render the 0-4 mood scale.
-export const MOOD_COLORS: Record<number, string> = {
-  0: '#5b6b7a', // Heavy — slate
-  1: '#5e80a8', // Low — blue
-  2: '#c97da3', // Tender — pink
-  3: '#d39a4f', // Warm — amber
-  4: '#d3a84f', // Radiant — gold
-}
-
 export type AttachmentKind =
   | 'pin'           // push-pin top-center
   | 'tape'          // washi tape top edge
@@ -431,7 +400,6 @@ export function attachmentForItem(item: ScrapbookItem): AttachmentKind {
     case 'song':    return 'tape'
     case 'doodle':  return 'corners'
     case 'sticker': return 'none'
-    case 'mood':    return 'none'
     case 'stamp':   return 'none'
     case 'date':    return 'pin'
     case 'clip':

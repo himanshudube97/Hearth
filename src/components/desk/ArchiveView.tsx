@@ -8,7 +8,6 @@ interface ArchivedEntry {
   id: string
   text: string
   textPreview?: string
-  mood: number
   createdAt: string
   isArchived: boolean
 }
@@ -194,9 +193,8 @@ const ArchiveView = memo(function ArchiveView({
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        {/* Mood and date */}
+                        {/* Date */}
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-lg">{theme.moodEmojis[entry.mood]}</span>
                           <span className="text-xs" style={{ color: theme.text.muted }}>
                             {new Date(entry.createdAt).toLocaleDateString('en-US', {
                               weekday: 'short',

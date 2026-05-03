@@ -10,7 +10,6 @@ import {
   SongItemData,
   DoodleItemData,
   ClipItemData,
-  MoodItemData,
   StampItemData,
   DateItemData,
   makeStickerItem,
@@ -19,7 +18,6 @@ import {
   makeSongItem,
   makeDoodleItem,
   makeClipItem,
-  makeMoodItem,
   makeStampItem,
   makeDateItem,
   ClipVariant,
@@ -33,7 +31,6 @@ import SongItem from './items/SongItem'
 import DoodleItem from './items/DoodleItem'
 import CameraModal from './CameraModal'
 import ClipItem from './items/ClipItem'
-import MoodItem from './items/MoodItem'
 import StampItem from './items/StampItem'
 import DateItem from './items/DateItem'
 import PageSurface from './PageSurface'
@@ -225,12 +222,6 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
     setEditingId(item.id)
   }
 
-  function addMood(level: 0 | 1 | 2 | 3 | 4) {
-    const item = makeMoodItem(level, items)
-    setItems((prev) => [...prev, item])
-    setSelectedId(item.id)
-  }
-
   function addStamp() {
     const { themeName } = useThemeStore.getState()
     const today = new Date()
@@ -287,7 +278,6 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
             onAddSong={addSong}
             onAddDoodle={addDoodle}
             onAddClip={addClip}
-            onAddMood={addMood}
             onAddStamp={addStamp}
             onAddDate={addDate}
             onReset={resetBoard}
@@ -393,9 +383,6 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
                     isEditing={isItemEditing}
                     onChange={updateItem}
                   />
-                )}
-                {item.type === 'mood' && (
-                  <MoodItem item={item as MoodItemData} />
                 )}
                 {item.type === 'stamp' && (
                   <StampItem

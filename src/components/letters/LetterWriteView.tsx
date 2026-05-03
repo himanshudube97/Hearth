@@ -52,7 +52,6 @@ export default function LetterWriteView({ onBack, onSealed }: Props) {
   useEffect(() => {
     autosave.trigger({
       text: bodyHtml,
-      mood: 2,
       song: null,
       photos: [],
       doodles: [],

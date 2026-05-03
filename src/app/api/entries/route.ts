@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
     // Filter params
     const year = searchParams.get('year')
     const month = searchParams.get('month')
-    const mood = searchParams.get('mood')
     const search = searchParams.get('search')
     const today = searchParams.get('today') === 'true'
     const entryType = searchParams.get('entryType')
@@ -65,17 +64,10 @@ export async function GET(request: NextRequest) {
       dateFilter = { gte: yearStart, lt: yearEnd }
     }
 
-    // Build mood filter
-    let moodFilter: number[] | undefined
-    if (mood) {
-      moodFilter = mood.split(',').map(Number).filter(n => !isNaN(n) && n >= 0 && n <= 4)
-    }
-
     // Build where clause
     const where: {
       userId: string
       createdAt?: { gte?: Date; lt?: Date }
-      mood?: { in: number[] }
       text?: { contains: string; mode: 'insensitive' }
       entryType?: string
       isArchived?: boolean
@@ -87,10 +79,6 @@ export async function GET(request: NextRequest) {
 
     if (dateFilter) {
       where.createdAt = dateFilter
-    }
-
-    if (moodFilter && moodFilter.length > 0) {
-      where.mood = { in: moodFilter }
     }
 
     if (search) {
@@ -172,7 +160,7 @@ export async function POST(request: NextRequest) {
     console.log('[POST /api/entries] Body:', JSON.stringify(body).slice(0, 200))
 
     const {
-      text, mood, song, tags, doodles, entryType, unlockDate, isSealed,
+      text, song, tags, doodles, entryType, unlockDate, isSealed,
       recipientEmail, recipientName, senderName, letterLocation,
       encryptionType, e2eeIV, e2eeIVs,
       // New fields
@@ -236,7 +224,6 @@ export async function POST(request: NextRequest) {
       data: {
         text: encryptedText,
         textPreview: encryptedTextPreview,
-        mood: mood ?? 2,
         song: song || null,
         tags: tags ?? [],
         style: style !== undefined ? (parseStyle(style) as Prisma.InputJsonValue) : Prisma.JsonNull,

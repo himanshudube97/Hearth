@@ -8,7 +8,6 @@ interface BackfillEntry {
   id: string
   text?: string
   textPreview?: string
-  mood?: number
   tags?: string[]
   song?: string | null
   senderName?: string | null
@@ -54,7 +53,6 @@ export function useBackfill() {
           const draft = {
             text: entry.text ?? '',
             textPreview: entry.textPreview ?? null,
-            mood: entry.mood ?? null,
             tags: entry.tags ?? null,
             song: entry.song ?? null,
             senderName: entry.senderName ?? null,

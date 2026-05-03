@@ -6,7 +6,6 @@ import { useThemeStore } from '@/store/theme'
 
 interface Entry {
   id: string
-  mood?: number
   createdAt: string
 }
 
@@ -28,6 +27,7 @@ const EntrySelector = memo(function EntrySelector({
   const textColor = theme.text.primary
   const mutedColor = theme.text.muted
   const bgColor = theme.glass.bg
+  const accentColor = theme.accent.primary
 
   // Sort entries by creation time (newest first)
   const sortedEntries = [...entries].sort(
@@ -44,9 +44,6 @@ const EntrySelector = memo(function EntrySelector({
       {sortedEntries.map((entry, index) => {
         const isActive = entry.id === currentEntryId
         const entryNumber = sortedEntries.length - index
-        const moodColor = entry.mood !== undefined
-          ? theme.moods[entry.mood as keyof typeof theme.moods]
-          : mutedColor
 
         return (
           <motion.button
@@ -57,12 +54,12 @@ const EntrySelector = memo(function EntrySelector({
             whileTap={{ scale: 0.9 }}
             title={`Entry ${entryNumber} - ${new Date(entry.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
           >
-            {/* Entry dot with mood color */}
+            {/* Entry dot */}
             <motion.div
               className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium transition-all"
               style={{
-                background: isActive ? moodColor : 'transparent',
-                border: `2px solid ${isActive ? moodColor : mutedColor}`,
+                background: isActive ? accentColor : 'transparent',
+                border: `2px solid ${isActive ? accentColor : mutedColor}`,
                 color: isActive ? 'white' : mutedColor,
                 opacity: isActive ? 1 : 0.6,
               }}

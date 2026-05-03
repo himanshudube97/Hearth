@@ -8,7 +8,7 @@ interface LetterClotheslineProps {
   memoryStars: MemoryStar[]
   onSelect: (star: MemoryStar) => void
   theme: Theme
-  getMoodColor: (mood: number) => string
+  getEntryColor: () => string
 }
 
 /* Clothesline geometry, in % of viewport */
@@ -120,7 +120,7 @@ export function LetterClothesline({
   memoryStars,
   onSelect,
   theme,
-  getMoodColor,
+  getEntryColor,
 }: LetterClotheslineProps) {
   if (memoryStars.length === 0) return null
 
@@ -143,7 +143,7 @@ export function LetterClothesline({
       swayDelay: (i * 0.7) % 4,
       // Subtle sway range, varies a touch per envelope
       swayAmount: 1.2 + ((i * 0.5) % 1.5),
-      moodColor: getMoodColor(star.entry.mood),
+      entryColor: getEntryColor(),
     }
   })
 
@@ -211,7 +211,7 @@ export function LetterClothesline({
       {/* Hanging envelopes — each wrapper is absolutely positioned at its
           point on the wire; the envelope itself is centered horizontally. */}
       <div className="absolute inset-0 pointer-events-auto">
-        {positions.map(({ star, x, y, swayDelay, swayAmount, moodColor }, i) => (
+        {positions.map(({ star, x, y, swayDelay, swayAmount, entryColor }, i) => (
           <motion.div
             key={star.id}
             className="absolute"
@@ -228,7 +228,7 @@ export function LetterClothesline({
               star={star}
               swayDelay={swayDelay}
               swayAmount={swayAmount}
-              color={moodColor}
+              color={entryColor}
               theme={theme}
               onClick={() => onSelect(star)}
             />

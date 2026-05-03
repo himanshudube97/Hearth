@@ -13,7 +13,7 @@ interface Props {
   parallax: GardenParallax
   memoryStars: MemoryStar[]
   onSelect: (star: MemoryStar) => void
-  getMoodColor: (mood: number) => string
+  glowColor?: string
 }
 
 /**
@@ -26,8 +26,9 @@ export function LampLetterbox({
   parallax,
   memoryStars,
   onSelect,
-  getMoodColor,
+  glowColor,
 }: Props) {
+  const stamp = glowColor ?? theme.accent.warm
   const [open, setOpen] = useState(false)
 
   const tx = useTransform(parallax.x, v => v * 8)
@@ -411,7 +412,6 @@ export function LampLetterbox({
               const y = -Math.sin(angle) * r
               const tilt = N === 1 ? 0 : -14 + i * (24 / (N - 1))
               const tint = TINTS[i % TINTS.length]
-              const stamp = getMoodColor(star.entry.mood)
               const date = new Date(star.entry.createdAt)
               const dateLine = date.toLocaleDateString('en-US', {
                 month: 'short',
