@@ -21,6 +21,7 @@ model User {
   scrapbooks     Scrapbook[]
   encryptedBlobs EncryptedBlob[]
   orphanedBlobs  OrphanedBlob[]
+  pushSubscriptions PushSubscription[]
 
   // Lemon Squeezy subscription fields
   lemonSqueezyCustomerId String?   @unique
@@ -196,4 +197,23 @@ model EncryptedBlob {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model PushSubscription {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint            String    @unique
+  p256dh              String
+  auth                String
+  userAgent           String?
+  tz                  String    @default("UTC")
+  createdAt           DateTime  @default(now())
+  lastFiredAt         DateTime?
+  consecutiveIgnored  Int       @default(0)
+  pausedAt            DateTime?
+
+  @@index([userId])
+  @@index([pausedAt, lastFiredAt])
+  @@map("push_subscriptions")
 }
