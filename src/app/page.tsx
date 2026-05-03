@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import HeroSection from '@/components/landing/HeroSection'
 import FeaturesSection from '@/components/landing/FeaturesSection'
-import ThemeShowcase from '@/components/landing/ThemeShowcase'
 import FooterCTA from '@/components/landing/FooterCTA'
 import StickyHeader from '@/components/landing/StickyHeader'
 
@@ -69,7 +68,6 @@ export default function LandingPage() {
       <WhisperGallery />
 
       <FeaturesSection />
-      <ThemeShowcase />
       <FooterCTA />
     </main>
   )
