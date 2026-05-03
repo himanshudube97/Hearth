@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { EntryStyle } from '@/lib/entry-style'
 
 export interface JournalEntry {
   id: string
@@ -12,6 +13,7 @@ export interface JournalEntry {
   photos?: { id?: string; url?: string; encryptedRef?: string; encryptedRefIV?: string; rotation: number; position: number; spread: number }[]
   spreads?: number
   isArchived?: boolean
+  style?: EntryStyle | null
   // Letter-specific fields
   entryType?: 'normal' | 'letter' | 'unsent_letter' | 'ephemeral'
   isSealed?: boolean
