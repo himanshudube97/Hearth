@@ -165,5 +165,14 @@ export function useBackfill() {
     setBackfillProgress({ status: 'done' })
   }, [masterKey, backfillProgress, setBackfillProgress])
 
-  return { runBackfill }
+  // Reset failed-IDs and re-run the migration. The backfill-batch endpoints
+  // already return only entries/scrapbooks that aren't yet on E2EE, so a
+  // re-run picks up exactly the items we previously failed on without
+  // double-encrypting anything that succeeded.
+  const retryFailedIds = useCallback(async () => {
+    setBackfillProgress({ status: 'idle', lastCursor: null, failedIds: [] })
+    await runBackfill()
+  }, [runBackfill, setBackfillProgress])
+
+  return { runBackfill, retryFailedIds }
 }

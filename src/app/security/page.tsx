@@ -2,6 +2,7 @@
 
 import { useThemeStore } from '@/store/theme'
 import Link from 'next/link'
+import { BackfillRetryPanel } from '@/components/security/BackfillRetryPanel'
 
 export default function SecurityPage() {
   const { theme } = useThemeStore()
@@ -27,6 +28,8 @@ export default function SecurityPage() {
         >
           How Hearth keeps your journal private
         </h1>
+
+        <BackfillRetryPanel />
 
         {/* Server-side encryption */}
         <section className="space-y-3">
