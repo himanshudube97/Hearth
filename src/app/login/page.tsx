@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense, type CSSProperties } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 
@@ -287,6 +288,13 @@ function LoginForm() {
                 >
                   {loading ? (authMode === 'login' ? 'Signing in...' : 'Creating account...') : (authMode === 'login' ? 'Sign In' : 'Create Account')}
                 </button>
+                {authMode === 'login' && (
+                  <div className="text-right -mt-2">
+                    <Link href="/forgot" className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+                      Forgot password?
+                    </Link>
+                  </div>
+                )}
               </form>
 
               {/* Toggle login/signup */}
