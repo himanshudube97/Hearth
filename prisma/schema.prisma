@@ -20,6 +20,7 @@ model User {
   entries        JournalEntry[]
   scrapbooks     Scrapbook[]
   encryptedBlobs EncryptedBlob[]
+  orphanedBlobs  OrphanedBlob[]
 
   // Lemon Squeezy subscription fields
   lemonSqueezyCustomerId String?   @unique
@@ -95,6 +96,19 @@ model JournalEntry {
   @@index([unlockDate, isDelivered]) // For cron job to find due letters
   @@index([userId, isArchived]) // For archive queries
   @@map("journal_entries")
+}
+
+model OrphanedBlob {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handle    String    // storage handle (blob id for local, "{userId}/{uuid}.bin" for supabase)
+  reason    String    // "backfill_failed", "entry_delete", etc.
+  createdAt DateTime  @default(now())
+  sweptAt   DateTime?
+
+  @@index([sweptAt])
+  @@map("orphaned_blobs")
 }
 
 model LetterAccessToken {
