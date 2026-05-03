@@ -128,16 +128,19 @@ export default function UnlockModal() {
                   />
                 </div>
 
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={remember}
                     onChange={(e) => setRemember(e.target.checked)}
-                    className="w-4 h-4 rounded"
+                    className="w-4 h-4 rounded mt-0.5"
                     style={{ accentColor: theme.accent.primary }}
                   />
                   <span className="text-sm" style={{ color: theme.text.secondary }}>
-                    Remember for 7 days (so you don't forget your daily key)
+                    Trust this device for 7 days
+                    <span className="block text-xs mt-0.5" style={{ color: theme.text.muted }}>
+                      Uncheck on shared or public devices &mdash; your key will be cleared when this tab closes.
+                    </span>
                   </span>
                 </label>
 
