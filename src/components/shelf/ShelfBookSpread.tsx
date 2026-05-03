@@ -357,7 +357,6 @@ export default function ShelfBookSpread({
               const entryForLeft = {
                 id: entry.id,
                 text: entry.text,
-                mood: entry.mood,
                 song: entry.song ?? null,
                 createdAt: entry.createdAt,
               }

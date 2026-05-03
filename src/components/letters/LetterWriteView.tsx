@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useProfileStore } from '@/store/profile'
+import { useE2EEStore } from '@/store/e2ee'
 import { useAutosaveEntry } from '@/hooks/useAutosaveEntry'
 import RecipientSidebar from './RecipientSidebar'
 import LetterPaper from './LetterPaper'
@@ -20,6 +21,7 @@ interface Props {
 
 export default function LetterWriteView({ onBack, onSealed }: Props) {
   const { profile, fetchProfile } = useProfileStore()
+  const e2eeEnabled = useE2EEStore(s => s.isEnabled)
   const autosave = useAutosaveEntry()
 
   const [recipient, setRecipient] = useState<LetterRecipient>('future_me')
@@ -28,6 +30,13 @@ export default function LetterWriteView({ onBack, onSealed }: Props) {
   const [closeEmail, setCloseEmail] = useState('')
   const [bodyHtml, setBodyHtml] = useState('')
   const [createdAt] = useState<Date>(() => new Date())
+
+  // Friend letters with an email recipient ride server-side encryption (the
+  // server has to read them at delivery time when the author is offline). If
+  // the author has E2EE on, surface the privacy boundary before they write.
+  const isFriendLetterWithEmail =
+    recipient === 'someone_close' && closeEmail.trim().length > 0
+  const showNotE2EENotice = e2eeEnabled && isFriendLetterWithEmail
 
   useEffect(() => {
     fetchProfile()
@@ -43,7 +52,6 @@ export default function LetterWriteView({ onBack, onSealed }: Props) {
   useEffect(() => {
     autosave.trigger({
       text: bodyHtml,
-      mood: 2,
       song: null,
       photos: [],
       doodles: [],
@@ -95,6 +103,22 @@ export default function LetterWriteView({ onBack, onSealed }: Props) {
         onUnlockChange={setUnlock}
       />
       <div className="flex flex-1 flex-col px-10 py-6">
+        {showNotE2EENotice && (
+          <div
+            role="status"
+            className="mb-4 rounded-lg px-4 py-3 text-sm"
+            style={{
+              border: '1px solid color-mix(in oklab, #d97706 35%, transparent)',
+              background: 'color-mix(in oklab, #d97706 8%, transparent)',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <strong style={{ color: 'var(--text-primary)' }}>Heads up:</strong>{' '}
+            this letter won&apos;t be end-to-end encrypted. To deliver it later
+            when you&apos;re offline, Hearth keeps a copy it can read. Your own
+            journal stays E2EE.
+          </div>
+        )}
         <LetterPaper
           recipient={recipient}
           closeName={closeName}

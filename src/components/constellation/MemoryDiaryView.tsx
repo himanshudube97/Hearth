@@ -144,7 +144,6 @@ export function MemoryDiaryView({ entry, theme, onClose }: Props) {
   const entryForPages = useMemo(() => ({
     id: entry.id,
     text: entry.text,
-    mood: entry.mood,
     song: entry.song ?? null,
     createdAt: entry.createdAt,
     style: entry.style ?? null,

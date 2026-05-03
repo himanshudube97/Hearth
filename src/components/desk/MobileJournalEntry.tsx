@@ -27,7 +27,6 @@ interface Photo {
 interface Entry {
   id: string
   text: string
-  mood: number
   song?: string | null
   photos?: Photo[]
   doodles?: Array<{ strokes: StrokeData[] }>
@@ -71,7 +70,6 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
   const {
     currentSong,
     setCurrentSong,
-    currentMood,
     currentDoodleStrokes,
     setDoodleStrokes,
     resetCurrentEntry,
@@ -194,7 +192,6 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: html,
-          mood: currentMood,
           song: songInput && /https?:\/\//.test(songInput) ? songInput : null,
           photos,
           doodles,
@@ -218,7 +215,7 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
     } finally {
       setSaving(false)
     }
-  }, [pages, songInput, pendingPhotos, currentMood, currentDoodleStrokes, resetCurrentEntry, fetchEntries])
+  }, [pages, songInput, pendingPhotos, currentDoodleStrokes, resetCurrentEntry, fetchEntries])
 
   const handleEntrySelect = useCallback((entryId: string | null) => {
     setCurrentEntryId(entryId)

@@ -6,39 +6,37 @@ import { createClient } from '@/lib/auth/supabase/server'
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { email, redirectTo } = body
+  const { email, password, token, action, redirectTo } = body
 
   if (isDevAuth) {
     return handleDevLogin(email, redirectTo)
   }
 
-  return handleSupabaseLogin(redirectTo)
+  switch (action) {
+    case 'email_login':
+      return handleEmailLogin(email, password, redirectTo)
+    case 'email_signup':
+      return handleEmailSignup(email, password)
+    case 'verify_otp':
+      return handleVerifyOtp(email, token, redirectTo)
+    default:
+      return handleGoogleLogin(redirectTo)
+  }
 }
 
 async function handleDevLogin(email: string, redirectTo?: string) {
   if (!email || typeof email !== 'string') {
-    return NextResponse.json(
-      { error: 'Email is required' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Email is required' }, { status: 400 })
   }
 
-  // Find or create user
-  let user = await prisma.user.findUnique({
-    where: { email },
-  })
+  let user = await prisma.user.findUnique({ where: { email } })
 
   if (!user) {
     user = await prisma.user.create({
-      data: {
-        email,
-        name: email.split('@')[0],
-        provider: 'dev',
-      },
+      data: { email, name: email.split('@')[0], provider: 'dev' },
     })
   }
 
-  // Create JWT token
   const token = await createDevToken({
     id: user.id,
     email: user.email,
@@ -47,28 +45,111 @@ async function handleDevLogin(email: string, redirectTo?: string) {
 
   const response = NextResponse.json({
     success: true,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatar: user.avatar,
-    },
-    redirectTo: redirectTo || '/',
+    user: { id: user.id, email: user.email, name: user.name, avatar: user.avatar },
+    redirectTo: redirectTo || '/write',
   })
 
-  // Set httpOnly cookie
   response.cookies.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
     path: '/',
   })
 
   return response
 }
 
-async function handleSupabaseLogin(redirectTo?: string) {
+async function handleEmailLogin(email: string, password: string, redirectTo?: string) {
+  if (!email || !password) {
+    return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
+
+  // Sync user to our DB
+  if (data.user?.email) {
+    const existingUser = await prisma.user.findUnique({ where: { email: data.user.email } })
+    if (!existingUser) {
+      await prisma.user.create({
+        data: {
+          email: data.user.email,
+          name: data.user.user_metadata?.full_name || data.user.email.split('@')[0],
+          avatar: data.user.user_metadata?.avatar_url || null,
+          provider: 'email',
+        },
+      })
+    }
+  }
+
+  return NextResponse.json({ success: true, redirectTo: redirectTo || '/write' })
+}
+
+async function handleEmailSignup(email: string, password: string) {
+  if (!email || !password) {
+    return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback`,
+    },
+  })
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
+
+  return NextResponse.json({
+    success: true,
+    requiresOtp: true,
+    message: 'Check your email for a verification code.',
+  })
+}
+
+async function handleVerifyOtp(email: string, token: string, redirectTo?: string) {
+  if (!email || !token) {
+    return NextResponse.json({ error: 'Email and code are required' }, { status: 400 })
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: 'email',
+  })
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
+
+  // Create user in our DB on first verify
+  if (data.user?.email) {
+    const existingUser = await prisma.user.findUnique({ where: { email: data.user.email } })
+    if (!existingUser) {
+      await prisma.user.create({
+        data: {
+          email: data.user.email,
+          name: data.user.user_metadata?.full_name || data.user.email.split('@')[0],
+          avatar: data.user.user_metadata?.avatar_url || null,
+          provider: 'email',
+        },
+      })
+    }
+  }
+
+  return NextResponse.json({ success: true, redirectTo: redirectTo || '/write' })
+}
+
+async function handleGoogleLogin(redirectTo?: string) {
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -79,14 +160,8 @@ async function handleSupabaseLogin(redirectTo?: string) {
   })
 
   if (error) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
-  return NextResponse.json({
-    success: true,
-    url: data.url,
-  })
+  return NextResponse.json({ success: true, url: data.url })
 }

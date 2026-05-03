@@ -44,7 +44,7 @@ interface MeadowMemoryButterfliesProps {
   memoryStars: MemoryStar[]
   onSelect: (star: MemoryStar) => void
   theme: Theme
-  getMoodColor: (mood: number) => string
+  glowColor?: string
 }
 
 /**
@@ -163,9 +163,10 @@ function MemoryButterfly({ anchor, star, haloColor, onClick }: MemoryButterflyPr
 export function MeadowMemoryButterflies({
   memoryStars,
   onSelect,
-  theme: _theme, // eslint-disable-line @typescript-eslint/no-unused-vars
-  getMoodColor,
+  theme,
+  glowColor,
 }: MeadowMemoryButterfliesProps) {
+  const haloColor = glowColor ?? theme.accent.warm
   // Bind the first N memoryStars (max 5) to the leftmost anchors so layout
   // stays stable when there are fewer memories than anchors.
   const visible = memoryStars.slice(0, HOMES.length)
@@ -177,7 +178,6 @@ export function MeadowMemoryButterflies({
     >
       {visible.map((star, i) => {
         const anchor = HOMES[i]
-        const haloColor = getMoodColor(star.entry.mood)
         return (
           <MemoryButterfly
             key={star.entry.id}

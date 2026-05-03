@@ -16,69 +16,11 @@ import {
   wrapMasterKey,
   hashRecoveryKey,
 } from '@/lib/e2ee/crypto'
+import { downloadDailyKeyFile, downloadRecoveryKeyFile } from '@/lib/e2ee/download-keys'
 
 type Step = 'intro' | 'daily-key' | 'save-keys' | 'done'
 
 const STEPS: Step[] = ['intro', 'daily-key', 'save-keys', 'done']
-
-function downloadRecoveryKey(key: string, email: string) {
-  const date = new Date().toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric'
-  })
-  const content = `HEARTH RECOVERY KEY
-====================
-
-Account: ${email}
-Generated: ${date}
-
-Recovery Key:
-
-    ${key}
-
-To recover access:
-  1. Open Hearth → "Forgot daily key? Use recovery key"
-  2. Enter the key above
-  3. Set a new daily key
-
-If you lose both your daily key and this recovery key,
-your encrypted journal cannot be recovered.
-`
-  const blob = new Blob([content], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'hearth-recovery-key.txt'
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-function downloadDailyKey(key: string, email: string) {
-  const date = new Date().toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric'
-  })
-  const content = `HEARTH DAILY KEY
-====================
-
-Account: ${email}
-Generated: ${date}
-
-Daily Key:
-
-    ${key}
-
-This is the password you chose to unlock your journal.
-
-If you lose both your daily key and your recovery key,
-your encrypted journal cannot be recovered.
-`
-  const blob = new Blob([content], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'hearth-daily-key.txt'
-  a.click()
-  URL.revokeObjectURL(url)
-}
 
 export default function SetupModal() {
   const { theme } = useThemeStore()
@@ -193,6 +135,13 @@ export default function SetupModal() {
       await storeMasterKey(masterKey, 7)
       setEnabled(true)
       await fetchKeyData()
+
+      // Auto-download both keys so the user always has a local backup,
+      // even if they skip past the manual download buttons in the next
+      // step. The user can delete the files; we just want to make sure
+      // they have copies.
+      downloadDailyKeyFile(dailyKey, email)
+      downloadRecoveryKeyFile(newRecoveryKey, email)
 
       // Move to save-keys step
       setStep('save-keys')
@@ -456,7 +405,7 @@ export default function SetupModal() {
                 {copied ? 'Copied!' : 'Copy'}
               </button>
               <button
-                onClick={() => downloadRecoveryKey(recoveryKey, email)}
+                onClick={() => downloadRecoveryKeyFile(recoveryKey, email)}
                 className="flex-1 py-3 rounded-xl text-sm flex items-center justify-center gap-2"
                 style={{
                   background: theme.glass.bg,
@@ -482,7 +431,7 @@ export default function SetupModal() {
                 Want to also download your daily key as a file?
               </p>
               <button
-                onClick={() => downloadDailyKey(dailyKey, email)}
+                onClick={() => downloadDailyKeyFile(dailyKey, email)}
                 className="w-full py-2.5 rounded-xl text-sm flex items-center justify-center gap-2"
                 style={{
                   background: theme.glass.bg,

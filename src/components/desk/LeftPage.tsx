@@ -108,7 +108,6 @@ function VinylStickerPlaceholder({ accent }: { accent: string }) {
 interface Entry {
   id: string
   text: string
-  mood: number
   song?: string | null
   createdAt: string
   style?: EntryStyle | null
@@ -135,8 +134,7 @@ const LeftPage = memo(forwardRef<LeftPageHandle, LeftPageProps>(function LeftPag
 }: LeftPageProps, ref) {
   const { theme } = useThemeStore()
   const colors = getGlassDiaryColors(theme)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- mood picker commented out, keeping for future use
-  const { currentSong, setCurrentSong, currentMood, setCurrentMood } = useJournalStore()
+  const { currentSong, setCurrentSong } = useJournalStore()
   // Draft text lives in desk store so typing doesn't re-render BookSpread.
   const text = useDeskStore((s) => s.leftPageDraft)
   const setLeftPageDraft = useDeskStore((s) => s.setLeftPageDraft)

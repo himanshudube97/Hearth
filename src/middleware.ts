@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import * as jose from 'jose'
+import { isEmailVerified } from '@/lib/auth/email-verified'
 
-const PUBLIC_PATHS = ['/login', '/api/auth', '/api/webhooks', '/api/webhooks/lemonsqueezy']
-const PUBLIC_EXACT_PATHS = ['/', '/pricing']
+const PUBLIC_PATHS = [
+  '/login',
+  '/api/auth',
+  '/api/webhooks',
+  '/api/webhooks/lemonsqueezy',
+  '/api/letter',
+  '/letter',
+]
+const PUBLIC_EXACT_PATHS = ['/', '/pricing', '/forgot', '/reset', '/verify']
 const STATIC_PATHS = ['/_next', '/favicon.ico', '/images', '/icons', '/manifest.json', '/sw.js', '/workbox']
 
 const isDevAuth = process.env.USE_DEV_AUTH === 'true'
@@ -13,51 +22,22 @@ const AUTH_COOKIE_NAME = 'hearth-auth-token'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Skip static files and public paths
-  if (STATIC_PATHS.some(path => pathname.startsWith(path))) {
-    return NextResponse.next()
-  }
+  if (STATIC_PATHS.some(path => pathname.startsWith(path))) return NextResponse.next()
+  if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) return NextResponse.next()
+  if (PUBLIC_EXACT_PATHS.includes(pathname)) return NextResponse.next()
 
-  if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
-    return NextResponse.next()
-  }
-
-  // Allow exact public paths (like landing page)
-  if (PUBLIC_EXACT_PATHS.includes(pathname)) {
-    return NextResponse.next()
-  }
-
-  // Check authentication
-  const isAuthenticated = await checkAuth(request)
-
-  if (!isAuthenticated) {
-    // For API routes, return 401 JSON instead of redirecting
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    // For pages, redirect to login
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(loginUrl)
-  }
-
-  return NextResponse.next()
-}
-
-async function checkAuth(request: NextRequest): Promise<boolean> {
   if (isDevAuth) {
-    return checkDevAuth(request)
+    const authenticated = await checkDevAuth(request)
+    if (!authenticated) return unauthorized(request, pathname)
+    return NextResponse.next()
   }
-  return checkSupabaseAuth(request)
+
+  return checkSupabaseAuth(request, pathname)
 }
 
 async function checkDevAuth(request: NextRequest): Promise<boolean> {
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value
-
-  if (!token) {
-    return false
-  }
-
+  if (!token) return false
   try {
     const secret = new TextEncoder().encode(DEV_JWT_SECRET)
     await jose.jwtVerify(token, secret)
@@ -67,12 +47,50 @@ async function checkDevAuth(request: NextRequest): Promise<boolean> {
   }
 }
 
-async function checkSupabaseAuth(request: NextRequest): Promise<boolean> {
-  // Check for Supabase session cookies
-  const supabaseAuthToken = request.cookies.get('sb-access-token')?.value
-    || request.cookies.getAll().find(c => c.name.includes('auth-token'))?.value
+async function checkSupabaseAuth(request: NextRequest, pathname: string): Promise<NextResponse> {
+  let response = NextResponse.next({ request })
 
-  return !!supabaseAuthToken
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return unauthorized(request, pathname)
+
+  if (!isEmailVerified(user)) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Email not verified' }, { status: 403 })
+    }
+    const verifyUrl = new URL('/verify', request.url)
+    return NextResponse.redirect(verifyUrl)
+  }
+
+  return response
+}
+
+function unauthorized(request: NextRequest, pathname: string): NextResponse {
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const loginUrl = new URL('/login', request.url)
+  loginUrl.searchParams.set('redirect', pathname)
+  return NextResponse.redirect(loginUrl)
 }
 
 export const config = {

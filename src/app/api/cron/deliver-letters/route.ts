@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { sendLetterEmail, sendSelfLetterEmail } from '@/lib/email'
+import { sendFriendLetterMagicLink, sendSelfLetterEmail } from '@/lib/email'
 import { safeDecrypt } from '@/lib/encryption'
 import { strokesToDataUrl } from '@/lib/doodle-to-image'
+import { createAccessToken } from '@/lib/letter-tokens'
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron, or external service)
 // It checks for letters that are due for delivery and sends them
@@ -70,23 +71,24 @@ export async function GET(request: NextRequest) {
 
         // Determine if this is a friend letter or self letter
         if (letter.recipientEmail) {
-          // Friend letter - send email to recipient
-          // Decrypt sensitive fields before sending
+          // Friend letter — mint a magic-link token and email a short
+          // "letter waiting" notice. The full letter is read behind
+          // /letter/[token] which enforces reads-remaining and expiry.
           const senderName = safeDecrypt(letter.senderName) || letter.user.name || 'Someone special'
           const recipientName = safeDecrypt(letter.recipientName) || 'Friend'
-          const letterContent = safeDecrypt(letter.text)
-          const letterLocation = safeDecrypt(letter.letterLocation)
 
-          const { success, error } = await sendLetterEmail({
+          const tokenRow = await createAccessToken({
+            letterId: letter.id,
+            recipientEmail: letter.recipientEmail!,
+          })
+          const magicLinkUrl = `${process.env.NEXT_PUBLIC_APP_URL}/letter/${tokenRow.token}`
+
+          const { success, error } = await sendFriendLetterMagicLink({
             to: letter.recipientEmail!,
             recipientName,
             senderName,
-            letterContent,
-            letterLocation,
-            writtenAt: letter.createdAt,
-            photos,
-            doodleDataUrl,
-            songLink,
+            magicLinkUrl,
+            expiresAt: tokenRow.expiresAt,
           })
 
           if (success) {
@@ -136,7 +138,6 @@ export async function GET(request: NextRequest) {
                 data: {
                   text: letter.text,
                   textPreview: letter.textPreview,
-                  mood: letter.mood,
                   song: letter.song,
                   entryType: 'letter',
                   unlockDate: letter.unlockDate,

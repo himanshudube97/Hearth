@@ -18,12 +18,13 @@ export async function GET(request: NextRequest) {
       })
 
       if (!existingUser) {
+        const provider = data.user.app_metadata?.provider || 'email'
         await prisma.user.create({
           data: {
             email: data.user.email,
             name: data.user.user_metadata?.full_name || data.user.email.split('@')[0],
-            avatar: data.user.user_metadata?.avatar_url,
-            provider: 'google',
+            avatar: data.user.user_metadata?.avatar_url || null,
+            provider,
           },
         })
       }

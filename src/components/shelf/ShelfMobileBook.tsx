@@ -107,7 +107,6 @@ export default function ShelfMobileBook({
   const entryForLeft = {
     id: currentEntry.id,
     text: currentEntry.text,
-    mood: currentEntry.mood,
     song: currentEntry.song ?? null,
     createdAt: currentEntry.createdAt,
   }

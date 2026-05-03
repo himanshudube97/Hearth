@@ -2,9 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { stickerIds, stickers } from './stickers'
-import { MOOD_LABELS, MOOD_EMOJIS } from './items/MoodItem'
-
-type MoodLevel = 0 | 1 | 2 | 3 | 4
 
 interface Props {
   onAddText: () => void
@@ -13,7 +10,6 @@ interface Props {
   onAddSong: (url: string) => void
   onAddDoodle: () => void
   onAddClip: (variant: 'index-card' | 'ticket-stub' | 'receipt') => void
-  onAddMood: (level: MoodLevel) => void
   onAddStamp: () => void
   onAddDate: () => void
   onReset: () => void
@@ -34,7 +30,6 @@ export default function CanvasToolbar({
   onAddSong,
   onAddDoodle,
   onAddClip,
-  onAddMood,
   onAddStamp,
   onAddDate,
   onReset,
@@ -43,11 +38,9 @@ export default function CanvasToolbar({
   const [songPromptOpen, setSongPromptOpen] = useState(false)
   const [songUrl, setSongUrl] = useState('')
   const [clipOpen, setClipOpen] = useState(false)
-  const [moodOpen, setMoodOpen] = useState(false)
   const stickerWrapRef = useRef<HTMLDivElement>(null)
   const songWrapRef = useRef<HTMLDivElement>(null)
   const clipWrapRef = useRef<HTMLDivElement>(null)
-  const moodWrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -59,9 +52,6 @@ export default function CanvasToolbar({
       }
       if (clipWrapRef.current && !clipWrapRef.current.contains(e.target as Node)) {
         setClipOpen(false)
-      }
-      if (moodWrapRef.current && !moodWrapRef.current.contains(e.target as Node)) {
-        setMoodOpen(false)
       }
     }
     document.addEventListener('mousedown', onDocClick)
@@ -295,60 +285,6 @@ export default function CanvasToolbar({
                 }}
               >
                 {v.replace('-', ' ')}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="relative" ref={moodWrapRef}>
-        <ToolbarButton
-          onClick={() => setMoodOpen((o) => !o)}
-          icon="❤"
-          label="mood"
-          active={moodOpen}
-        />
-        {moodOpen && (
-          <div
-            className="absolute p-2 rounded-2xl flex flex-col gap-1"
-            style={{
-              top: 0,
-              left: '100%',
-              marginLeft: 10,
-              background: '#fefaf0',
-              border: '1px solid rgba(58, 52, 41, 0.18)',
-              boxShadow: '0 8px 24px rgba(20, 14, 4, 0.22)',
-              zIndex: 50,
-              width: 160,
-            }}
-          >
-            {([0, 1, 2, 3, 4] as const).map((level) => (
-              <button
-                key={level}
-                onClick={() => { onAddMood(level); setMoodOpen(false) }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '6px 10px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(58, 52, 41, 0.18)',
-                  background: '#fefdf8',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-              >
-                <span style={{ fontSize: 22, lineHeight: 1 }}>{MOOD_EMOJIS[level]}</span>
-                <span
-                  style={{
-                    fontFamily: 'var(--font-caveat), cursive',
-                    fontSize: 18,
-                    color: '#3a3429',
-                    letterSpacing: 0.3,
-                  }}
-                >
-                  {MOOD_LABELS[level]}
-                </span>
               </button>
             ))}
           </div>

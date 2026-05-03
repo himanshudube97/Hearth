@@ -189,29 +189,6 @@ export default function EntryDetailModal({ entryId, onClose, onUpdated }: EntryD
 
             {entry && !loading && (
               <>
-                {/* Mood badge — centered above notebook, like greeting on Write page */}
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 1, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-                  className="flex items-center justify-center gap-3 mb-4"
-                >
-                  <span
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
-                    style={{
-                      background: `${theme.moods[entry.mood as keyof typeof theme.moods]}30`,
-                    }}
-                  >
-                    {theme.moodEmojis[entry.mood]}
-                  </span>
-                  <span
-                    className="text-lg font-light"
-                    style={{ color: theme.text.secondary }}
-                  >
-                    {theme.moodLabels[entry.mood]}
-                  </span>
-                </motion.div>
-
                 {/* ===== NOTEBOOK + PHOTOS — exact Write page layout ===== */}
                 {/* Relative wrapper with overflow:visible so photos can stick out */}
                 <motion.div

@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { isDevAuth, AUTH_COOKIE_NAME } from './config'
 import { verifyDevToken } from './dev-auth'
 import { createClient as createSupabaseClient } from './supabase/server'
+import { isEmailVerified } from './email-verified'
 import { prisma } from '@/lib/db'
 
 export interface AuthUser {
@@ -57,18 +58,25 @@ async function getSupabaseUser(): Promise<AuthUser | null> {
     return null
   }
 
+  // Block API access until the email is verified. Middleware redirects
+  // page navigation to /verify; API callers see null user and respond 401.
+  if (!isEmailVerified(supabaseUser)) {
+    return null
+  }
+
   // Find or create user in our database
   let user = await prisma.user.findUnique({
     where: { email: supabaseUser.email },
   })
 
   if (!user) {
+    const provider = supabaseUser.app_metadata?.provider || 'email'
     user = await prisma.user.create({
       data: {
         email: supabaseUser.email,
         name: supabaseUser.user_metadata?.full_name || supabaseUser.email.split('@')[0],
-        avatar: supabaseUser.user_metadata?.avatar_url,
-        provider: 'google',
+        avatar: supabaseUser.user_metadata?.avatar_url || null,
+        provider,
       },
     })
   }

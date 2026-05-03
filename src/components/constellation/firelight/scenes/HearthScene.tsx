@@ -28,10 +28,6 @@ export function HearthScene({
   setSelectedStar,
   theme,
 }: HearthSceneProps) {
-  const moodColor = (mood: number) =>
-    [theme.moods[0], theme.moods[1], theme.moods[2], theme.moods[3], theme.moods[4]][mood] ??
-    theme.accent.primary
-
   // Loading
   if (loading) {
     return (
@@ -157,7 +153,6 @@ export function HearthScene({
         selectedStar={selectedStar}
         setSelectedStar={setSelectedStar}
         theme={theme}
-        getMoodColor={moodColor}
       />
     </motion.div>
   )

@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
 import { isEntryLocked, utcInstantForLocalDate, localDatePartsNow } from '@/lib/entry-lock'
 import { parseStyle } from '@/lib/entry-style'
+import { uploadPhotos } from '@/lib/storage'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string | null | undefined, maxLength = 150): string {
@@ -31,7 +32,6 @@ export async function GET(request: NextRequest) {
     // Filter params
     const year = searchParams.get('year')
     const month = searchParams.get('month')
-    const mood = searchParams.get('mood')
     const search = searchParams.get('search')
     const today = searchParams.get('today') === 'true'
     const entryType = searchParams.get('entryType')
@@ -64,17 +64,10 @@ export async function GET(request: NextRequest) {
       dateFilter = { gte: yearStart, lt: yearEnd }
     }
 
-    // Build mood filter
-    let moodFilter: number[] | undefined
-    if (mood) {
-      moodFilter = mood.split(',').map(Number).filter(n => !isNaN(n) && n >= 0 && n <= 4)
-    }
-
     // Build where clause
     const where: {
       userId: string
       createdAt?: { gte?: Date; lt?: Date }
-      mood?: { in: number[] }
       text?: { contains: string; mode: 'insensitive' }
       entryType?: string
       isArchived?: boolean
@@ -86,10 +79,6 @@ export async function GET(request: NextRequest) {
 
     if (dateFilter) {
       where.createdAt = dateFilter
-    }
-
-    if (moodFilter && moodFilter.length > 0) {
-      where.mood = { in: moodFilter }
     }
 
     if (search) {
@@ -171,7 +160,7 @@ export async function POST(request: NextRequest) {
     console.log('[POST /api/entries] Body:', JSON.stringify(body).slice(0, 200))
 
     const {
-      text, mood, song, tags, doodles, entryType, unlockDate, isSealed,
+      text, song, tags, doodles, entryType, unlockDate, isSealed,
       recipientEmail, recipientName, senderName, letterLocation,
       encryptionType, e2eeIV, e2eeIVs,
       // New fields
@@ -226,11 +215,15 @@ export async function POST(request: NextRequest) {
 
     console.log('[POST /api/entries] Creating entry for user:', user.id, 'photos:', photos?.length || 0, 'doodles:', doodles?.length || 0)
 
+    // Upload photos to storage before creating entry (entry ID not yet known — use temp key)
+    const uploadedPhotos = photos && photos.length > 0
+      ? await uploadPhotos(photos, `tmp-${user.id}-${Date.now()}`)
+      : photos
+
     const entry = await prisma.journalEntry.create({
       data: {
         text: encryptedText,
         textPreview: encryptedTextPreview,
-        mood: mood ?? 2,
         song: song || null,
         tags: tags ?? [],
         style: style !== undefined ? (parseStyle(style) as Prisma.InputJsonValue) : Prisma.JsonNull,
@@ -261,9 +254,9 @@ export async function POST(request: NextRequest) {
             }
           : undefined,
         // Create photos
-        photos: photos && photos.length > 0
+        photos: uploadedPhotos && uploadedPhotos.length > 0
           ? {
-              create: photos.map((p: { url: string; position: number; spread: number; rotation?: number }) => ({
+              create: uploadedPhotos.map((p: { url: string; position: number; spread: number; rotation?: number }) => ({
                 url: p.url,
                 position: p.position,
                 spread: p.spread,

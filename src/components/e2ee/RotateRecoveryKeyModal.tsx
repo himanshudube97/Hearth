@@ -10,6 +10,7 @@ import {
   wrapMasterKey,
   hashRecoveryKey,
 } from '@/lib/e2ee/crypto'
+import { downloadRecoveryKeyFile } from '@/lib/e2ee/download-keys'
 
 interface Props {
   open: boolean
@@ -55,6 +56,12 @@ export default function RotateRecoveryKeyModal({ open, onClose }: Props) {
 
       await fetchKeyData()
       setNewRecoveryKey(fresh)
+
+      // Auto-download the new recovery key so the user always has a
+      // fresh local backup, even if they bail out before clicking the
+      // manual download button on the next step.
+      downloadRecoveryKeyFile(fresh, user?.email)
+
       setStep('show-new-key')
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -69,36 +76,7 @@ export default function RotateRecoveryKeyModal({ open, onClose }: Props) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const downloadKey = () => {
-    const date = new Date().toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric'
-    })
-    const content = `HEARTH RECOVERY KEY
-====================
-
-Account: ${user?.email ?? ''}
-Generated: ${date}
-
-Recovery Key:
-
-    ${newRecoveryKey}
-
-To recover access:
-  1. Open Hearth → "Forgot daily key? Use recovery key"
-  2. Enter the key above
-  3. Set a new daily key
-
-If you lose both your daily key and this recovery key,
-your encrypted journal cannot be recovered.
-`
-    const blob = new Blob([content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'hearth-recovery-key.txt'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+  const downloadKey = () => downloadRecoveryKeyFile(newRecoveryKey, user?.email)
 
   const handleClose = () => {
     setStep('confirm')

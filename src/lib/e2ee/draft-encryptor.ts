@@ -16,7 +16,6 @@ import { encryptString, decryptString } from './crypto'
 export interface EncryptableDraft {
   text?: string
   textPreview?: string | null
-  mood?: number | null
   tags?: string[] | null
   song?: string | null
   senderName?: string | null
@@ -30,7 +29,6 @@ export interface EncryptedDraft {
   encryptionType: 'e2ee'
   text?: string
   textPreview?: string
-  mood?: string
   tags?: string
   song?: string
   senderName?: string
@@ -54,7 +52,7 @@ const STRING_FIELDS = [
   'letterLocation',
 ] as const
 
-const JSON_FIELDS = ['mood', 'tags'] as const
+const JSON_FIELDS = ['tags'] as const
 
 export async function encryptDraft(
   draft: EncryptableDraft,

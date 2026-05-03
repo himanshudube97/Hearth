@@ -23,17 +23,16 @@ interface MemoryModalProps {
   selectedStar: MemoryStar | null
   setSelectedStar: (s: MemoryStar | null) => void
   theme: Theme
-  getMoodColor: (mood: number) => string
 }
 
-export function MemoryModal({ selectedStar, setSelectedStar, theme, getMoodColor }: MemoryModalProps) {
+export function MemoryModal({ selectedStar, setSelectedStar, theme }: MemoryModalProps) {
   return (
     <AnimatePresence>
       {selectedStar && (() => {
         const isLetter =
           selectedStar.entry.entryType === 'letter' && selectedStar.entry.isSealed
         const isLetterToFriend = isLetter && !!selectedStar.entry.recipientEmail
-        const moodColor = getMoodColor(selectedStar.entry.mood)
+        const accentColor = theme.accent.primary
 
         // Regular entry → torn-paper diary spread (preserves the original
         // two-page layout: ruled lines, photo block, song, doodle in their
@@ -70,16 +69,16 @@ export function MemoryModal({ selectedStar, setSelectedStar, theme, getMoodColor
               <div
                 className="rounded-2xl p-6"
                 style={{
-                  background: `linear-gradient(135deg, ${theme.glass.bg} 0%, ${moodColor}10 100%)`,
+                  background: `linear-gradient(135deg, ${theme.glass.bg} 0%, ${accentColor}10 100%)`,
                   backdropFilter: `blur(${theme.glass.blur})`,
-                  border: `1px solid ${moodColor}30`,
+                  border: `1px solid ${accentColor}30`,
                 }}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <span
                       className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
-                      style={{ background: `${moodColor}20` }}
+                      style={{ background: `${accentColor}20` }}
                     >
                       ✉️
                     </span>
@@ -107,7 +106,7 @@ export function MemoryModal({ selectedStar, setSelectedStar, theme, getMoodColor
                   className="relative rounded-xl p-6 text-center"
                   style={{
                     background: `${theme.bg.primary}60`,
-                    border: `1px dashed ${moodColor}40`,
+                    border: `1px dashed ${accentColor}40`,
                   }}
                 >
                   <div className="text-4xl mb-3">🔒</div>

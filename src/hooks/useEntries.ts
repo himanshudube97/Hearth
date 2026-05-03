@@ -17,14 +17,12 @@ interface EntriesResponse {
 interface MonthStats {
   month: string
   entryCount: number
-  avgMood: number | null
   daysWithEntries: number
 }
 
 interface YearStats {
   year: number
   entryCount: number
-  avgMood: number | null
   months: MonthStats[]
 }
 
@@ -35,19 +33,11 @@ interface StatsResponse {
   lastEntryDate: string | null
   currentStreak: number
   longestStreak: number
-  /**
-   * True when the user has any E2EE entries. Mood is stored as ciphertext for
-   * those entries, so the server cannot compute avgMood. The client must either
-   * decrypt and aggregate locally or render a "stats unavailable" notice.
-   * v1: the client renders the notice; local aggregation is a future task.
-   */
-  clientAggregationRequired?: boolean
 }
 
 interface UseEntriesOptions {
   month?: string // "2024-02"
   year?: string
-  mood?: number[]
   search?: string
   today?: boolean
   limit?: number
@@ -71,7 +61,6 @@ export function useEntries(options: UseEntriesOptions = {}) {
 
     if (options.month) params.set('month', options.month)
     if (options.year) params.set('year', options.year)
-    if (options.mood && options.mood.length > 0) params.set('mood', options.mood.join(','))
     if (options.search) params.set('search', options.search)
     if (options.today) params.set('today', 'true')
     if (options.limit) params.set('limit', options.limit.toString())
@@ -79,7 +68,7 @@ export function useEntries(options: UseEntriesOptions = {}) {
     if (cursor) params.set('cursor', cursor)
 
     return `/api/entries?${params.toString()}`
-  }, [options.month, options.year, options.mood, options.search, options.today, options.limit, options.includeDoodles])
+  }, [options.month, options.year, options.search, options.today, options.limit, options.includeDoodles])
 
   const fetchEntries = useCallback(async (reset = true) => {
     try {
@@ -128,7 +117,7 @@ export function useEntries(options: UseEntriesOptions = {}) {
   // Fetch when options change or E2EE state changes
   useEffect(() => {
     fetchEntries(true)
-  }, [options.month, options.year, options.mood?.join(','), options.search, options.today, isE2EEReady])
+  }, [options.month, options.year, options.search, options.today, isE2EEReady])
 
   return {
     entries,

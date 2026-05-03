@@ -2,6 +2,7 @@
 
 import { useThemeStore } from '@/store/theme'
 import Link from 'next/link'
+import { BackfillRetryPanel } from '@/components/security/BackfillRetryPanel'
 
 export default function SecurityPage() {
   const { theme } = useThemeStore()
@@ -27,6 +28,8 @@ export default function SecurityPage() {
         >
           How Hearth keeps your journal private
         </h1>
+
+        <BackfillRetryPanel />
 
         {/* Server-side encryption */}
         <section className="space-y-3">
@@ -95,7 +98,7 @@ export default function SecurityPage() {
               What we cannot see
             </h3>
             <p className="text-sm leading-relaxed" style={{ color: theme.text.secondary }}>
-              With E2EE on, we cannot see the contents of your entries, photos, doodles, your mood,
+              With E2EE on, we cannot see the contents of your entries, photos, doodles,
               your tags, the song you attached, the names you wrote in self-letters, or your scrapbook
               items. Server breach, support staff, or government request — none of them have a path
               to your contents.

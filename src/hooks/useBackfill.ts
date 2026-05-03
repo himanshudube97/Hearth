@@ -8,7 +8,6 @@ interface BackfillEntry {
   id: string
   text?: string
   textPreview?: string
-  mood?: number
   tags?: string[]
   song?: string | null
   senderName?: string | null
@@ -54,7 +53,6 @@ export function useBackfill() {
           const draft = {
             text: entry.text ?? '',
             textPreview: entry.textPreview ?? null,
-            mood: entry.mood ?? null,
             tags: entry.tags ?? null,
             song: entry.song ?? null,
             senderName: entry.senderName ?? null,
@@ -71,6 +69,11 @@ export function useBackfill() {
             encryptedRef?: string
             encryptedRefIV?: string
           }> = []
+          // Track each handle we successfully uploaded this round so that
+          // if the entry PUT below fails, we can record those handles as
+          // orphans for the sweep cron to clean up.
+          const uploadedHandles: string[] = []
+
           for (const p of entry.photos ?? []) {
             if (p.url && p.url.startsWith('data:')) {
               try {
@@ -85,6 +88,7 @@ export function useBackfill() {
                 })
                 if (!upRes.ok) throw new Error('upload failed')
                 const { handle } = await upRes.json()
+                uploadedHandles.push(handle)
                 const refEnc = await encryptString(JSON.stringify({ handle, iv }), masterKey)
                 newPhotos.push({
                   id: p.id,
@@ -106,7 +110,19 @@ export function useBackfill() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...encryptedFields, photos: newPhotos }),
           })
-          if (!putRes.ok) throw new Error('PUT failed')
+          if (!putRes.ok) {
+            // Entry PUT failed but the encrypted blobs are already uploaded.
+            // Record them so the sweep cron deletes them later — otherwise
+            // the user pays for storage on data nothing references.
+            for (const h of uploadedHandles) {
+              await fetch('/api/orphaned-blobs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ handle: h, reason: 'backfill_failed' }),
+              }).catch(() => {})
+            }
+            throw new Error('PUT failed')
+          }
           migrated += 1
           cursor = entry.id
           setBackfillProgress({ migrated, lastCursor: cursor })
@@ -165,5 +181,14 @@ export function useBackfill() {
     setBackfillProgress({ status: 'done' })
   }, [masterKey, backfillProgress, setBackfillProgress])
 
-  return { runBackfill }
+  // Reset failed-IDs and re-run the migration. The backfill-batch endpoints
+  // already return only entries/scrapbooks that aren't yet on E2EE, so a
+  // re-run picks up exactly the items we previously failed on without
+  // double-encrypting anything that succeeded.
+  const retryFailedIds = useCallback(async () => {
+    setBackfillProgress({ status: 'idle', lastCursor: null, failedIds: [] })
+    await runBackfill()
+  }, [runBackfill, setBackfillProgress])
+
+  return { runBackfill, retryFailedIds }
 }

@@ -12,7 +12,6 @@ const RETRY_DELAY_MS = 2000
 
 export interface AutosaveDraft {
   text: string
-  mood: number
   song: string | null
   photos: {
     url?: string                 // mark optional to support E2EE-uploaded photos
@@ -103,7 +102,6 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
     const baseDraft: Record<string, unknown> = {
       text: draft.text,
       textPreview: createTextPreview(draft.text),
-      mood: draft.mood,
       song: draft.song,
       // Pass through letter metadata only when present in the draft
       ...(draft.senderName !== undefined ? { senderName: draft.senderName } : {}),

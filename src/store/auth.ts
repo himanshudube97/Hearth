@@ -41,6 +41,13 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
+      // Wipe E2EE master key from memory + browser storage before
+      // dropping the session, so a shared device can't be unlocked
+      // by the next visitor with the cached key.
+      try {
+        const { useE2EEStore } = await import('@/store/e2ee')
+        useE2EEStore.getState().clearMasterKey()
+      } catch {}
       await fetch('/api/auth/logout', { method: 'POST' })
       set({ user: null })
       window.location.href = '/login'

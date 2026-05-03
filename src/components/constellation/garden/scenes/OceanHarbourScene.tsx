@@ -31,17 +31,6 @@ export function OceanHarbourScene({
   setSelectedStar,
   theme,
 }: OceanHarbourSceneProps) {
-  const getMoodColor = (mood: number) => {
-    const colors = [
-      theme.moods[0],
-      theme.moods[1],
-      theme.moods[2],
-      theme.moods[3],
-      theme.moods[4],
-    ]
-    return colors[mood] || theme.accent.primary
-  }
-
   if (loading) {
     return (
       <motion.div
@@ -147,7 +136,7 @@ export function OceanHarbourScene({
       <PaperBoats
         memoryStars={memoryStars}
         onSelect={setSelectedStar}
-        getMoodColor={getMoodColor}
+        glowColor={theme.accent.warm}
       />
 
       <motion.div
@@ -213,7 +202,6 @@ export function OceanHarbourScene({
         selectedStar={selectedStar}
         setSelectedStar={setSelectedStar}
         theme={theme}
-        getMoodColor={getMoodColor}
       />
     </motion.div>
   )

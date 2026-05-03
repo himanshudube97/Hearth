@@ -47,7 +47,6 @@ export default function ComposeView() {
   useEffect(() => {
     autosave.trigger({
       text: body,
-      mood: 2,
       song: song,
       photos: photos
         .map((url, idx) => url ? { url, position: idx, rotation: 0, spread: 1 } : null)

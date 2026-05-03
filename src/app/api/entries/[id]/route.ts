@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { encrypt, decryptEntryFields } from '@/lib/encryption'
 import { isEntryLocked, validateAppendOnlyDiff } from '@/lib/entry-lock'
 import { parseStyle } from '@/lib/entry-style'
+import { uploadPhotos } from '@/lib/storage'
 
 // Helper to strip HTML and create preview
 function createPreview(html: string, maxLength = 150): string {
@@ -93,7 +94,6 @@ export async function PUT(
         createdAt: true,
         text: true,
         song: true,
-        mood: true,
         entryType: true,
         isSealed: true,
         style: true,
@@ -112,7 +112,7 @@ export async function PUT(
 
     const body = await request.json()
     const {
-      text, mood, song, tags, encryptionType, e2eeIV, e2eeIVs,
+      text, song, tags, encryptionType, e2eeIV, e2eeIVs,
       spreads, appendText, newPhotos, newDoodles,
       style,
       // Full-replacement doodle/photo lists (autosave wire format). When the
@@ -161,8 +161,6 @@ export async function PUT(
         })),
         oldDoodleSpreads: existing.doodles.map((d) => d.spread),
         newDoodleSpreads: newDoodles?.map((d: { spread?: number }) => d.spread ?? 1),
-        oldMood: existing.mood,
-        newMood: mood,
       })
       if (!diff.ok) {
         return NextResponse.json({ error: diff.reason }, { status: 403 })
@@ -194,7 +192,6 @@ export async function PUT(
       }
     }
 
-    if (mood !== undefined) updateData.mood = mood
     if (style !== undefined) {
       updateData.style = parseStyle(style)
     }
@@ -239,15 +236,16 @@ export async function PUT(
 
     // Add new photos if provided (append-only)
     if (newPhotos && newPhotos.length > 0) {
+      const uploadedNewPhotos = await uploadPhotos(newPhotos, id)
       await prisma.entryPhoto.createMany({
-        data: newPhotos.map((p: { url: string; position: number; spread: number; rotation?: number }) => ({
+        data: uploadedNewPhotos.map((p: { url: string; position: number; spread: number; rotation?: number }) => ({
           entryId: id,
           url: p.url,
           position: p.position,
           spread: p.spread,
           rotation: p.rotation ?? 0,
         })),
-        skipDuplicates: true, // Skip if photo already exists at position/spread
+        skipDuplicates: true,
       })
     }
 
@@ -280,8 +278,9 @@ export async function PUT(
     if (!locked && Array.isArray(photos)) {
       await prisma.entryPhoto.deleteMany({ where: { entryId: id } })
       if (photos.length > 0) {
+        const uploadedPhotos = await uploadPhotos(photos, id)
         await prisma.entryPhoto.createMany({
-          data: photos.map((p: { url: string; position: number; spread?: number; rotation?: number }) => ({
+          data: uploadedPhotos.map((p: { url: string; position: number; spread?: number; rotation?: number }) => ({
             entryId: id,
             url: p.url,
             position: p.position,

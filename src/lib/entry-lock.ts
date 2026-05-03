@@ -140,8 +140,6 @@ export interface LockedDiffInput {
   newPhotoSlots?: { spread: number; position: number }[]
   oldDoodleSpreads: number[]
   newDoodleSpreads?: number[]
-  oldMood: number
-  newMood?: number
   oldStyle: unknown            // existing JournalEntry.style as stored (Prisma Json)
   newStyle?: unknown           // candidate replacement
 }
@@ -149,9 +147,6 @@ export interface LockedDiffInput {
 export type DiffResult = { ok: true } | { ok: false; reason: string }
 
 export function validateAppendOnlyDiff(input: LockedDiffInput): DiffResult {
-  if (input.newMood !== undefined && input.newMood !== input.oldMood) {
-    return { ok: false, reason: 'Mood is locked after the day of writing' }
-  }
   if (input.newStyle !== undefined) {
     // Stable JSON-string equality is good enough here because callers always
     // run candidate styles through `parseStyle` before saving, which assigns

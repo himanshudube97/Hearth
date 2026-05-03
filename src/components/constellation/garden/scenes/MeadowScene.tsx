@@ -38,17 +38,6 @@ export function MeadowScene({
 }: MeadowSceneProps) {
   const parallax = useGardenParallax()
 
-  const getMoodColor = (mood: number) => {
-    const colors = [
-      theme.moods[0],
-      theme.moods[1],
-      theme.moods[2],
-      theme.moods[3],
-      theme.moods[4],
-    ]
-    return colors[mood] || theme.accent.primary
-  }
-
   if (loading) {
     return (
       <motion.div
@@ -136,7 +125,6 @@ export function MeadowScene({
         memoryStars={memoryStars}
         onSelect={setSelectedStar}
         theme={theme}
-        getMoodColor={getMoodColor}
       />
       <ForegroundFrame parallax={parallax} theme={theme} />
 
@@ -202,7 +190,6 @@ export function MeadowScene({
         selectedStar={selectedStar}
         setSelectedStar={setSelectedStar}
         theme={theme}
-        getMoodColor={getMoodColor}
       />
     </motion.div>
   )

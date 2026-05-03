@@ -34,7 +34,6 @@ interface Photo {
 interface Entry {
   id: string
   text: string
-  mood: number
   song?: string | null
   photos?: Photo[]
   doodles?: Array<{ strokes: StrokeData[] }>
@@ -98,7 +97,6 @@ function combineDraftHtml(left: string, right: string): string {
 export default function BookSpread() {
   const { theme, themeName } = useThemeStore()
   const setCurrentSong = useJournalStore((s) => s.setCurrentSong)
-  const setCurrentMood = useJournalStore((s) => s.setCurrentMood)
   const setDoodleStrokes = useJournalStore((s) => s.setDoodleStrokes)
   const colors = getGlassDiaryColors(theme)
   // Subscribe via selectors so BookSpread does NOT re-render when
@@ -194,7 +192,6 @@ export default function BookSpread() {
           useDeskStore.getState().setDrafts(leftPlain, rightPlain)
           useDeskStore.getState().setEntryStyleDraft(parseStyle(active.style ?? null))
           setCurrentSong(active.song || '')
-          setCurrentMood(active.mood ?? 2)
           const doodleStrokes = active.doodles?.[0]?.strokes ?? []
           setDoodleStrokes(doodleStrokes)
           // Photos: map the entry's photos to the local pending shape.
@@ -224,7 +221,7 @@ export default function BookSpread() {
     return () => {
       cancelled = true
     }
-  }, [setTotalSpreads, setCurrentSong, setCurrentMood, setDoodleStrokes])
+  }, [setTotalSpreads, setCurrentSong, setDoodleStrokes])
 
   // After loading, jump to the new-entry spread (last)
   useEffect(() => {
@@ -248,7 +245,6 @@ export default function BookSpread() {
     const text = combineDraftHtml(desk.leftPageDraft, desk.rightPageDraft)
     return {
       text,
-      mood: journal.currentMood,
       song: journal.currentSong || null,
       photos: pendingPhotosRef.current.map((p) => ({
         url: p.url,
@@ -282,7 +278,6 @@ export default function BookSpread() {
     const unsubJournal = useJournalStore.subscribe((state, prev) => {
       if (
         state.currentSong !== prev.currentSong ||
-        state.currentMood !== prev.currentMood ||
         state.currentDoodleStrokes !== prev.currentDoodleStrokes
       ) {
         autosaveRef.current.trigger(buildDraft())
