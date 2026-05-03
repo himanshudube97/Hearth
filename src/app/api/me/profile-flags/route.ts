@@ -9,6 +9,16 @@ const ALLOWED_KEYS = new Set([
   'lastComebackShownAt',
 ])
 
+export async function GET() {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { profile: true } })
+  const profile = dbUser?.profile
+    ? (decryptJson<Record<string, unknown>>(dbUser.profile as string) ?? {})
+    : {}
+  return NextResponse.json({ profile })
+}
+
 export async function PATCH(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

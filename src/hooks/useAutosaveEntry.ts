@@ -144,6 +144,11 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
           if (data?.id) {
             entryIdRef.current = data.id
             setEntryId(data.id)
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('hearth:entry-saved', {
+                detail: { entryId: data.id, isFirstSaveOfSession: true },
+              }))
+            }
           }
         }
         inFlightRef.current = false
