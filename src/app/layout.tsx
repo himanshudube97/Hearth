@@ -9,6 +9,7 @@ import LayoutContent from "@/components/LayoutContent";
 import AuthProvider from "@/components/AuthProvider";
 import E2EEProvider from "@/components/e2ee/E2EEProvider";
 import ServiceWorkerRegistrar from "@/components/reminders/ServiceWorkerRegistrar";
+import ComebackHost from "@/components/comeback/ComebackHost";
 
 const ebGaramond = EB_Garamond({
   variable: "--font-serif",
@@ -80,6 +81,7 @@ export default function RootLayout({
         className={`${ebGaramond.variable} ${caveat.variable} ${patrickHand.variable} antialiased font-serif`}
       >
         <ServiceWorkerRegistrar />
+        <ComebackHost />
         <AuthProvider>
           <E2EEProvider>
             <LayoutContent>{children}</LayoutContent>
