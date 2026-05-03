@@ -84,8 +84,9 @@ model JournalEntry {
   spreads    Int     @default(1) // Number of spreads (1-3)
   isArchived Boolean @default(false) // Soft delete flag for two-step deletion
 
-  doodles Doodle[]
-  photos  EntryPhoto[]
+  doodles      Doodle[]
+  photos       EntryPhoto[]
+  accessTokens LetterAccessToken[]
 
   // Indexes for scalable queries
   @@index([userId, createdAt(sort: Desc)]) // Timeline queries
@@ -94,6 +95,22 @@ model JournalEntry {
   @@index([unlockDate, isDelivered]) // For cron job to find due letters
   @@index([userId, isArchived]) // For archive queries
   @@map("journal_entries")
+}
+
+model LetterAccessToken {
+  id              String       @id @default(cuid())
+  token           String       @unique
+  letterId        String
+  letter          JournalEntry @relation(fields: [letterId], references: [id], onDelete: Cascade)
+  recipientEmail  String
+  expiresAt       DateTime
+  readsRemaining  Int          @default(3)
+  readCount       Int          @default(0)
+  firstReadAt     DateTime?
+  createdAt       DateTime     @default(now())
+
+  @@index([letterId])
+  @@map("letter_access_tokens")
 }
 
 model Doodle {
