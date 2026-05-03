@@ -8,6 +8,14 @@ import { prisma } from '@/lib/db'
  * uniformly random at our scale. Revisit if user count crosses ~100k.
  *
  * Returns the recipient user id, or null if no eligible user exists.
+ *
+ * TODO BLOCKER before public launch: extend the eligibility predicate alongside
+ * the moderation spec. Required additional WHERE clauses:
+ *   - exclude users who set the receive-opt-out toggle (profile setting)
+ *   - exclude shadow-suspended senders' candidate pools? (no — shadow-suspend
+ *     is enforced at send-time, not match-time)
+ *   - exclude soft-deleted accounts (when soft-delete is added)
+ *   - exclude pairs where the recipient has reported this anonymous sender
  */
 export async function pickRandomRecipient(senderId: string): Promise<string | null> {
   const rows = await prisma.$queryRaw<Array<{ id: string }>>`

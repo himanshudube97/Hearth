@@ -4,9 +4,18 @@ import { getCurrentUser } from '@/lib/auth'
 import {
   validateNoteContent,
   encryptStrangerContent,
-  canSendToday,
 } from '@/lib/stranger-notes'
 import { tryDeliverQueued } from '@/lib/stranger-matcher'
+
+function safeIanaTz(raw: string | null | undefined): string {
+  const candidate = raw && raw.length > 0 ? raw : 'UTC'
+  try {
+    new Intl.DateTimeFormat('en-CA', { timeZone: candidate })
+    return candidate
+  } catch {
+    return 'UTC'
+  }
+}
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
@@ -33,48 +42,61 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: map[validation.error] }, { status: 400 })
   }
 
-  // Daily rate limit (per user, per local calendar day).
-  const userTz = req.headers.get('X-User-TZ')
-  const userRow = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { lastStrangerNoteSentAt: true },
+  // TODO BLOCKER before public launch: run validation.trimmed through a
+  // moderation API here. Reject (status 400) if flagged. Keep this comment
+  // until the moderation spec ships.
+
+  const ciphertext = encryptStrangerContent(validation.trimmed)
+  const tz = safeIanaTz(req.headers.get('X-User-TZ'))
+  const now = new Date()
+
+  // Atomic daily-rate-limit claim + note creation.
+  // The conditional UPDATE checks the user's local-day boundary in SQL so
+  // two concurrent sends cannot both pass: only the first request whose
+  // UPDATE matches "lastStrangerNoteSentAt is null OR is on an earlier
+  // calendar day in the user's tz" will succeed and increment the counter.
+  // The second request's UPDATE will affect 0 rows and we return 429.
+  // Wrapping the create + claim in a transaction also ensures that if note
+  // creation fails after the claim, the slot is rolled back and the user
+  // can retry. (Fixes the partial-failure and TOCTOU windows the prior
+  // read-then-write pattern allowed.)
+  const noteId = await prisma.$transaction(async (tx) => {
+    const claimedCount = await tx.$executeRaw`
+      UPDATE users
+      SET "lastStrangerNoteSentAt" = ${now},
+          "strangerNotesSent" = "strangerNotesSent" + 1
+      WHERE id = ${user.id}
+        AND ("lastStrangerNoteSentAt" IS NULL
+             OR date_trunc('day', "lastStrangerNoteSentAt" AT TIME ZONE ${tz})
+                < date_trunc('day', ${now}::timestamptz AT TIME ZONE ${tz}))
+    `
+    if (claimedCount === 0) return null
+
+    const note = await tx.strangerNote.create({
+      data: {
+        senderId: user.id,
+        content: ciphertext,
+        status: 'queued',
+      },
+      select: { id: true },
+    })
+    return note.id
   })
-  if (!canSendToday(userRow?.lastStrangerNoteSentAt ?? null, userTz)) {
+
+  if (noteId === null) {
     return NextResponse.json(
       { error: 'Your light is on its way. Come back tomorrow.' },
       { status: 429 }
     )
   }
 
-  // TODO BLOCKER before public launch: run validation.trimmed through a
-  // moderation API here. Reject (status 400) if flagged. Keep this comment
-  // until the moderation spec ships.
-
-  const ciphertext = encryptStrangerContent(validation.trimmed)
-
-  const note = await prisma.strangerNote.create({
-    data: {
-      senderId: user.id,
-      content: ciphertext,
-      status: 'queued',
-    },
-    select: { id: true },
-  })
-
-  // Bump sender counter and rate-limit timestamp.
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      strangerNotesSent: { increment: 1 },
-      lastStrangerNoteSentAt: new Date(),
-    },
-  })
-
-  // Try to deliver immediately. If no eligible recipient, leave queued for cron.
-  const delivered = await tryDeliverQueued(note.id, user.id)
+  // Try to deliver immediately. tryDeliverQueued runs its own transaction
+  // for the queued→delivered flip + recipient counter bump, so it stays
+  // outside the claim transaction here.
+  const delivered = await tryDeliverQueued(noteId, user.id)
 
   return NextResponse.json(
-    { id: note.id, status: delivered ? 'delivered' : 'queued' },
+    { id: noteId, status: delivered ? 'delivered' : 'queued' },
     { status: 201 }
   )
 }

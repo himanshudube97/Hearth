@@ -33,9 +33,9 @@ export default function LightsView() {
     <div className="relative flex flex-col items-center gap-8 p-6 sm:p-10">
       <div className="text-center max-w-md">
         <p className="text-sm opacity-70">
-          You&apos;ve sent {data.counters.sent} small lights.
+          You&apos;ve sent {data.counters.sent} small lights into the world.
           {' '}
-          {data.counters.received} have come back as quiet visitors.
+          {data.counters.received} have arrived at your door from strangers.
         </p>
       </div>
 

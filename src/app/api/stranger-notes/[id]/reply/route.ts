@@ -53,15 +53,28 @@ export async function POST(
 
   const ciphertext = encryptStrangerContent(validation.trimmed)
 
-  await prisma.$transaction([
-    prisma.strangerReply.create({
-      data: { noteId: id, content: ciphertext },
-    }),
-    prisma.strangerNote.update({
-      where: { id },
+  // Atomic claim: only proceed if the note is still 'delivered'. Mirrors the
+  // matcher's queued→delivered pattern. Protects against concurrent reply
+  // requests (e.g., recipient double-tap, or a race with cron expiry) slipping
+  // past the pre-check above.
+  const claimed = await prisma.$transaction(async (tx) => {
+    const updated = await tx.strangerNote.updateMany({
+      where: { id, status: 'delivered' },
       data: { status: 'replied' },
-    }),
-  ])
+    })
+    if (updated.count === 0) return false
+    await tx.strangerReply.create({
+      data: { noteId: id, content: ciphertext },
+    })
+    return true
+  })
+
+  if (!claimed) {
+    return NextResponse.json(
+      { error: 'This note can no longer be replied to.' },
+      { status: 409 }
+    )
+  }
 
   return NextResponse.json({ ok: true }, { status: 201 })
 }
