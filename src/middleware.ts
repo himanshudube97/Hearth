@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import * as jose from 'jose'
+import { isEmailVerified } from '@/lib/auth/email-verified'
 
 const PUBLIC_PATHS = ['/login', '/api/auth', '/api/webhooks', '/api/webhooks/lemonsqueezy']
-const PUBLIC_EXACT_PATHS = ['/', '/pricing']
+const PUBLIC_EXACT_PATHS = ['/', '/pricing', '/forgot', '/reset', '/verify']
 const STATIC_PATHS = ['/_next', '/favicon.ico', '/images', '/icons', '/manifest.json', '/sw.js', '/workbox']
 
 const isDevAuth = process.env.USE_DEV_AUTH === 'true'
@@ -64,6 +65,14 @@ async function checkSupabaseAuth(request: NextRequest, pathname: string): Promis
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return unauthorized(request, pathname)
+
+  if (!isEmailVerified(user)) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Email not verified' }, { status: 403 })
+    }
+    const verifyUrl = new URL('/verify', request.url)
+    return NextResponse.redirect(verifyUrl)
+  }
 
   return response
 }

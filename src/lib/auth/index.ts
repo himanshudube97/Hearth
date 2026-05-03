@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { isDevAuth, AUTH_COOKIE_NAME } from './config'
 import { verifyDevToken } from './dev-auth'
 import { createClient as createSupabaseClient } from './supabase/server'
+import { isEmailVerified } from './email-verified'
 import { prisma } from '@/lib/db'
 
 export interface AuthUser {
@@ -54,6 +55,12 @@ async function getSupabaseUser(): Promise<AuthUser | null> {
   const { data: { user: supabaseUser } } = await supabase.auth.getUser()
 
   if (!supabaseUser?.email) {
+    return null
+  }
+
+  // Block API access until the email is verified. Middleware redirects
+  // page navigation to /verify; API callers see null user and respond 401.
+  if (!isEmailVerified(supabaseUser)) {
     return null
   }
 
