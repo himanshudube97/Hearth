@@ -159,7 +159,7 @@ export async function PUT(
           spread: p.spread,
           position: p.position,
         })),
-        oldDoodleSpreads: existing.doodles.map((d) => d.spread),
+        oldDoodleSpreads: existing.doodles.map((d: { spread: number }) => d.spread),
         newDoodleSpreads: newDoodles?.map((d: { spread?: number }) => d.spread ?? 1),
       })
       if (!diff.ok) {
