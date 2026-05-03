@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Background from '@/components/Background'
 import Navigation from '@/components/Navigation'
-import ThemeSwitcher from '@/components/ThemeSwitcher'
-import CursorPicker from '@/components/CursorPicker'
 import PageTransition from '@/components/PageTransition'
 import DeskSettingsPanel from '@/components/desk/DeskSettingsPanel'
 import AmbientSoundLayer from '@/components/AmbientSoundLayer'
 import { InstallPrompt } from '@/components/InstallPrompt'
+import FullscreenButton from '@/components/FullscreenButton'
+import FullscreenPrompt from '@/components/FullscreenPrompt'
 import { useThemeStore } from '@/store/theme'
 import { useApplyCursorStyles } from '@/hooks/useApplyCursorStyles'
 
@@ -25,10 +25,13 @@ export default function LayoutContent({
   const isPricingPage = pathname === '/pricing'
   const isWritingPage = pathname === '/write'
   const isLettersPage = pathname.startsWith('/letters')
+  // /scrapbook (the listing) is a full-bleed scene like /letters; the
+  // per-scrapbook canvas at /scrapbook/[id] keeps the padded <main> wrapper.
+  const isScrapbookListingPage = pathname === '/scrapbook'
 
-  // Apply the active cursor styles globally. Used to live inside
-  // CursorPicker, but the writing page no longer renders that picker (it
-  // uses the desk gear panel instead) — so this lives at the layout level.
+  // Apply the active cursor styles globally. The cursor selection now
+  // lives entirely in the gear's DeskSettingsPanel, but the style
+  // injection runs at the layout level so it applies to every page.
   useApplyCursorStyles()
 
   useEffect(() => {
@@ -48,12 +51,13 @@ export default function LayoutContent({
   }
 
   if (isLandingPage || isPricingPage) {
-    // Landing & Pricing - no navigation (public pages)
+    // Landing & Pricing - no navigation (public pages). The corner gear
+    // is the single settings entry point everywhere now, including here.
     return (
       <>
         {children}
-        <CursorPicker />
-        <ThemeSwitcher />
+        <DeskSettingsPanel />
+        <FullscreenPrompt />
         <InstallPrompt />
       </>
     )
@@ -65,15 +69,16 @@ export default function LayoutContent({
   // on top of this Background, /letters lays its postcard over it.
   //
   // The gear-driven DeskSettingsPanel is the single settings entry point on
-  // every authed page (theme, cursor, animations, sound — and page opacity
-  // on /write). It replaces the older floating ThemeSwitcher + CursorPicker.
-  if (isWritingPage || isLettersPage) {
+  // every page now (theme, cursor, animations, sound — and page opacity on
+  // /write). Landing/pricing render it via the public-pages branch above.
+  if (isWritingPage || isLettersPage || isScrapbookListingPage) {
     return (
       <>
         <Background />
         <AmbientSoundLayer />
         {children}
         <Navigation />
+        <FullscreenButton />
         <DeskSettingsPanel />
         <InstallPrompt />
       </>
@@ -90,10 +95,11 @@ export default function LayoutContent({
           {children}
         </PageTransition>
       </main>
-      {/* Gear is rendered at the layout root so it's NOT inside <main> /
-          <PageTransition> — those wrappers have transforms during the
-          page-transition animation, which would otherwise become the
-          containing block for the gear's `position: fixed`. */}
+      {/* Gear + fullscreen are rendered at the layout root so they're NOT
+          inside <main> / <PageTransition> — those wrappers have transforms
+          during the page-transition animation, which would otherwise become
+          the containing block for their `position: fixed`. */}
+      <FullscreenButton />
       <DeskSettingsPanel />
       <InstallPrompt />
     </>

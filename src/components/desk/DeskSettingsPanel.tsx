@@ -1,8 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import { useThemeStore } from '@/store/theme'
 import { useCursorStore } from '@/store/cursor'
 import { useDeskSettings } from '@/store/deskSettings'
@@ -22,12 +21,9 @@ const themeIcons: Record<ThemeName, string> = {
 
 export default function DeskSettingsPanel() {
   const [open, setOpen] = useState(false)
-  const pathname = usePathname()
-  // Page-opacity controls the diary page see-through; only shown on /write.
-  const showPageOpacity = pathname === '/write'
   const { theme, themeName, setTheme } = useThemeStore()
   const { cursorName, setCursor } = useCursorStore()
-  const { pageOpacity, animationsEnabled, setPageOpacity, setAnimationsEnabled } = useDeskSettings()
+  const { animationsEnabled, setAnimationsEnabled } = useDeskSettings()
   const {
     ambientEnabled,
     ambientVolume,
@@ -36,11 +32,6 @@ export default function DeskSettingsPanel() {
     setAmbientVolume,
     setUiSoundsEnabled,
   } = useSoundStore()
-
-  // Push pageOpacity onto a CSS variable so .diary-page picks it up.
-  useEffect(() => {
-    document.documentElement.style.setProperty('--diary-page-opacity', `${pageOpacity}%`)
-  }, [pageOpacity])
 
   // Themes hidden from the picker (still registered, just not offered).
   // Hearth and Linen are temporarily hidden until their views are polished.
@@ -192,36 +183,6 @@ export default function DeskSettingsPanel() {
                     })}
                   </div>
                 </section>
-
-                {/* Page opacity — desk-only */}
-                {showPageOpacity && (
-                <section>
-                  <div className="flex items-baseline justify-between mb-3">
-                    <h3 className="text-xs uppercase tracking-[0.15em]" style={{ color: theme.text.muted }}>
-                      Page Opacity
-                    </h3>
-                    <span className="text-xs font-mono" style={{ color: theme.text.primary }}>
-                      {pageOpacity}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={pageOpacity}
-                    onChange={(e) => setPageOpacity(Number(e.target.value))}
-                    className="w-full h-1 rounded-full appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, ${theme.accent.warm} 0%, ${theme.accent.warm} ${pageOpacity}%, ${theme.glass.border} ${pageOpacity}%, ${theme.glass.border} 100%)`,
-                      accentColor: theme.accent.warm,
-                    }}
-                  />
-                  <p className="text-[10px] mt-2 leading-relaxed" style={{ color: theme.text.muted }}>
-                    Lower = more see-through. Drag and watch the page change live.
-                  </p>
-                </section>
-                )}
 
                 {/* Background animations */}
                 <section>

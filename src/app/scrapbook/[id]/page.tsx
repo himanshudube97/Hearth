@@ -4,11 +4,39 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import ScrapbookCanvas from '@/components/scrapbook/ScrapbookCanvas'
 import type { ScrapbookItem } from '@/lib/scrapbook'
+import { useE2EEStore } from '@/store/e2ee'
+import { decryptString } from '@/lib/e2ee/crypto'
 
 interface BoardData {
   id: string
   title: string | null
   items: ScrapbookItem[]
+  encryptionType?: string
+  e2eeIVs?: { title?: string; items: string } | null
+}
+
+async function decryptScrapbookIfNeeded(data: BoardData): Promise<BoardData> {
+  if (data.encryptionType !== 'e2ee') return data
+  const masterKey = useE2EEStore.getState().masterKey
+  if (!masterKey) return data  // not unlocked yet — return opaque shape
+
+  const ivs = data.e2eeIVs as { title?: string; items: string } | null
+  if (!ivs) return data
+
+  try {
+    const title =
+      data.title && ivs.title
+        ? await decryptString(data.title, ivs.title, masterKey)
+        : data.title
+
+    const itemsJson = await decryptString(data.items as unknown as string, ivs.items, masterKey)
+    const items = JSON.parse(itemsJson) as ScrapbookItem[]
+
+    return { ...data, title, items }
+  } catch (err) {
+    console.error('Scrapbook decryption failed:', err)
+    return data
+  }
 }
 
 export default function ScrapbookBoardPage() {
@@ -25,7 +53,10 @@ export default function ScrapbookBoardPage() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json() as Promise<BoardData>
       })
-      .then((data) => { if (!cancelled) setBoard(data) })
+      .then(async (data) => {
+        const decrypted = await decryptScrapbookIfNeeded(data)
+        if (!cancelled) setBoard(decrypted)
+      })
       .catch((err) => { if (!cancelled) setError(err.message) })
     return () => { cancelled = true }
   }, [params.id])

@@ -329,12 +329,12 @@ export const linenTheme: Theme = {
 }
 
 export const themes: Record<ThemeName, Theme> = {
-  rivendell: rivendellTheme,
-  hearth: hearthTheme,
   rose: roseTheme,
   sage: sageTheme,
-  ocean: oceanTheme,
   postal: postalTheme,
+  ocean: oceanTheme,
+  rivendell: rivendellTheme,
+  hearth: hearthTheme,
   linen: linenTheme,
 }
 

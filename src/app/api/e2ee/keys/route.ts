@@ -20,6 +20,7 @@ export async function GET() {
         recoveryKeyHash: true,
         encryptedMasterKeyRecovery: true,
         recoveryKeyIV: true,
+        e2eeSetupAt: true,
       },
     })
 
@@ -35,6 +36,7 @@ export async function GET() {
       recoveryKeyHash: userData.recoveryKeyHash,
       encryptedMasterKeyRecovery: userData.encryptedMasterKeyRecovery,
       recoveryKeyIV: userData.recoveryKeyIV,
+      e2eeSetupAt: userData.e2eeSetupAt ? userData.e2eeSetupAt.toISOString() : null,
     })
   } catch (error) {
     console.error('Error fetching E2EE keys:', error)

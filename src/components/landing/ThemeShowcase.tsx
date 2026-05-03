@@ -8,11 +8,11 @@ import { themes, ThemeName } from '@/lib/themes'
 // Hearth and Linen are temporarily hidden from the showcase until their views
 // are polished. The themes themselves remain registered.
 const themeList: { key: ThemeName; emoji: string }[] = [
-  { key: 'rivendell', emoji: '🌲' },
   { key: 'rose', emoji: '🌸' },
   { key: 'sage', emoji: '🌿' },
-  { key: 'ocean', emoji: '🌊' },
   { key: 'postal', emoji: '✉️' },
+  { key: 'ocean', emoji: '🌊' },
+  { key: 'rivendell', emoji: '🌲' },
 ]
 
 export default function ThemeShowcase() {

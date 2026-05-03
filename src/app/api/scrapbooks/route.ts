@@ -13,15 +13,17 @@ export async function GET() {
   const rows = await prisma.scrapbook.findMany({
     where: { userId: user.id },
     orderBy: { updatedAt: 'desc' },
-    select: { id: true, title: true, items: true, createdAt: true, updatedAt: true },
+    select: { id: true, title: true, items: true, encryptionType: true, createdAt: true, updatedAt: true },
   })
 
   const list = rows.map((row) => {
-    const items = decryptJson<ScrapbookItem[]>(row.items) ?? []
+    const isE2EE = row.encryptionType === 'e2ee'
+    const items = isE2EE ? [] : (decryptJson<ScrapbookItem[]>(row.items) ?? [])
     return {
       id: row.id,
-      title: row.title ? safeDecrypt(row.title) : null,
-      itemCount: items.length,
+      title: isE2EE ? row.title : (row.title ? safeDecrypt(row.title) : null),
+      encryptionType: row.encryptionType,
+      itemCount: isE2EE ? null : items.length,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }
@@ -30,9 +32,16 @@ export async function GET() {
   return NextResponse.json(list)
 }
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = req.headers.get('content-length') === '0' || req.headers.get('content-type') === null
+    ? {}
+    : await req.json().catch(() => ({}))
+
+  const { encryptionType, e2eeIVs } = body as { encryptionType?: string; e2eeIVs?: unknown }
+  const isE2EE = encryptionType === 'e2ee'
 
   const initialItems: ScrapbookItem[] = [makeDateItem(new Date(), [])]
 
@@ -40,7 +49,9 @@ export async function POST(_req: NextRequest) {
     data: {
       userId: user.id,
       title: null,
-      items: encryptJson(initialItems),
+      items: isE2EE ? JSON.stringify(initialItems) : encryptJson(initialItems),
+      encryptionType: encryptionType ?? 'server',
+      e2eeIVs: e2eeIVs ?? undefined,
     },
   })
 

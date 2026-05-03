@@ -17,14 +17,14 @@ interface EntriesResponse {
 interface MonthStats {
   month: string
   entryCount: number
-  avgMood: number
+  avgMood: number | null
   daysWithEntries: number
 }
 
 interface YearStats {
   year: number
   entryCount: number
-  avgMood: number
+  avgMood: number | null
   months: MonthStats[]
 }
 
@@ -35,6 +35,13 @@ interface StatsResponse {
   lastEntryDate: string | null
   currentStreak: number
   longestStreak: number
+  /**
+   * True when the user has any E2EE entries. Mood is stored as ciphertext for
+   * those entries, so the server cannot compute avgMood. The client must either
+   * decrypt and aggregate locally or render a "stats unavailable" notice.
+   * v1: the client renders the notice; local aggregation is a future task.
+   */
+  clientAggregationRequired?: boolean
 }
 
 interface UseEntriesOptions {

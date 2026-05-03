@@ -10,15 +10,19 @@ interface Props {
 
 const ICONS = ['✦','✿','❀','☽','☼','✻','♡']
 const TINTS = ['s-1','s-2','s-3','s-4'] as const
+// Mix shapes for visual variety. Postage stays dominant.
+const SHAPES = ['postage','postage','postage','circle','rect'] as const
 
-/** Deterministic tint/icon/tilt from the stamp ID so a stamp keeps its look across renders. */
+/** Deterministic tint/icon/tilt/shape from the stamp ID so a stamp keeps its look across renders. */
 function variantFor(id: string) {
   let h = 0
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0
-  const tint = TINTS[Math.abs(h)       % TINTS.length]
-  const icon = ICONS[Math.abs(h >> 4)  % ICONS.length]
-  const tilt = ((Math.abs(h >> 8) % 50) - 25) / 10  // -2.5 to +2.5
-  return { tint, icon, tilt }
+  const tint  = TINTS[Math.abs(h)       % TINTS.length]
+  const icon  = ICONS[Math.abs(h >> 4)  % ICONS.length]
+  const tilt  = ((Math.abs(h >> 8) % 50) - 25) / 10  // -2.5 to +2.5
+  // multiplicative scramble so short IDs (e.g. "1".."10") still distribute across shapes
+  const shape = SHAPES[Math.abs(h * 13 + 7) % SHAPES.length]
+  return { tint, icon, tilt, shape }
 }
 
 export default function Stamp({ stamp, onClick }: Props) {
@@ -26,10 +30,14 @@ export default function Stamp({ stamp, onClick }: Props) {
   const denom = denomFor(stamp)
   const date = new Date(stamp.sealedAt).toLocaleString('en-US', { month: 'short', day: 'numeric' })
   return (
-    <div className="mount" onClick={() => onClick(stamp)}>
-      <div className="corner tl" /><div className="corner tr" />
-      <div className="corner bl" /><div className="corner br" />
-      <div className={`stamp ${v.tint}${stamp.isDelivered ? ' delivered' : ''}`}
+    <div className={`mount shape-${v.shape}`} onClick={() => onClick(stamp)}>
+      {v.shape !== 'circle' && (
+        <>
+          <div className="corner tl" /><div className="corner tr" />
+          <div className="corner bl" /><div className="corner br" />
+        </>
+      )}
+      <div className={`stamp ${v.tint} shape-${v.shape}${stamp.isDelivered ? ' delivered' : ''}`}
            style={{ '--tilt': `${v.tilt}deg` } as CSSProperties}>
         <div className="frame">
           <div className="denom">{denom}</div>
@@ -70,6 +78,12 @@ export default function Stamp({ stamp, onClick }: Props) {
           position: relative;
           width: 100px; height: 130px;
           background: var(--paper-1);
+          box-shadow: 0 6px 14px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.10);
+          overflow: hidden;
+          transform: rotate(var(--tilt, 0deg));
+        }
+        /* Postage shape — scalloped edges via mask */
+        .stamp.shape-postage {
           -webkit-mask:
             radial-gradient(circle at 6px 0, transparent 4px, #000 4.5px) 0 0/12px 100%,
             radial-gradient(circle at 6px 100%, transparent 4px, #000 4.5px) 0 0/12px 100%,
@@ -84,9 +98,17 @@ export default function Stamp({ stamp, onClick }: Props) {
             radial-gradient(circle at 100% 6px, transparent 4px, #000 4.5px) 0 0/100% 12px,
             linear-gradient(#000, #000);
           mask-composite: intersect;
-          box-shadow: 0 6px 14px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.10);
-          overflow: hidden;
-          transform: rotate(var(--tilt, 0deg));
+        }
+        /* Circle shape — round seal */
+        .stamp.shape-circle {
+          width: 110px; height: 110px;
+          border-radius: 50%;
+          border: 1px solid color-mix(in oklab, var(--text-primary) 18%, transparent);
+        }
+        /* Rectangle shape — clean ticket */
+        .stamp.shape-rect {
+          border-radius: 3px;
+          border: 1px solid color-mix(in oklab, var(--text-primary) 16%, transparent);
         }
         .stamp .frame {
           position: absolute;
@@ -98,6 +120,24 @@ export default function Stamp({ stamp, onClick }: Props) {
           flex-direction: column;
           justify-content: space-between;
           align-items: center;
+        }
+        .stamp.shape-circle .frame {
+          inset: 9px;
+          border-radius: 50%;
+          padding: 10px 6px 12px;
+        }
+        .stamp.shape-circle .denom { align-self: center; }
+        .stamp.shape-circle .icon { font-size: 24px; }
+        .stamp.shape-circle .country { font-size: 6px; letter-spacing: 1.5px; }
+        .stamp.shape-rect .frame {
+          inset: 7px;
+          border-radius: 2px;
+        }
+        /* DELIVERED watermark needs to stay inside circle bounds */
+        .stamp.shape-circle.delivered .frame::after {
+          right: 50%;
+          transform: translateX(50%) rotate(-12deg);
+          bottom: 14px;
         }
         .stamp .denom {
           align-self: flex-start;
