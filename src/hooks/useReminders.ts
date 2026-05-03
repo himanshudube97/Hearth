@@ -23,19 +23,23 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 }
 
 export function useReminders(): UseRemindersResult {
-  const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('unsupported')
-  const [subscribed, setSubscribed] = useState(false)
   const pushSupported = typeof window !== 'undefined'
     && 'serviceWorker' in navigator
     && 'PushManager' in window
     && 'Notification' in window
+  // Lazy init: read Notification.permission once at mount without re-rendering.
+  const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(() =>
+    pushSupported ? Notification.permission : 'unsupported'
+  )
+  const [subscribed, setSubscribed] = useState(false)
 
   useEffect(() => {
     if (!pushSupported) return
-    setPermission(Notification.permission)
+    let cancelled = false
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
-      .then((sub) => setSubscribed(Boolean(sub)))
+      .then((sub) => { if (!cancelled) setSubscribed(Boolean(sub)) })
+    return () => { cancelled = true }
   }, [pushSupported])
 
   const subscribe = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {

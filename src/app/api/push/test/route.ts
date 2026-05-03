@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/db'
@@ -14,7 +14,7 @@ function configureVapid() {
   configured = true
 }
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
