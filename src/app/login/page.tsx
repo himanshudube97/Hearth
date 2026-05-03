@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense, type CSSProperties } from 'react'
+import { useState, useEffect, Suspense, type CSSProperties } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
@@ -41,6 +41,30 @@ function LoginForm() {
   const [infoMessage, setInfoMessage] = useState('')
   const [step, setStep] = useState<SupabaseStep>('form')
   const [authMode, setAuthMode] = useState<AuthMode>('login')
+  const [resendCooldown, setResendCooldown] = useState(0)
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const t = setTimeout(() => setResendCooldown(s => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendCooldown])
+
+  const handleResendOtp = async () => {
+    if (!email || resendCooldown > 0) return
+    setLoginError('')
+    const res = await fetch('/api/auth/resend-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setLoginError(data.error || 'Failed to resend')
+      return
+    }
+    setResendCooldown(60)
+    setInfoMessage('A new code has been sent.')
+  }
 
   const fillDevCreds = () => {
     setEmail('dev@hearth.app')
@@ -320,6 +344,12 @@ function LoginForm() {
                 className="w-full py-3 bg-[var(--accent-primary)] text-white rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Verifying...' : 'Verify & Continue'}
+              </button>
+              <button
+                type="button" onClick={handleResendOtp} disabled={resendCooldown > 0 || !email}
+                className="w-full py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
               </button>
               <button
                 type="button" onClick={() => { setStep('form'); setOtpCode(''); setLoginError(''); setInfoMessage('') }}
