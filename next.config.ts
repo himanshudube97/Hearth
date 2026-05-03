@@ -5,7 +5,9 @@ const withPWA = withPWAInit({
   dest: "public",
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === "development",
+  // Disabled: public/sw.js is currently hand-written to host push-reminder handlers.
+  // Re-enable when adopting full PWA install flow.
+  disable: true,
   cacheOnFrontEndNav: true,
   reloadOnOnline: true,
   workboxOptions: {

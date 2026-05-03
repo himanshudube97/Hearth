@@ -335,7 +335,7 @@ docker compose up -d
 | **Set production Site URL**           | Supabase → Auth → URL Configuration → change Site URL from `localhost:3111` to your real domain                                                                                       |
 | **Add production redirect URL**       | Add `https://yourdomain.com/**` to Supabase redirect URLs                                                                                                                             |
 | **Set up Lemon Squeezy**              | Add billing env vars for subscription management                                                                                                                                      |
-| **Set up cron job**                   | The letter delivery cron at `/api/cron/deliver-letters` needs a scheduler (Vercel Cron, GitHub Actions, or similar) to run daily                                                      |
+| **Set up cron jobs**                  | (1) Letter delivery — `GET /api/cron/deliver-letters` daily. (2) Reminder push — `GET /api/cron/send-reminders` every 15 minutes. Both use `Authorization: Bearer ${CRON_SECRET}` and are idempotent.                                          |
 | **Storage bucket policy**             | Review Supabase Storage RLS policies for `entry-photos` bucket in production                                                                                                          |
 
 ---
