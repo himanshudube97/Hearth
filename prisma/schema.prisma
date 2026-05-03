@@ -23,6 +23,14 @@ model User {
   orphanedBlobs  OrphanedBlob[]
   pushSubscriptions PushSubscription[]
 
+  // A Small Light counters & rate limit (anonymous notes to strangers)
+  strangerNotesSent       Int       @default(0)
+  strangerNotesReceived   Int       @default(0)
+  lastStrangerNoteSentAt  DateTime?
+
+  sentStrangerNotes       StrangerNote[] @relation("SentStrangerNotes")
+  receivedStrangerNotes   StrangerNote[] @relation("ReceivedStrangerNotes")
+
   // Lemon Squeezy subscription fields
   lemonSqueezyCustomerId String?   @unique
   subscriptionId         String?   @unique
@@ -216,4 +224,47 @@ model PushSubscription {
   @@index([userId])
   @@index([pausedAt, lastFiredAt])
   @@map("push_subscriptions")
+}
+
+model StrangerNote {
+  id          String   @id @default(cuid())
+
+  senderId    String
+  sender      User     @relation("SentStrangerNotes", fields: [senderId], references: [id], onDelete: Cascade)
+
+  recipientId String?
+  recipient   User?    @relation("ReceivedStrangerNotes", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  // AES-256-GCM ciphertext (iv:authTag:encryptedData hex), see src/lib/encryption.ts
+  content     String   @db.Text
+
+  // queued | delivered | replied
+  // After matchedAt+24h or burn, the row is hard-deleted by cron / API.
+  status      String   @default("queued")
+
+  createdAt   DateTime  @default(now())
+  matchedAt   DateTime?
+  readAt      DateTime?
+
+  reply       StrangerReply?
+
+  @@index([recipientId, status])
+  @@index([status, matchedAt])
+  @@map("stranger_notes")
+}
+
+model StrangerReply {
+  id          String   @id @default(cuid())
+
+  noteId      String       @unique
+  note        StrangerNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  // AES-256-GCM ciphertext; max 20 words enforced before encryption (src/lib/stranger-notes.ts)
+  content     String   @db.Text
+
+  createdAt   DateTime  @default(now())
+  readAt      DateTime?
+
+  @@index([createdAt])
+  @@map("stranger_replies")
 }

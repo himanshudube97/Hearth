@@ -91,4 +91,4 @@ export interface SentStamp {
   letterPeekedAt: string | null
 }
 
-export type LettersTab = 'inbox' | 'sent'
+export type LettersTab = 'inbox' | 'sent' | 'lights'

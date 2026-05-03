@@ -3,54 +3,41 @@
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 
-const features = [
+type Feature = {
+  numeral: string
+  title: string
+  description: string
+  illustration: 'journal' | 'letters' | 'scrapbook' | 'memory'
+}
+
+const features: Feature[] = [
   {
-    icon: '✎',
-    title: 'Write Freely',
-    description: 'A distraction-free space where your thoughts flow naturally. No pressure, no judgment — just you and the page.',
-    demo: 'editor',
+    numeral: 'I',
+    title: 'The page that listens',
+    description:
+      'Words, doodles, a song, a mood — left exactly where you set them down.',
+    illustration: 'journal',
   },
   {
-    icon: '✨',
-    title: 'Track Your Emotions',
-    description: 'Choose a mood that resonates with how you feel. Watch your emotional landscape unfold over time.',
-    demo: 'moods',
+    numeral: 'II',
+    title: 'Letters that wait',
+    description:
+      'Seal one to your future self, or to a friend. It returns when the time is right.',
+    illustration: 'letters',
   },
   {
-    icon: '🎨',
-    title: 'Doodle Your Thoughts',
-    description: "Sometimes words aren't enough. Draw, sketch, and let your creativity speak.",
-    demo: 'doodle',
+    numeral: 'III',
+    title: 'Small things, kept',
+    description:
+      'A scrapbook for photographs, scraps, and quiet keepsakes you don’t want to lose.',
+    illustration: 'scrapbook',
   },
   {
-    icon: '💌',
-    title: 'Letters Through Time',
-    description: 'Send letters to your future self or friends. Watch them drift into the universe and return when the time is right.',
-    demo: 'letters',
-  },
-  {
-    icon: '🎵',
-    title: 'Music for Your Mood',
-    description: 'Embed songs that capture how you feel. Let music be part of your journaling journey.',
-    demo: 'music',
-  },
-  {
-    icon: '🎭',
-    title: '11 Immersive Themes',
-    description: 'From misty mountains to cherry blossoms, find the ambience that matches your mood.',
-    demo: 'themes',
-  },
-  {
-    icon: '✨',
-    title: '8 Custom Cursors',
-    description: 'Personalize your experience with magical cursors — from golden orbs to quill pens.',
-    demo: 'cursors',
-  },
-  {
-    icon: '🌌',
-    title: 'Your Mood Constellation',
-    description: 'Watch your emotions form a beautiful constellation. See patterns emerge over time.',
-    demo: 'constellation',
+    numeral: 'IV',
+    title: 'Where memory grows',
+    description:
+      'A constellation, a garden, a small firelight — your year takes shape as something you can wander through.',
+    illustration: 'memory',
   },
 ]
 
@@ -58,92 +45,44 @@ export default function FeaturesSection() {
   const { theme } = useThemeStore()
 
   return (
-    <section className="py-24 px-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Section Header - fades in */}
+    <section className="relative py-32 px-6">
+      <div className="max-w-5xl mx-auto">
+        {/* Section heading — kept very quiet, like a chapter divider */}
         <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 40 }}
+          className="text-center mb-24"
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          transition={{ duration: 0.9, ease: 'easeOut' }}
         >
+          <motion.p
+            className="text-xs uppercase tracking-[0.4em] mb-5"
+            style={{ color: theme.text.muted }}
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            Contents
+          </motion.p>
           <h2
-            className="text-3xl md:text-4xl font-serif mb-4"
+            className="font-serif italic text-3xl md:text-4xl"
             style={{ color: theme.text.primary }}
           >
-            A sanctuary for your thoughts
+            A small house for the days
           </h2>
-          <p
-            className="text-lg max-w-2xl mx-auto"
-            style={{ color: theme.text.secondary }}
-          >
-            Every feature designed to help you reflect, express, and grow
-          </p>
+          <motion.div
+            className="mx-auto mt-8 h-px"
+            style={{ background: theme.text.muted }}
+            initial={{ width: 0, opacity: 0 }}
+            whileInView={{ width: 64, opacity: 0.5 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.4, delay: 0.3, ease: 'easeOut' }}
+          />
         </motion.div>
 
-        {/* Feature Cards Grid */}
-        <div className="grid md:grid-cols-2 gap-8">
+        {/* Entries grid */}
+        <div className="grid md:grid-cols-2 gap-x-16 gap-y-20">
           {features.map((feature, index) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 60 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{
-                duration: 0.6,
-                delay: index * 0.1,
-                ease: [0.25, 0.1, 0.25, 1],
-              }}
-              className="group relative p-8 rounded-2xl overflow-hidden"
-              style={{
-                background: theme.glass.bg,
-                backdropFilter: `blur(${theme.glass.blur})`,
-                border: `1px solid ${theme.glass.border}`,
-              }}
-              whileHover={{
-                y: -5,
-                transition: { duration: 0.3 },
-              }}
-            >
-              {/* Hover Glow */}
-              <motion.div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{
-                  background: `radial-gradient(circle at center, ${theme.accent.primary}10 0%, transparent 70%)`,
-                }}
-              />
-
-              <div className="relative z-10">
-                {/* Icon */}
-                <motion.span
-                  className="text-4xl block mb-4"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
-                  {feature.icon}
-                </motion.span>
-
-                {/* Title */}
-                <h3
-                  className="text-xl font-medium mb-3"
-                  style={{ color: theme.text.primary }}
-                >
-                  {feature.title}
-                </h3>
-
-                {/* Description */}
-                <p
-                  className="mb-6"
-                  style={{ color: theme.text.secondary }}
-                >
-                  {feature.description}
-                </p>
-
-                {/* Feature Demo */}
-                <FeatureDemo type={feature.demo} />
-              </div>
-            </motion.div>
+            <Entry key={feature.numeral} feature={feature} index={index} />
           ))}
         </div>
       </div>
@@ -151,294 +90,327 @@ export default function FeaturesSection() {
   )
 }
 
-function FeatureDemo({ type }: { type: string }) {
+function Entry({ feature, index }: { feature: Feature; index: number }) {
   const { theme } = useThemeStore()
-
-  if (type === 'editor') {
-    return (
-      <div
-        className="p-4 rounded-xl"
-        style={{
-          background: `${theme.bg.primary}80`,
-          border: `1px solid ${theme.glass.border}`,
-        }}
-      >
-        <TypingDemo />
-      </div>
-    )
-  }
-
-  if (type === 'moods') {
-    return (
-      <div className="flex gap-3 justify-center">
-        {theme.moodEmojis.map((emoji, i) => (
-          <motion.span
-            key={i}
-            className="text-2xl cursor-pointer"
-            whileHover={{ scale: 1.3, y: -5 }}
-            animate={{ y: [0, -3, 0] }}
-            transition={{ y: { delay: i * 0.1, duration: 2, repeat: Infinity } }}
-          >
-            {emoji}
-          </motion.span>
-        ))}
-      </div>
-    )
-  }
-
-  if (type === 'doodle') {
-    return (
-      <div
-        className="h-20 rounded-xl overflow-hidden relative"
-        style={{
-          background: `${theme.bg.primary}80`,
-          border: `1px solid ${theme.glass.border}`,
-        }}
-      >
-        <DoodleDemo />
-      </div>
-    )
-  }
-
-  if (type === 'themes') {
-    return (
-      <div className="flex gap-2 justify-center flex-wrap">
-        {['🌿', '🏡', '❄️', '🌸', '🌌', '🕯️'].map((emoji, i) => (
-          <motion.div
-            key={i}
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{
-              background: theme.glass.bg,
-              border: `1px solid ${theme.glass.border}`,
-            }}
-            whileHover={{ scale: 1.2 }}
-            animate={{ rotate: [0, 5, -5, 0] }}
-            transition={{
-              rotate: { delay: i * 0.2, duration: 4, repeat: Infinity },
-            }}
-          >
-            {emoji}
-          </motion.div>
-        ))}
-      </div>
-    )
-  }
-
-  if (type === 'letters') {
-    return (
-      <div className="flex items-center justify-center gap-4">
-        <motion.div
-          className="text-3xl"
-          animate={{
-            y: [0, -10, 0],
-            rotate: [0, -5, 5, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        >
-          💌
-        </motion.div>
-        <motion.div className="flex gap-1">
-          {['✨', '🌙', '⭐'].map((star, i) => (
-            <motion.span
-              key={i}
-              className="text-sm"
-              animate={{
-                opacity: [0.3, 1, 0.3],
-                scale: [0.8, 1.2, 0.8],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                delay: i * 0.3,
-              }}
-            >
-              {star}
-            </motion.span>
-          ))}
-        </motion.div>
-      </div>
-    )
-  }
-
-  if (type === 'music') {
-    return (
-      <div
-        className="flex items-center gap-3 p-3 rounded-xl"
-        style={{
-          background: `${theme.bg.primary}80`,
-          border: `1px solid ${theme.glass.border}`,
-        }}
-      >
-        <motion.span
-          className="text-2xl"
-          animate={{ rotate: [0, 360] }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-        >
-          🎵
-        </motion.span>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <motion.div
-              key={i}
-              className="w-1 rounded-full"
-              style={{ background: theme.accent.primary }}
-              animate={{ height: ['8px', '20px', '8px'] }}
-              transition={{
-                duration: 0.8,
-                repeat: Infinity,
-                delay: i * 0.1,
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  if (type === 'cursors') {
-    return (
-      <div className="flex gap-3 justify-center">
-        {['🔮', '🪶', '⭐', '🌙', '💎'].map((cursor, i) => (
-          <motion.div
-            key={i}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
-            style={{
-              background: theme.glass.bg,
-              border: `1px solid ${theme.glass.border}`,
-            }}
-            whileHover={{ scale: 1.3 }}
-            animate={{ y: [0, -3, 0] }}
-            transition={{ y: { delay: i * 0.15, duration: 1.5, repeat: Infinity } }}
-          >
-            {cursor}
-          </motion.div>
-        ))}
-      </div>
-    )
-  }
-
-  if (type === 'constellation') {
-    return (
-      <div
-        className="h-20 rounded-xl overflow-hidden relative"
-        style={{
-          background: `${theme.bg.primary}80`,
-          border: `1px solid ${theme.glass.border}`,
-        }}
-      >
-        <svg className="w-full h-full" viewBox="0 0 200 80">
-          {[
-            { x: 30, y: 20, delay: 0 },
-            { x: 60, y: 50, delay: 0.2 },
-            { x: 100, y: 30, delay: 0.4 },
-            { x: 140, y: 55, delay: 0.6 },
-            { x: 170, y: 25, delay: 0.8 },
-          ].map((star, i) => (
-            <motion.circle
-              key={i}
-              cx={star.x}
-              cy={star.y}
-              r="4"
-              fill={theme.accent.primary}
-              initial={{ scale: 0, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: star.delay, duration: 0.5 }}
-            />
-          ))}
-          <motion.path
-            d="M 30 20 L 60 50 L 100 30 L 140 55 L 170 25"
-            fill="none"
-            stroke={theme.accent.secondary}
-            strokeWidth="1"
-            strokeOpacity="0.5"
-            initial={{ pathLength: 0 }}
-            whileInView={{ pathLength: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.5, duration: 1.5 }}
-          />
-        </svg>
-      </div>
-    )
-  }
-
-  return null
-}
-
-function TypingDemo() {
-  const { theme } = useThemeStore()
-  const text = "Today I feel grateful for..."
 
   return (
-    <div className="font-serif" style={{ color: theme.text.secondary }}>
-      <motion.span
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
+    <motion.article
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-50px' }}
+      transition={{ duration: 0.7, delay: index * 0.15, ease: [0.25, 0.1, 0.25, 1] }}
+      whileHover={{ y: -3 }}
+      className="group relative cursor-default"
+    >
+      {/* Thin top rule that draws itself in on view */}
+      <motion.div
+        className="h-px mb-6"
+        style={{ background: theme.text.muted }}
+        initial={{ scaleX: 0, opacity: 0, transformOrigin: 'left' }}
+        whileInView={{ scaleX: 1, opacity: 0.35 }}
         viewport={{ once: true }}
-      >
-        {text.split('').map((char, i) => (
-          <motion.span
-            key={i}
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.5 + i * 0.05 }}
-          >
-            {char}
-          </motion.span>
-        ))}
+        transition={{ duration: 1.2, delay: index * 0.15 + 0.2, ease: 'easeOut' }}
+      />
+
+      <div className="flex items-start gap-6">
+        {/* Roman numeral — softly breathing */}
         <motion.span
-          animate={{ opacity: [1, 0, 1] }}
-          transition={{ duration: 0.8, repeat: Infinity }}
-          style={{ color: theme.accent.primary }}
+          className="font-serif italic text-3xl md:text-4xl shrink-0 leading-none pt-1 select-none"
+          style={{ color: theme.text.muted }}
+          animate={{
+            opacity: [0.55, 0.85, 0.55],
+            y: [0, -1.5, 0],
+          }}
+          transition={{
+            duration: 6 + index * 0.6,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: index * 0.4,
+          }}
         >
-          |
+          {feature.numeral}
         </motion.span>
-      </motion.span>
-    </div>
+
+        <div className="flex-1 min-w-0">
+          <h3
+            className="font-serif italic text-xl md:text-2xl mb-3 leading-snug"
+            style={{ color: theme.text.primary }}
+          >
+            {feature.title}
+          </h3>
+
+          <p
+            className="text-base leading-relaxed mb-8"
+            style={{ color: theme.text.secondary }}
+          >
+            {feature.description}
+          </p>
+
+          {/* Illustration — drawn in once, then loops gently */}
+          <motion.div
+            className="mx-auto"
+            animate={{ y: [0, -2, 0] }}
+            transition={{
+              duration: 7 + index * 0.5,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: index * 0.3,
+            }}
+          >
+            <Illustration kind={feature.illustration} />
+          </motion.div>
+        </div>
+      </div>
+    </motion.article>
   )
 }
 
-function DoodleDemo() {
+function Illustration({ kind }: { kind: Feature['illustration'] }) {
   const { theme } = useThemeStore()
+  const stroke = theme.text.primary
+  const accent = theme.accent.warm
+  const accentSecondary = theme.accent.secondary
 
-  return (
-    <svg className="w-full h-full" viewBox="0 0 200 80">
-      <motion.path
-        d="M 20 40 Q 50 20 80 40 T 140 40 T 180 30"
+  if (kind === 'journal') {
+    return (
+      <svg
+        viewBox="0 0 200 80"
+        className="w-full max-w-55 h-20 mx-auto"
         fill="none"
-        stroke={theme.accent.primary}
-        strokeWidth="2"
+        stroke={stroke}
+        strokeWidth="1.2"
         strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ opacity: 0.6 }}
+      >
+        {/* Spine */}
+        <motion.path
+          d="M 100 20 V 70"
+          initial={{ pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        />
+        {/* Pages — gentle 'breathing' scale once drawn */}
+        <motion.path
+          d="M 30 22 Q 65 12 100 20 Q 135 12 170 22 L 170 70 Q 135 60 100 68 Q 65 60 30 70 Z"
+          initial={{ pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.4 }}
+        />
+        {/* Two lines of writing — fade in/out like ink appearing */}
+        <motion.path
+          d="M 110 38 Q 130 35 150 39"
+          stroke={accent}
+          strokeWidth="1"
+          initial={{ pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 1.2 }}
+        />
+        <motion.path
+          d="M 110 48 Q 128 45 145 49"
+          stroke={accent}
+          strokeWidth="1"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: [0, 0.7, 0.4, 0.7] }}
+          transition={{
+            pathLength: { duration: 0.8, delay: 1.4 },
+            opacity: {
+              duration: 4,
+              repeat: Infinity,
+              repeatType: 'reverse',
+              ease: 'easeInOut',
+              delay: 2,
+            },
+          }}
+        />
+      </svg>
+    )
+  }
+
+  if (kind === 'letters') {
+    return (
+      <motion.svg
+        viewBox="0 0 200 80"
+        className="w-full max-w-55 h-20 mx-auto"
+        fill="none"
+        stroke={stroke}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ opacity: 0.6 }}
+        // Envelope rocks gently
+        animate={{ rotate: [-1.5, 1.5, -1.5] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <motion.rect
+          x="40"
+          y="20"
+          width="120"
+          height="48"
+          rx="2"
+          initial={{ pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2 }}
+        />
+        <motion.path
+          d="M 40 22 L 100 50 L 160 22"
+          initial={{ pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1, delay: 0.8 }}
+        />
+        {/* Wax seal — soft pulse */}
+        <motion.circle
+          cx="100"
+          cy="56"
+          r="5"
+          fill={accent}
+          stroke="none"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{
+            scale: [1, 1.15, 1],
+            opacity: [0.7, 0.95, 0.7],
+          }}
+          transition={{
+            scale: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 1.6 },
+            opacity: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 1.6 },
+          }}
+        />
+      </motion.svg>
+    )
+  }
+
+  if (kind === 'scrapbook') {
+    return (
+      <svg
+        viewBox="0 0 200 80"
+        className="w-full max-w-55 h-20 mx-auto"
+        fill="none"
+        stroke={stroke}
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+        style={{ opacity: 0.6 }}
+      >
+        {/* Three scraps fade in one by one, then drift via the parent y-bob */}
+        <motion.rect
+          x="38"
+          y="18"
+          width="60"
+          height="46"
+          transform="rotate(-6 68 41)"
+          initial={{ pathLength: 0, opacity: 0 }}
+          whileInView={{ pathLength: 1, opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        />
+        <motion.rect
+          x="80"
+          y="22"
+          width="60"
+          height="46"
+          transform="rotate(3 110 45)"
+          initial={{ pathLength: 0, opacity: 0 }}
+          whileInView={{ pathLength: 1, opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        />
+        <motion.rect
+          x="120"
+          y="16"
+          width="44"
+          height="44"
+          transform="rotate(-3 142 38)"
+          stroke={accent}
+          initial={{ pathLength: 0, opacity: 0 }}
+          whileInView={{ pathLength: 1, opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        />
+
+        {/* Tiny pin / sticker */}
+        <motion.circle
+          cx="142"
+          cy="20"
+          r="2"
+          fill={accentSecondary}
+          stroke="none"
+          initial={{ scale: 0, opacity: 0 }}
+          whileInView={{ scale: 1, opacity: 0.8 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4, delay: 1.4 }}
+        />
+      </svg>
+    )
+  }
+
+  // memory — stars twinkle continuously
+  return (
+    <svg
+      viewBox="0 0 200 80"
+      className="w-full max-w-55 h-20 mx-auto"
+      fill="none"
+      stroke={stroke}
+      strokeWidth="1.2"
+      strokeLinecap="round"
+      style={{ opacity: 0.7 }}
+    >
+      <motion.path
+        d="M 30 50 L 70 28 L 105 55 L 140 30 L 175 48"
+        initial={{ pathLength: 0 }}
+        whileInView={{ pathLength: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1.6 }}
+        strokeOpacity="0.4"
+      />
+      {[
+        { cx: 30, cy: 50, delay: 0 },
+        { cx: 70, cy: 28, delay: 0.4 },
+        { cx: 105, cy: 55, delay: 0.8 },
+        { cx: 140, cy: 30, delay: 1.2 },
+        { cx: 175, cy: 48, delay: 1.6 },
+      ].map((star, i) => (
+        <motion.circle
+          key={i}
+          cx={star.cx}
+          cy={star.cy}
+          r="3"
+          fill={accent}
+          stroke="none"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{
+            scale: [0.85, 1.15, 0.85],
+            opacity: [0.6, 1, 0.6],
+          }}
+          transition={{
+            scale: {
+              duration: 2.4,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: 1.6 + star.delay,
+            },
+            opacity: {
+              duration: 2.4,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: 1.6 + star.delay,
+            },
+          }}
+        />
+      ))}
+      {/* A tiny sprout — hint at 'garden' */}
+      <motion.path
+        d="M 105 70 Q 105 64 102 60 M 105 70 Q 105 64 108 60"
+        stroke={accentSecondary}
+        strokeWidth="1"
+        strokeOpacity="0.7"
         initial={{ pathLength: 0, opacity: 0 }}
         whileInView={{ pathLength: 1, opacity: 0.8 }}
         viewport={{ once: true }}
-        transition={{ duration: 2, ease: 'easeOut' }}
-      />
-      <motion.circle
-        cx="60"
-        cy="50"
-        r="8"
-        fill={theme.accent.warm}
-        initial={{ scale: 0 }}
-        whileInView={{ scale: 1 }}
-        viewport={{ once: true }}
-        transition={{ delay: 1.5, duration: 0.5 }}
-      />
-      <motion.circle
-        cx="120"
-        cy="35"
-        r="5"
-        fill={theme.accent.secondary}
-        initial={{ scale: 0 }}
-        whileInView={{ scale: 1 }}
-        viewport={{ once: true }}
-        transition={{ delay: 1.8, duration: 0.5 }}
+        transition={{ duration: 0.8, delay: 2 }}
       />
     </svg>
   )
