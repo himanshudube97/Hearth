@@ -6,17 +6,6 @@ function getResend() {
   return _resend
 }
 
-interface SendLetterEmailParams {
-  to: string
-  recipientName: string
-  senderName: string
-  letterContent: string
-  letterLocation?: string | null
-  writtenAt: Date
-  photos?: { url: string; position: number }[]
-  doodleDataUrl?: string | null
-  songLink?: string | null
-}
 
 // Generate beautiful HTML email for letter delivery
 function generateLetterEmail({
@@ -219,28 +208,91 @@ ${photosHtml}${doodleHtml}${musicHtml}
 `
 }
 
-export async function sendLetterEmail({
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]!))
+}
+
+interface SendFriendLetterMagicLinkParams {
+  to: string
+  recipientName: string
+  senderName: string
+  magicLinkUrl: string
+  expiresAt: Date
+}
+
+// Friend letters are delivered as a short "letter waiting" email with a
+// magic-link URL. The actual letter content lives behind a token-gated
+// public page that limits reads and expires, so the email body never
+// contains the letter itself. (Self letters still ship full content
+// because the recipient is the author.)
+export async function sendFriendLetterMagicLink({
   to,
   recipientName,
   senderName,
-  letterContent,
-  letterLocation,
-  writtenAt,
-  photos,
-  doodleDataUrl,
-  songLink,
-}: SendLetterEmailParams): Promise<{ success: boolean; error?: string }> {
+  magicLinkUrl,
+  expiresAt,
+}: SendFriendLetterMagicLinkParams): Promise<{ success: boolean; error?: string }> {
   try {
-    const html = generateLetterEmail({
-      recipientName,
-      senderName,
-      letterContent,
-      letterLocation,
-      writtenAt,
-      photos,
-      doodleDataUrl,
-      songLink,
+    const expiryLine = expiresAt.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
     })
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A Letter From ${escapeHtml(senderName)}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #1a1215; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #1a1215; min-height: 100vh;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 480px;">
+          <tr>
+            <td align="center" style="padding-bottom: 24px;">
+              <div style="font-size: 40px; margin-bottom: 16px;">&#10024;</div>
+              <h1 style="color: #f5e6d3; font-size: 24px; font-weight: 300; margin: 0;">
+                A letter is waiting for you
+              </h1>
+              <p style="color: #9a7b5b; font-size: 15px; margin: 16px 0 0 0; line-height: 1.6;">
+                ${escapeHtml(recipientName)}, ${escapeHtml(senderName)} wrote you a letter and Hearth held onto it until today.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding: 24px 0;">
+              <a href="${magicLinkUrl}"
+                 style="display: inline-block; background-color: #e8945a; color: #1a1215; padding: 14px 40px; border-radius: 24px; text-decoration: none; font-size: 15px; font-weight: 500;">
+                Open your letter
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding: 8px 24px 24px 24px;">
+              <p style="color: #6b5a4a; font-size: 12px; margin: 0; line-height: 1.6;">
+                You can open this letter up to 3 times. The link expires on ${expiryLine}.
+                After that, sign up for Hearth to keep your letters forever.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding: 32px 0; border-top: 1px solid rgba(154,123,91,0.2);">
+              <p style="color: #6b5a4a; font-size: 12px; margin: 0;">
+                Sent with warmth from <a href="https://hearth.app" style="color: #e8945a; text-decoration: none;">Hearth</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
 
     const { error } = await getResend().emails.send({
       from: 'Hearth <letters@hearth.app>',
@@ -250,13 +302,13 @@ export async function sendLetterEmail({
     })
 
     if (error) {
-      console.error('Failed to send letter email:', error)
+      console.error('Failed to send friend letter magic link:', error)
       return { success: false, error: error.message }
     }
 
     return { success: true }
   } catch (err) {
-    console.error('Error sending letter email:', err)
+    console.error('Error sending friend letter magic link:', err)
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
 }
