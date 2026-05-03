@@ -12,6 +12,8 @@ interface InboxLetter {
   sealedAt: string
   unlockDate: string | null
   isViewed: boolean
+  encryptionType: string
+  e2eeIVs: unknown
 }
 
 export async function GET() {
@@ -35,9 +37,12 @@ export async function GET() {
       unlockDate: true,
       isViewed: true,
       encryptionType: true,
+      e2eeIVs: true,
     },
   })
 
+  // For E2EE, return ciphertext + IVs so the client can decrypt with its master key.
+  // For server-encrypted, decrypt server-side as before.
   const result: InboxLetter[] = letters.map(l => ({
     id: l.id,
     recipientName: l.recipientName && l.encryptionType === 'server'
@@ -46,6 +51,8 @@ export async function GET() {
     sealedAt: l.createdAt.toISOString(),
     unlockDate: l.unlockDate ? l.unlockDate.toISOString() : null,
     isViewed: l.isViewed,
+    encryptionType: l.encryptionType,
+    e2eeIVs: l.e2eeIVs,
   }))
 
   return NextResponse.json({ letters: result })

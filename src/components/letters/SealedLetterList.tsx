@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import SealedLetterTile from './SealedLetterTile'
+import { useE2EE } from '@/hooks/useE2EE'
+import type { JournalEntry } from '@/store/journal'
 
 interface MyLetter {
   id: string
@@ -11,6 +13,8 @@ interface MyLetter {
   isSealed: boolean
   recipientName: string | null
   recipientEmail: string | null
+  encryptionType?: string
+  e2eeIVs?: unknown
 }
 
 interface Props {
@@ -19,17 +23,22 @@ interface Props {
 
 export default function SealedLetterList({ onWriteClick }: Props) {
   const [letters, setLetters] = useState<MyLetter[] | null>(null)
+  const { decryptEntriesFromServer, isE2EEReady } = useE2EE()
 
   useEffect(() => {
     let cancelled = false
     fetch('/api/letters/mine')
       .then(r => r.json())
-      .then((data: { letters: MyLetter[] }) => {
-        if (!cancelled) setLetters(data.letters.filter(l => l.isSealed))
+      .then(async (data: { letters: MyLetter[] }) => {
+        if (cancelled) return
+        const decrypted = (await decryptEntriesFromServer(
+          data.letters as unknown as JournalEntry[]
+        )) as unknown as MyLetter[]
+        setLetters(decrypted.filter(l => l.isSealed))
       })
       .catch(() => { if (!cancelled) setLetters([]) })
     return () => { cancelled = true }
-  }, [])
+  }, [decryptEntriesFromServer, isE2EEReady])
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-10">

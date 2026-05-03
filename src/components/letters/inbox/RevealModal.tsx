@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import type { InboxLetter } from '../letterTypes'
+import { useE2EE } from '@/hooks/useE2EE'
+import type { JournalEntry } from '@/store/journal'
 
 interface Props {
   letter: InboxLetter | null
@@ -15,6 +17,7 @@ type Phase = 'sealed' | 'breaking' | 'opening' | 'shown'
 export default function RevealModal({ letter, onClose, onMarkRead }: Props) {
   const [phase, setPhase] = useState<Phase>('sealed')
   const [body, setBody] = useState<string>('')
+  const { decryptEntryFromServer, isE2EEReady } = useE2EE()
 
   useEffect(() => {
     if (!letter) return
@@ -22,9 +25,14 @@ export default function RevealModal({ letter, onClose, onMarkRead }: Props) {
     setBody('')
     fetch(`/api/entries/${letter.id}`)
       .then(r => r.json())
-      .then(d => setBody((d?.entry?.text || d?.text || '').toString()))
+      .then(async d => {
+        const entry = (d?.entry || d) as JournalEntry
+        // Decrypt E2EE entry client-side; non-e2ee passes through unchanged.
+        const decrypted = await decryptEntryFromServer(entry)
+        setBody((decrypted?.text || '').toString())
+      })
       .catch(() => setBody(''))
-  }, [letter])
+  }, [letter, decryptEntryFromServer, isE2EEReady])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }

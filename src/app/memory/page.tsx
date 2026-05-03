@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useThemeStore } from '@/store/theme'
 import { JournalEntry } from '@/store/journal'
 import type { MemoryStar } from '@/components/constellation/ConstellationRenderer'
 import { GardenRenderer } from '@/components/constellation/GardenRenderer'
 import { FirelightRenderer } from '@/components/constellation/FirelightRenderer'
+import { useE2EE } from '@/hooks/useE2EE'
 
 const MAX_VISIBLE_MEMORIES = 7 // Random memories shown each visit
 
@@ -16,24 +17,27 @@ export default function MemoryPage() {
   const [loading, setLoading] = useState(true)
 
   const { theme } = useThemeStore()
+  const { decryptEntriesFromServer, isE2EEReady } = useE2EE()
 
-  useEffect(() => {
-    fetchEntries()
-  }, [])
-
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
     try {
       // Fetch a larger batch for constellation view
       const res = await fetch('/api/entries?limit=50')
       const data = await res.json()
-      // API now returns { entries: [...], pagination: {...} }
-      setEntries(data.entries || [])
+      const raw = (data.entries || []) as JournalEntry[]
+      // Decrypt E2EE entries client-side; non-e2ee passes through unchanged.
+      const decrypted = await decryptEntriesFromServer(raw)
+      setEntries(decrypted)
     } catch (error) {
       console.error('Failed to fetch entries:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [decryptEntriesFromServer])
+
+  useEffect(() => {
+    fetchEntries()
+  }, [fetchEntries, isE2EEReady])
 
   // Select random memories and position them
   useEffect(() => {

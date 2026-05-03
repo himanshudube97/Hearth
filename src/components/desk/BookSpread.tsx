@@ -16,6 +16,8 @@ import SpineOrnaments from './SpineOrnaments'
 import DateTabRail from './DateTabRail'
 import { StrokeData, useJournalStore } from '@/store/journal'
 import { useAutosaveEntry, AutosaveDraft } from '@/hooks/useAutosaveEntry'
+import { useE2EE } from '@/hooks/useE2EE'
+import type { JournalEntry } from '@/store/journal'
 import { isEntryLocked, getClientTz } from '@/lib/entry-lock-client'
 import { parseStyle } from '@/lib/entry-style'
 import { htmlToSplitPlainText, PAGE_BREAK_MARKER } from '@/lib/text-utils'
@@ -98,6 +100,7 @@ export default function BookSpread() {
   const { theme, themeName } = useThemeStore()
   const setCurrentSong = useJournalStore((s) => s.setCurrentSong)
   const setDoodleStrokes = useJournalStore((s) => s.setDoodleStrokes)
+  const { decryptEntriesFromServer, isE2EEReady } = useE2EE()
   const colors = getGlassDiaryColors(theme)
   // Subscribe via selectors so BookSpread does NOT re-render when
   // leftPageDraft/rightPageDraft change in the desk store. If it did,
@@ -166,7 +169,11 @@ export default function BookSpread() {
           return
         }
         const data = await res.json()
-        const fetched: Entry[] = data.entries || []
+        const rawEntries: Entry[] = data.entries || []
+        // Decrypt E2EE entries client-side. Non-e2ee entries pass through unchanged.
+        const fetched = (await decryptEntriesFromServer(
+          rawEntries as unknown as JournalEntry[]
+        )) as unknown as Entry[]
         if (cancelled) return
 
         const startOfToday = new Date()
@@ -221,7 +228,7 @@ export default function BookSpread() {
     return () => {
       cancelled = true
     }
-  }, [setTotalSpreads, setCurrentSong, setDoodleStrokes])
+  }, [setTotalSpreads, setCurrentSong, setDoodleStrokes, decryptEntriesFromServer, isE2EEReady])
 
   // After loading, jump to the new-entry spread (last)
   useEffect(() => {

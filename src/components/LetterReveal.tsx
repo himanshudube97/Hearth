@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { useThemeStore } from '@/store/theme'
 import { useProfileStore } from '@/store/profile'
+import { useE2EE } from '@/hooks/useE2EE'
+import type { JournalEntry } from '@/store/journal'
 
 interface ArrivedLetter {
   id: string
@@ -12,6 +14,8 @@ interface ArrivedLetter {
   createdAt: string
   unlockDate: string
   letterLocation: string | null
+  encryptionType?: string
+  e2eeIVs?: unknown
 }
 
 // Twinkling star component for the reveal background
@@ -49,6 +53,7 @@ export default function LetterReveal() {
   const [isOpen, setIsOpen] = useState(false)
   const [hasChecked, setHasChecked] = useState(false)
   const [viewedLetterIds, setViewedLetterIds] = useState<Set<string>>(new Set())
+  const { decryptEntriesFromServer, isE2EEReady } = useE2EE()
 
   // Fetch profile for nickname
   useEffect(() => {
@@ -76,10 +81,14 @@ export default function LetterReveal() {
       const res = await fetch('/api/letters/arrived')
       if (res.ok) {
         const data = await res.json()
+        // Decrypt E2EE letters client-side; non-e2ee passes through unchanged.
+        const decryptedLetters = (await decryptEntriesFromServer(
+          (data.letters || []) as unknown as JournalEntry[]
+        )) as unknown as ArrivedLetter[]
         // Filter out already viewed letters
         const viewedSet = viewedIds ? new Set(JSON.parse(viewedIds)) : new Set()
-        const unviewedLetters = data.letters.filter(
-          (letter: ArrivedLetter) => !viewedSet.has(letter.id)
+        const unviewedLetters = decryptedLetters.filter(
+          (letter) => !viewedSet.has(letter.id)
         )
 
         if (unviewedLetters.length > 0) {
@@ -92,7 +101,7 @@ export default function LetterReveal() {
     } finally {
       setHasChecked(true)
     }
-  }, [])
+  }, [decryptEntriesFromServer])
 
   useEffect(() => {
     if (!hasChecked) {
@@ -100,7 +109,7 @@ export default function LetterReveal() {
       const timer = setTimeout(checkForLetters, 1500)
       return () => clearTimeout(timer)
     }
-  }, [checkForLetters, hasChecked])
+  }, [checkForLetters, hasChecked, isE2EEReady])
 
   const handleClose = async () => {
     // Mark current letter as viewed

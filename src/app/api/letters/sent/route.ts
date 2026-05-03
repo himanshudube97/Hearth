@@ -13,6 +13,8 @@ interface SentStamp {
   unlockDate: string | null
   isDelivered: boolean
   letterPeekedAt: string | null
+  encryptionType: string
+  e2eeIVs: unknown
 }
 
 export async function GET() {
@@ -35,6 +37,7 @@ export async function GET() {
       isDelivered: true,
       letterPeekedAt: true,
       encryptionType: true,
+      e2eeIVs: true,
     },
   })
 
@@ -47,6 +50,8 @@ export async function GET() {
     unlockDate: l.unlockDate ? l.unlockDate.toISOString() : null,
     isDelivered: l.isDelivered,
     letterPeekedAt: l.letterPeekedAt ? l.letterPeekedAt.toISOString() : null,
+    encryptionType: l.encryptionType,
+    e2eeIVs: l.e2eeIVs,
   }))
 
   return NextResponse.json({ stamps: result })

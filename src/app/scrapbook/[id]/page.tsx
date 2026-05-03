@@ -15,28 +15,25 @@ interface BoardData {
   e2eeIVs?: { title?: string; items: string } | null
 }
 
-async function decryptScrapbookIfNeeded(data: BoardData): Promise<BoardData> {
+async function decryptScrapbookIfNeeded(
+  data: BoardData,
+  masterKey: CryptoKey | null
+): Promise<BoardData> {
   if (data.encryptionType !== 'e2ee') return data
-  const masterKey = useE2EEStore.getState().masterKey
-  if (!masterKey) return data  // not unlocked yet — return opaque shape
+  if (!masterKey) throw new Error('Unlock E2EE to view this scrapbook.')
 
   const ivs = data.e2eeIVs as { title?: string; items: string } | null
-  if (!ivs) return data
+  if (!ivs) throw new Error('Scrapbook is missing decryption metadata.')
 
-  try {
-    const title =
-      data.title && ivs.title
-        ? await decryptString(data.title, ivs.title, masterKey)
-        : data.title
+  const title =
+    data.title && ivs.title
+      ? await decryptString(data.title, ivs.title, masterKey)
+      : data.title
 
-    const itemsJson = await decryptString(data.items as unknown as string, ivs.items, masterKey)
-    const items = JSON.parse(itemsJson) as ScrapbookItem[]
+  const itemsJson = await decryptString(data.items as unknown as string, ivs.items, masterKey)
+  const items = JSON.parse(itemsJson) as ScrapbookItem[]
 
-    return { ...data, title, items }
-  } catch (err) {
-    console.error('Scrapbook decryption failed:', err)
-    return data
-  }
+  return { ...data, title, items }
 }
 
 export default function ScrapbookBoardPage() {
@@ -44,9 +41,11 @@ export default function ScrapbookBoardPage() {
   const router = useRouter()
   const [board, setBoard] = useState<BoardData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const masterKey = useE2EEStore((s) => s.masterKey)
 
   useEffect(() => {
     let cancelled = false
+    setError(null)
     fetch(`/api/scrapbooks/${params.id}`)
       .then(async (res) => {
         if (res.status === 404) throw new Error('Board not found')
@@ -54,12 +53,12 @@ export default function ScrapbookBoardPage() {
         return res.json() as Promise<BoardData>
       })
       .then(async (data) => {
-        const decrypted = await decryptScrapbookIfNeeded(data)
+        const decrypted = await decryptScrapbookIfNeeded(data, masterKey)
         if (!cancelled) setBoard(decrypted)
       })
       .catch((err) => { if (!cancelled) setError(err.message) })
     return () => { cancelled = true }
-  }, [params.id])
+  }, [params.id, masterKey])
 
   if (error) {
     return (

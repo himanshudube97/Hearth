@@ -3,6 +3,8 @@
 import React, { memo, useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
+import { useE2EE } from '@/hooks/useE2EE'
+import type { JournalEntry } from '@/store/journal'
 
 interface ArchivedEntry {
   id: string
@@ -28,6 +30,7 @@ const ArchiveView = memo(function ArchiveView({
   const [loading, setLoading] = useState(true)
   const [actionInProgress, setActionInProgress] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const { decryptEntriesFromServer, isE2EEReady } = useE2EE()
 
   const fetchArchivedEntries = useCallback(async () => {
     setLoading(true)
@@ -35,8 +38,12 @@ const ArchiveView = memo(function ArchiveView({
       const res = await fetch('/api/entries?includeArchived=true&limit=100')
       if (res.ok) {
         const data = await res.json()
-        // Filter to only archived entries
-        const archived = (data.entries || []).filter((e: ArchivedEntry) => e.isArchived)
+        const raw = (data.entries || []) as ArchivedEntry[]
+        // Decrypt E2EE entries client-side; non-e2ee passes through unchanged.
+        const decrypted = (await decryptEntriesFromServer(
+          raw as unknown as JournalEntry[]
+        )) as unknown as ArchivedEntry[]
+        const archived = decrypted.filter((e) => e.isArchived)
         setEntries(archived)
       }
     } catch (error) {
@@ -44,13 +51,13 @@ const ArchiveView = memo(function ArchiveView({
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [decryptEntriesFromServer])
 
   useEffect(() => {
     if (isOpen) {
       fetchArchivedEntries()
     }
-  }, [isOpen, fetchArchivedEntries])
+  }, [isOpen, isE2EEReady, fetchArchivedEntries])
 
   const handleRestore = useCallback(async (entryId: string) => {
     setActionInProgress(entryId)

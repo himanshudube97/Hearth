@@ -13,6 +13,8 @@ import LetterFanout from './LetterFanout'
 import RevealModal from './RevealModal'
 import { MONTHS, MONTH_NAMES, groupInboxByMonth, countUnread } from '../lettersData'
 import type { InboxLetter } from '../letterTypes'
+import { useE2EE } from '@/hooks/useE2EE'
+import type { JournalEntry } from '@/store/journal'
 
 interface Props {
   onUnreadCountChange: (n: number) => void
@@ -26,15 +28,23 @@ export default function InboxView({ onUnreadCountChange }: Props) {
   const [monthIdx, setMonthIdx] = useState(today.getMonth())
   const [fanTriggerKey, setFanTriggerKey] = useState(0)
   const [revealLetter, setRevealLetter] = useState<InboxLetter | null>(null)
+  const { decryptEntriesFromServer, isE2EEReady } = useE2EE()
 
   useEffect(() => {
     let cancelled = false
     fetch('/api/letters/inbox')
       .then(r => r.json())
-      .then(d => { if (!cancelled) setLetters(d.letters || []) })
+      .then(async d => {
+        if (cancelled) return
+        const raw = (d.letters || []) as InboxLetter[]
+        const decrypted = (await decryptEntriesFromServer(
+          raw as unknown as JournalEntry[]
+        )) as unknown as InboxLetter[]
+        setLetters(decrypted)
+      })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [])
+  }, [decryptEntriesFromServer, isE2EEReady])
 
   const grouped = useMemo(() => groupInboxByMonth(letters), [letters])
 

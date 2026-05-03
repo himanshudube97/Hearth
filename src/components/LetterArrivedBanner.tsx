@@ -8,6 +8,8 @@ import { useThemeStore } from '@/store/theme'
 import { themes, ThemeName } from '@/lib/themes'
 import DoodlePreview from '@/components/DoodlePreview'
 import SongEmbed, { isMusicUrl } from '@/components/SongEmbed'
+import { useE2EE } from '@/hooks/useE2EE'
+import type { JournalEntry } from '@/store/journal'
 
 interface ArrivedLetter {
   id: string
@@ -18,6 +20,8 @@ interface ArrivedLetter {
   song?: string | null
   photos?: { url: string; position: number; spread: number; rotation: number }[]
   doodles?: { strokes: any[]; positionInEntry: number; spread: number }[]
+  encryptionType?: string
+  e2eeIVs?: unknown
 }
 
 interface LetterArrivedBannerProps {
@@ -279,6 +283,7 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
   const [hasChecked, setHasChecked] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const letterCaptureRef = useRef<HTMLDivElement>(null)
+  const { decryptEntriesFromServer, isE2EEReady } = useE2EE()
 
   // Check for arrived letters
   const checkForLetters = useCallback(async () => {
@@ -289,8 +294,12 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
       const res = await fetch('/api/letters/arrived')
       if (res.ok) {
         const data = await res.json()
-        const unviewedLetters = data.letters.filter(
-          (letter: ArrivedLetter) => !viewedSet.has(letter.id)
+        // Decrypt E2EE letters client-side; non-e2ee passes through unchanged.
+        const decryptedLetters = (await decryptEntriesFromServer(
+          (data.letters || []) as unknown as JournalEntry[]
+        )) as unknown as ArrivedLetter[]
+        const unviewedLetters = decryptedLetters.filter(
+          (letter) => !viewedSet.has(letter.id)
         )
         setArrivedLetters(unviewedLetters)
       }
@@ -299,13 +308,13 @@ export default function LetterArrivedBanner({ nickname }: LetterArrivedBannerPro
     } finally {
       setHasChecked(true)
     }
-  }, [])
+  }, [decryptEntriesFromServer])
 
   useEffect(() => {
     if (!hasChecked) {
       checkForLetters()
     }
-  }, [checkForLetters, hasChecked])
+  }, [checkForLetters, hasChecked, isE2EEReady])
 
   const currentLetter = arrivedLetters[currentLetterIndex]
   const displayName = nickname || 'me'

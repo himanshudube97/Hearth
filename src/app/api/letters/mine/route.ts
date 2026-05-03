@@ -28,6 +28,8 @@ export async function GET() {
         recipientName: true,
         isViewed: true,
         song: true,
+        encryptionType: true,
+        e2eeIVs: true,
         photos: {
           select: { url: true, position: true, spread: true, rotation: true }
         },
@@ -40,22 +42,24 @@ export async function GET() {
       },
     })
 
-    // Determine if letters are "arrived" (unlockDate has passed and it's a self letter)
+    // For E2EE letters, return ciphertext + IVs untouched so the client can
+    // decrypt with its master key. For server-encrypted, decrypt server-side.
     const now = new Date()
-    const lettersWithStatus = letters.map(letter => ({
-      ...letter,
-      // Decrypt sensitive fields
-      text: safeDecrypt(letter.text),
-      letterLocation: safeDecrypt(letter.letterLocation),
-      recipientName: safeDecrypt(letter.recipientName),
-      // Format dates
-      createdAt: letter.createdAt.toISOString(),
-      unlockDate: letter.unlockDate?.toISOString() || null,
-      hasArrived: letter.unlockDate && new Date(letter.unlockDate) <= now && !letter.recipientEmail,
-      song: letter.song,
-      photos: letter.photos || [],
-      doodles: letter.doodles || [],
-    }))
+    const lettersWithStatus = letters.map(letter => {
+      const isE2EE = letter.encryptionType === 'e2ee'
+      return {
+        ...letter,
+        text: isE2EE ? letter.text : safeDecrypt(letter.text),
+        letterLocation: isE2EE ? letter.letterLocation : safeDecrypt(letter.letterLocation),
+        recipientName: isE2EE ? letter.recipientName : safeDecrypt(letter.recipientName),
+        createdAt: letter.createdAt.toISOString(),
+        unlockDate: letter.unlockDate?.toISOString() || null,
+        hasArrived: letter.unlockDate && new Date(letter.unlockDate) <= now && !letter.recipientEmail,
+        song: letter.song,
+        photos: letter.photos || [],
+        doodles: letter.doodles || [],
+      }
+    })
 
     return NextResponse.json({ letters: lettersWithStatus })
   } catch (error) {

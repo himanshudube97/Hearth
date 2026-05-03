@@ -38,6 +38,8 @@ export async function GET() {
         letterLocation: true,
         isDelivered: true,
         song: true,
+        encryptionType: true,
+        e2eeIVs: true,
         photos: {
           select: { url: true, position: true, spread: true, rotation: true }
         },
@@ -47,15 +49,19 @@ export async function GET() {
       },
     })
 
-    // Decrypt sensitive fields
-    const decryptedLetters = arrivedLetters.map(letter => ({
-      ...letter,
-      text: safeDecrypt(letter.text),
-      letterLocation: safeDecrypt(letter.letterLocation),
-      song: letter.song,
-      photos: letter.photos || [],
-      doodles: letter.doodles || [],
-    }))
+    // For E2EE letters, return ciphertext + IVs untouched so the client can
+    // decrypt with its master key. For server-encrypted, decrypt server-side.
+    const decryptedLetters = arrivedLetters.map(letter => {
+      const isE2EE = letter.encryptionType === 'e2ee'
+      return {
+        ...letter,
+        text: isE2EE ? letter.text : safeDecrypt(letter.text),
+        letterLocation: isE2EE ? letter.letterLocation : safeDecrypt(letter.letterLocation),
+        song: letter.song,
+        photos: letter.photos || [],
+        doodles: letter.doodles || [],
+      }
+    })
 
     return NextResponse.json({
       letters: decryptedLetters,

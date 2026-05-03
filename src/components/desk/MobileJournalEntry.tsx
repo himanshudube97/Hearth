@@ -14,6 +14,8 @@ import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
 import EntrySelector from './EntrySelector'
 import { getClientTz } from '@/lib/entry-lock-client'
+import { useE2EE } from '@/hooks/useE2EE'
+import type { JournalEntry } from '@/store/journal'
 
 interface Photo {
   id?: string
@@ -90,6 +92,7 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
   const [entries, setEntries] = useState<Entry[]>([])
   const [todayEntries, setTodayEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
+  const { decryptEntriesFromServer, isE2EEReady } = useE2EE()
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
   const [pages, setPages] = useState<string[]>([''])
   const [activePage, setActivePage] = useState(0)
@@ -116,7 +119,11 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
       })
       if (res.ok) {
         const data = await res.json()
-        const fetched = data.entries || []
+        const raw = (data.entries || []) as Entry[]
+        // Decrypt E2EE entries client-side; non-e2ee passes through unchanged.
+        const fetched = (await decryptEntriesFromServer(
+          raw as unknown as JournalEntry[]
+        )) as unknown as Entry[]
         setEntries(fetched)
         const today = new Date(); today.setHours(0, 0, 0, 0)
         const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
@@ -128,8 +135,8 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
     } finally {
       setLoading(false)
     }
-  }, [])
-  useEffect(() => { fetchEntries() }, [fetchEntries])
+  }, [decryptEntriesFromServer])
+  useEffect(() => { fetchEntries() }, [fetchEntries, isE2EEReady])
 
   const currentEntry = currentEntryId
     ? entries.find(e => e.id === currentEntryId) || null

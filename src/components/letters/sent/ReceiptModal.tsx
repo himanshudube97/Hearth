@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import type { SentStamp } from '../letterTypes'
+import { useE2EEStore } from '@/store/e2ee'
+import { decryptString } from '@/lib/e2ee/crypto'
 
 interface Props {
   stamp: SentStamp | null
@@ -10,6 +12,7 @@ interface Props {
 
 export default function ReceiptModal({ stamp, onClose }: Props) {
   const [peeked, setPeeked] = useState<string | null>(null)
+  const masterKey = useE2EEStore((s) => s.masterKey)
 
   useEffect(() => {
     setPeeked(null)
@@ -24,6 +27,25 @@ export default function ReceiptModal({ stamp, onClose }: Props) {
     if (!confirm('this breaks the seal early.\nare you sure you want to read it now?')) return
     const res = await fetch(`/api/letters/${stamp!.id}/peek`, { method: 'POST' })
     const data = await res.json()
+    // For E2EE, the server returns ciphertext + the IV; decrypt locally.
+    if (data.encryptionType === 'e2ee') {
+      if (!masterKey) {
+        setPeeked('[Unlock E2EE to read this letter.]')
+        return
+      }
+      const iv = (data.e2eeIVs as { text?: string } | null)?.text
+      if (!iv || !data.body) {
+        setPeeked('')
+        return
+      }
+      try {
+        const plaintext = await decryptString(data.body, iv, masterKey)
+        setPeeked(plaintext)
+      } catch {
+        setPeeked('[Could not decrypt letter.]')
+      }
+      return
+    }
     setPeeked(data.body || '')
   }
 

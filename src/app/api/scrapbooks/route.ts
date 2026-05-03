@@ -21,7 +21,10 @@ export async function GET() {
     const items = isE2EE ? [] : (decryptJson<ScrapbookItem[]>(row.items) ?? [])
     return {
       id: row.id,
-      title: isE2EE ? row.title : (row.title ? safeDecrypt(row.title) : null),
+      // For E2EE scrapbooks, the stored title is ciphertext we can't decrypt
+      // server-side. Return null so the card falls back to its date label;
+      // the real title is decrypted client-side on the board page.
+      title: isE2EE ? null : (row.title ? safeDecrypt(row.title) : null),
       encryptionType: row.encryptionType,
       itemCount: isE2EE ? null : items.length,
       createdAt: row.createdAt,

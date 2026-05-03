@@ -80,6 +80,8 @@ export interface InboxLetter {
   sealedAt: string       // ISO
   unlockDate: string | null
   isViewed: boolean
+  encryptionType?: string
+  e2eeIVs?: unknown
 }
 
 export interface SentStamp {
@@ -89,6 +91,8 @@ export interface SentStamp {
   unlockDate: string | null
   isDelivered: boolean
   letterPeekedAt: string | null
+  encryptionType?: string
+  e2eeIVs?: unknown
 }
 
 export type LettersTab = 'inbox' | 'sent' | 'lights'
