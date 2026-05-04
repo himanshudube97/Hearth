@@ -157,9 +157,17 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
 
     try {
       const id = entryIdRef.current
+      // Surface what's actually being sent so a missing photo here vs.
+      // server-side proves where the loss happens.
+      const photosLen = Array.isArray(draft.photos) ? draft.photos.length : 'n/a'
+      const photosShape = Array.isArray(draft.photos)
+        ? draft.photos.map((p) => ({ pos: p.position, hasUrl: !!p.url, hasEref: !!p.encryptedRef }))
+        : null
+      console.log('[hearth] autosave →', id ? 'PUT' : 'POST', { entryId: id, photosLen, photosShape })
       const res = id
         ? await fetch(`/api/entries/${id}`, { method: 'PUT', headers, body })
         : await fetch('/api/entries', { method: 'POST', headers, body })
+      console.log('[hearth] autosave ←', res.status, id ?? '(new)')
 
       if (res.ok) {
         if (!id) {

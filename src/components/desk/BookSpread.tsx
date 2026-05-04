@@ -454,6 +454,12 @@ export default function BookSpread() {
     const next = [...pendingPhotosRef.current.filter(p => p.position !== position), newPhoto]
     pendingPhotosRef.current = next
     setPendingPhotos(next)
+    console.log('[hearth] handlePhotoAdd', {
+      position,
+      hasUrl: !!photoData.url,
+      hasEncryptedRef: !!photoData.encryptedRef,
+      pendingPhotosLen: next.length,
+    })
     // Photos are atomic events — debouncing only creates a window where a
     // quick refresh kills the timer before the PUT fires. Force the save now.
     autosaveRef.current.trigger(buildDraft())
