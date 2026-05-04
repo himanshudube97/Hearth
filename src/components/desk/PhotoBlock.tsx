@@ -93,6 +93,15 @@ const PhotoBlock = memo(function PhotoBlock({
       const masterKey = state.masterKey
       const isE2EEReady = state.isEnabled && state.isUnlocked && masterKey !== null
 
+      // E2EE on but locked: refuse to upload as plaintext. Doing so would
+      // store a plaintext URL on an E2EE entry, which the autosave guard
+      // would then silently drop — losing the photo. Prompt the user to
+      // unlock instead.
+      if (state.isEnabled && !isE2EEReady) {
+        state.setShowUnlockModal(true)
+        return
+      }
+
       try {
         const buffer = await file.arrayBuffer()
         await uploadAndAdd(buffer, position, isE2EEReady ? masterKey : null, onPhotoAdd)
@@ -112,10 +121,16 @@ const PhotoBlock = memo(function PhotoBlock({
   const handleCameraCapture = useCallback(async (dataUrl: string) => {
     if (!onPhotoAdd) return
     try {
-      const buffer = dataUrlToArrayBuffer(dataUrl)
       const state = useE2EEStore.getState()
       const masterKey = state.masterKey
       const isE2EEReady = state.isEnabled && state.isUnlocked && masterKey !== null
+
+      if (state.isEnabled && !isE2EEReady) {
+        state.setShowUnlockModal(true)
+        return
+      }
+
+      const buffer = dataUrlToArrayBuffer(dataUrl)
       await uploadAndAdd(buffer, activePosition, isE2EEReady ? masterKey : null, onPhotoAdd)
     } catch (err) {
       console.error('camera photo upload failed:', err)

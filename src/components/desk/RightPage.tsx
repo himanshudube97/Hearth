@@ -20,7 +20,6 @@ import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
 
 const LINE_HEIGHT = 32
-const DOODLE_DRAFT_KEY = 'hearth_desk_doodle_draft'
 
 // SVG path from stroke points
 function getSvgPathFromStroke(stroke: number[][]): string {
@@ -238,29 +237,7 @@ const RightPage = memo(forwardRef<RightPageHandle, RightPageProps>(function Righ
     }
   }, [onNavigateLeft, onBackspaceAcrossSpine])
 
-  // Load doodle draft from localStorage
-  useEffect(() => {
-    if (isNewEntry) {
-      try {
-        const draft = localStorage.getItem(DOODLE_DRAFT_KEY)
-        if (draft) {
-          const parsed = JSON.parse(draft) as StrokeData[]
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setDoodleStrokes(parsed)
-          }
-        }
-      } catch (e) {
-        console.error('Failed to load doodle draft:', e)
-      }
-    }
-  }, [isNewEntry, setDoodleStrokes])
-
   const handleStrokesChange = useCallback((strokes: StrokeData[]) => {
-    try {
-      localStorage.setItem(DOODLE_DRAFT_KEY, JSON.stringify(strokes))
-    } catch (e) {
-      console.error('Failed to save doodle draft:', e)
-    }
     setDoodleStrokes(strokes)
   }, [setDoodleStrokes])
 

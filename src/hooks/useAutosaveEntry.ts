@@ -246,6 +246,20 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
     }
   }, [])
 
+  // Re-fire any deferred save when E2EE finishes initializing or unlocks.
+  // Without this, photos/song/text added before the master key was loaded
+  // sit in `draftRef.current` forever — the guard in performSave returns
+  // silently and nothing else triggers a retry, so the change is lost on
+  // refresh. Watching the ready transition catches that.
+  const wasE2EEReadyRef = useRef(isE2EEReady)
+  useEffect(() => {
+    const wasReady = wasE2EEReadyRef.current
+    wasE2EEReadyRef.current = isE2EEReady
+    if (!wasReady && isE2EEReady && draftRef.current) {
+      performSaveRef.current?.(0)
+    }
+  }, [isE2EEReady])
+
   return { entryId, flush, reset, trigger }
 }
 
