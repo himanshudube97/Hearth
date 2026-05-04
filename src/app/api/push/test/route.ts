@@ -30,15 +30,27 @@ function configureVapid(pub: string, priv: string, subj: string) {
 }
 
 export async function GET() {
-  const user = await getCurrentUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+  // Unauthed on this debug branch: VAPID public keys are public by design;
+  // we only return missing-flags, public-key prefixes, and the subject.
   const status = vapidConfigStatus()
-  const sub = await prisma.pushSubscription.findFirst({
-    where: { userId: user.id, pausedAt: null },
-    orderBy: { createdAt: 'desc' },
-    select: { endpoint: true, createdAt: true, userAgent: true, tz: true },
-  })
+  const user = await getCurrentUser().catch(() => null)
+
+  let subscription = null
+  if (user) {
+    const sub = await prisma.pushSubscription.findFirst({
+      where: { userId: user.id, pausedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: { endpoint: true, createdAt: true, userAgent: true, tz: true },
+    })
+    if (sub) {
+      subscription = {
+        endpointHost: new URL(sub.endpoint).host,
+        createdAt: sub.createdAt,
+        userAgent: sub.userAgent,
+        tz: sub.tz,
+      }
+    }
+  }
 
   return NextResponse.json({
     missing: status.missing,
@@ -46,15 +58,9 @@ export async function GET() {
     serverPubPrefix: status.pub ? status.pub.slice(0, 12) : null,
     clientPubPrefix: status.clientPub ? status.clientPub.slice(0, 12) : null,
     subject: status.subj,
-    hasActiveSubscription: !!sub,
-    subscription: sub
-      ? {
-          endpointHost: new URL(sub.endpoint).host,
-          createdAt: sub.createdAt,
-          userAgent: sub.userAgent,
-          tz: sub.tz,
-        }
-      : null,
+    authenticated: !!user,
+    hasActiveSubscription: !!subscription,
+    subscription,
   })
 }
 
