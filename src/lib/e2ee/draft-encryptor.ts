@@ -105,19 +105,38 @@ export async function decryptEntry(
 ): Promise<EncryptableDraft> {
   const out: EncryptableDraft = {}
 
+  // Per-field tolerance: if one field's IV/ciphertext is corrupt or its IV
+  // map entry was orphaned by an older save bug, we don't want to fail the
+  // whole entry — the user would see a `[Decryption failed]` placeholder
+  // for fields that actually decrypt fine. Throw only if `text` itself
+  // fails, since without it the entry's main content is unrecoverable and
+  // the caller should render the placeholder.
+  let textFailure: unknown = null
+
   for (const field of STRING_FIELDS) {
     const ct = encrypted[field]
     const iv = encrypted.e2eeIVs[field]
     if (!ct || !iv) continue
-    out[field] = await decryptString(ct, iv, masterKey)
+    try {
+      out[field] = await decryptString(ct, iv, masterKey)
+    } catch (err) {
+      console.warn(`E2EE: ${field} decryption failed`, err)
+      if (field === 'text') textFailure = err
+      // Other fields: silently drop from the decrypted output. Caller will
+      // fall back to the original (still-ciphertext) value if it reads them.
+    }
   }
 
   for (const field of JSON_FIELDS) {
     const ct = encrypted[field]
     const iv = encrypted.e2eeIVs[field]
     if (!ct || !iv) continue
-    const json = await decryptString(ct, iv, masterKey)
-    ;(out as Record<string, unknown>)[field] = JSON.parse(json)
+    try {
+      const json = await decryptString(ct, iv, masterKey)
+      ;(out as Record<string, unknown>)[field] = JSON.parse(json)
+    } catch (err) {
+      console.warn(`E2EE: ${field} decryption failed`, err)
+    }
   }
 
   if (encrypted.doodles && encrypted.doodles.length > 0) {
@@ -127,13 +146,23 @@ export async function decryptEntry(
       // schema's existing `Doodle.strokes Json` column).
       const cipher = (d as { strokes: { encryptedStrokes?: string; e2eeIV?: string } }).strokes
       if (!cipher?.encryptedStrokes || !cipher?.e2eeIV) continue
-      const json = await decryptString(cipher.encryptedStrokes, cipher.e2eeIV, masterKey)
-      out.doodles.push({
-        strokes: JSON.parse(json),
-        spread: d.spread,
-        positionInEntry: d.positionInEntry,
-      })
+      try {
+        const json = await decryptString(cipher.encryptedStrokes, cipher.e2eeIV, masterKey)
+        out.doodles.push({
+          strokes: JSON.parse(json),
+          spread: d.spread,
+          positionInEntry: d.positionInEntry,
+        })
+      } catch (err) {
+        console.warn('E2EE: doodle decryption failed', err)
+      }
     }
+  }
+
+  if (textFailure) {
+    // Surface the original error so the catch in useE2EE.decryptEntryFromServer
+    // produces the `[Decryption failed]` placeholder for the entry.
+    throw textFailure
   }
 
   return out
