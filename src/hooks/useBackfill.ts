@@ -166,7 +166,10 @@ export function useBackfill() {
           // adapter. Fire-and-forget: a failed delete only leaves an
           // unreferenced object behind, the user data is already E2EE.
           for (const h of oldHandlesToDelete) {
-            fetch(`/api/photos/${encodeURIComponent(h)}`, { method: 'DELETE' }).catch(() => {})
+            // Slashes in `{userId}/{uuid}.bin` handles must stay as path
+            // separators for the catch-all [...handle] route; encode segments,
+            // not the whole string.
+            fetch(`/api/photos/${h.split('/').map(encodeURIComponent).join('/')}`, { method: 'DELETE' }).catch(() => {})
           }
           migrated += 1
           cursor = entry.id

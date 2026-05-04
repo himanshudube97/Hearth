@@ -51,7 +51,11 @@ export async function deletePhotoBlob(
   if (!handle) return
 
   try {
-    await fetch(`/api/photos/${encodeURIComponent(handle)}`, { method: 'DELETE' })
+    // Don't encodeURIComponent the whole handle — the Supabase adapter issues
+    // handles like `{userId}/{uuid}.bin` and the route is a catch-all, so the
+    // slashes need to stay as path separators. Encode each segment instead.
+    const path = handle.split('/').map(encodeURIComponent).join('/')
+    await fetch(`/api/photos/${path}`, { method: 'DELETE' })
   } catch (err) {
     console.warn('deletePhotoBlob: DELETE failed', err)
   }
