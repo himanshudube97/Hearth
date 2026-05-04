@@ -381,9 +381,13 @@ export async function PUT(
       style: parseStyle(updatedEntry?.style),
     })
   } catch (error) {
-    console.error('Error updating entry:', error)
+    // Surface the underlying message + stack head so production 500s aren't
+    // a black box. Only the catch text leaks — never the request body.
+    const message = error instanceof Error ? error.message : String(error)
+    const stack = error instanceof Error ? error.stack?.split('\n').slice(0, 4).join('\n') : undefined
+    console.error('Error updating entry:', { message, stack })
     return NextResponse.json(
-      { error: 'Failed to update entry' },
+      { error: 'Failed to update entry', details: message, stack },
       { status: 500 }
     )
   }
