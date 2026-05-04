@@ -4,7 +4,7 @@ import { encryptDraft, decryptEntry, type EncryptableDraft } from '@/lib/e2ee/dr
 import type { JournalEntry } from '@/store/journal'
 
 export function useE2EE() {
-  const { isEnabled, isUnlocked, masterKey } = useE2EEStore()
+  const { isEnabled, isUnlocked, masterKey, initialized } = useE2EEStore()
   const isE2EEReady = isEnabled && isUnlocked && masterKey !== null
 
   const encryptEntryData = useCallback(
@@ -58,6 +58,7 @@ export function useE2EE() {
   return {
     isE2EEEnabled: isEnabled,
     isE2EEReady,
+    isE2EEInitialized: initialized,
     encryptEntryData,
     decryptEntryFromServer,
     decryptEntriesFromServer,

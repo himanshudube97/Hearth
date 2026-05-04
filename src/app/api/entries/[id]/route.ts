@@ -127,7 +127,39 @@ export async function PUT(
       entryType, recipientEmail, recipientName, senderName, letterLocation, unlockDate,
     } = body
 
-    const isE2EE = encryptionType === 'e2ee' || existing.encryptionType === 'e2ee'
+    const bodyIsE2EE = encryptionType === 'e2ee'
+    const existingIsE2EE = existing.encryptionType === 'e2ee'
+
+    // Defense against a race we hit in production: client autosave fires
+    // before the E2EE store has initialized, body omits `encryptionType`, and
+    // we used to fall back to `existing.encryptionType === 'e2ee'`. That path
+    // stored plaintext text into a row flagged as e2ee — atob() would then
+    // crash on read. Reject loudly instead so the client retries once unlocked.
+    //
+    // The list covers every field whose stored shape differs by encryption
+    // mode: text/preview/letter-fields (string ciphertext vs server-hex),
+    // doodle strokes (`{encryptedStrokes,e2eeIV}` vs raw stroke array), and
+    // photos (`encryptedRef` vs `url`). Anything else (style, spreads,
+    // archive flags, scheduling) has the same shape either way and is safe.
+    const writesEncryptedField =
+      text !== undefined ||
+      appendText !== undefined ||
+      song !== undefined ||
+      recipientName !== undefined ||
+      senderName !== undefined ||
+      letterLocation !== undefined ||
+      doodles !== undefined ||
+      newDoodles !== undefined ||
+      photos !== undefined ||
+      newPhotos !== undefined
+    if (writesEncryptedField && existingIsE2EE && !bodyIsE2EE) {
+      return NextResponse.json(
+        { error: 'E2EE entry — unlock and resend with encryptionType: "e2ee".' },
+        { status: 409 },
+      )
+    }
+
+    const isE2EE = bodyIsE2EE
     const isLetter = existing.entryType !== 'normal'
 
     // Lock check. Letters: sealed = full reject. Journal entries: calendar-day

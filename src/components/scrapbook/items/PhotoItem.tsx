@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from 'react'
 import { PhotoItemData } from '@/lib/scrapbook'
+import { usePhotoSrc } from '@/hooks/usePhotoSrc'
 
 interface Props {
   item: PhotoItemData
@@ -19,6 +20,14 @@ export default function PhotoItem({
   onRequestUpload,
 }: Props) {
   const captionRef = useRef<HTMLDivElement>(null)
+  // Resolves the three storage modes (data: legacy, /api/photos handle,
+  // E2EE encryptedRef) into a renderable URL. Returns null while loading.
+  const resolvedSrc = usePhotoSrc({
+    url: item.src ?? undefined,
+    encryptedRef: item.encryptedRef,
+    encryptedRefIV: item.encryptedRefIV,
+  })
+  const hasPhoto = item.src !== null || !!item.encryptedRef
 
   useEffect(() => {
     if (captionRef.current && captionRef.current.innerText !== (item.caption ?? '')) {
@@ -27,7 +36,7 @@ export default function PhotoItem({
   }, [item.caption])
 
   // ----- placeholder mode: no src yet, show two big options -----
-  if (!item.src) {
+  if (!hasPhoto) {
     return (
       <div
         className="w-full h-full flex flex-col"
@@ -97,7 +106,7 @@ export default function PhotoItem({
           className="flex-1 overflow-hidden"
           style={{
             background: '#1a1614',
-            backgroundImage: `url(${item.src})`,
+            backgroundImage: resolvedSrc ? `url(${resolvedSrc})` : 'none',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -134,7 +143,7 @@ export default function PhotoItem({
     <div
       className="w-full h-full"
       style={{
-        backgroundImage: `url(${item.src})`,
+        backgroundImage: resolvedSrc ? `url(${resolvedSrc})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         borderRadius: 4,

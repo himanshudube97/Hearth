@@ -35,11 +35,19 @@ import StampItem from './items/StampItem'
 import DateItem from './items/DateItem'
 import PageSurface from './PageSurface'
 import { useAutosaveScrapbook } from '@/hooks/useAutosaveScrapbook'
+import { useE2EEStore } from '@/store/e2ee'
+import { encryptBytes, encryptString } from '@/lib/e2ee/crypto'
+import { deletePhotoBlob } from '@/lib/storage/delete-photo-blob'
 
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024
 const PHOTO_MAX_WIDTH = 1600
 
-async function compressPhoto(file: File): Promise<string> {
+/**
+ * Resize+JPEG-compress a picked file to ArrayBuffer ready for upload.
+ * Mirrors the journal `PhotoBlock` flow — bytes go to /api/photos, never
+ * inline as a data URL anymore.
+ */
+async function compressPhoto(file: File): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const reader = new FileReader()
@@ -59,18 +67,81 @@ async function compressPhoto(file: File): Promise<string> {
       canvas.height = height
       ctx.drawImage(img, 0, 0, width, height)
 
-      let quality = 0.85
-      let dataUrl = canvas.toDataURL('image/jpeg', quality)
-      while (dataUrl.length > PHOTO_MAX_BYTES * 1.37 && quality > 0.3) {
-        quality -= 0.1
-        dataUrl = canvas.toDataURL('image/jpeg', quality)
-      }
-      resolve(dataUrl)
+      const tryEncode = (q: number) =>
+        new Promise<Blob | null>((res) =>
+          canvas.toBlob((b) => res(b), 'image/jpeg', q),
+        )
+
+      ;(async () => {
+        let quality = 0.85
+        let blob = await tryEncode(quality)
+        while (blob && blob.size > PHOTO_MAX_BYTES && quality > 0.3) {
+          quality -= 0.1
+          blob = await tryEncode(quality)
+        }
+        if (!blob) return reject(new Error('Compression failed'))
+        resolve(await blob.arrayBuffer())
+      })()
     }
     img.onerror = () => reject(new Error('Image load failed'))
     reader.onerror = () => reject(new Error('File read failed'))
     reader.readAsDataURL(file)
   })
+}
+
+function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer {
+  const base64 = dataUrl.split(',')[1] ?? ''
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes.buffer
+}
+
+async function postBytes(bytes: ArrayBuffer | Uint8Array): Promise<string> {
+  const res = await fetch('/api/photos', {
+    method: 'POST',
+    body: bytes as BodyInit,
+    headers: { 'Content-Type': 'application/octet-stream' },
+  })
+  if (!res.ok) throw new Error(`photo upload failed: ${res.status}`)
+  const { handle } = (await res.json()) as { handle: string }
+  return handle
+}
+
+interface UploadedPhotoRef {
+  src: string | null
+  encryptedRef?: string
+  encryptedRefIV?: string
+}
+
+/**
+ * Send the bytes through /api/photos (Postgres blob in dev, Supabase Storage
+ * in prod). Returns whichever pair of fields PhotoItemData expects:
+ *   - E2EE on:  src=null, encryptedRef + encryptedRefIV (E2EE-encrypted
+ *               JSON of {handle, iv}; ciphertext bytes uploaded).
+ *   - E2EE off: src='/api/photos/{handle}'; plaintext bytes uploaded.
+ */
+async function uploadScrapbookPhoto(buffer: ArrayBuffer): Promise<UploadedPhotoRef> {
+  const state = useE2EEStore.getState()
+  const masterKey = state.masterKey
+  const isE2EEReady = state.isEnabled && state.isUnlocked && masterKey !== null
+
+  if (isE2EEReady && masterKey) {
+    const { ciphertext, iv } = await encryptBytes(buffer, masterKey)
+    const binary = atob(ciphertext)
+    const cipher = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) cipher[i] = binary.charCodeAt(i)
+    const handle = await postBytes(cipher)
+    const refEncrypted = await encryptString(JSON.stringify({ handle, iv }), masterKey)
+    return {
+      src: null,
+      encryptedRef: refEncrypted.ciphertext,
+      encryptedRefIV: refEncrypted.iv,
+    }
+  }
+
+  const handle = await postBytes(buffer)
+  return { src: `/api/photos/${handle}` }
 }
 
 interface Props {
@@ -118,7 +189,24 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
   }
 
   function deleteItem(id: string) {
-    setItems((prev) => prev.filter((it) => it.id !== id))
+    setItems((prev) => {
+      // If we're deleting a photo item, free the underlying storage object
+      // (handle URL or E2EE encryptedRef). Fire-and-forget; UI removal must
+      // not block on the network round-trip.
+      const removed = prev.find((it) => it.id === id)
+      if (removed && removed.type === 'photo') {
+        const masterKey = useE2EEStore.getState().masterKey
+        void deletePhotoBlob(
+          {
+            url: removed.src,
+            encryptedRef: removed.encryptedRef,
+            encryptedRefIV: removed.encryptedRefIV,
+          },
+          masterKey,
+        )
+      }
+      return prev.filter((it) => it.id !== id)
+    })
     if (selectedId === id) setSelectedId(null)
     if (editingId === id) setEditingId(null)
     if (cameraTargetId === id) setCameraTargetId(null)
@@ -158,10 +246,17 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
     setSelectedId(item.id)
   }
 
-  function fillPhoto(id: string, src: string) {
+  function fillPhoto(id: string, ref: UploadedPhotoRef) {
     setItems((prev) =>
       prev.map((it) =>
-        it.id === id && it.type === 'photo' ? { ...it, src } : it,
+        it.id === id && it.type === 'photo'
+          ? {
+              ...it,
+              src: ref.src,
+              encryptedRef: ref.encryptedRef,
+              encryptedRefIV: ref.encryptedRefIV,
+            }
+          : it,
       ),
     )
   }
@@ -181,17 +276,26 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
     e.target.value = ''
     if (!file || !targetId) return
     try {
-      const dataUrl = await compressPhoto(file)
-      fillPhoto(targetId, dataUrl)
+      const buffer = await compressPhoto(file)
+      const ref = await uploadScrapbookPhoto(buffer)
+      fillPhoto(targetId, ref)
     } catch (err) {
-      console.error('Failed to compress photo:', err)
+      console.error('Failed to upload photo:', err)
     }
     setUploadTargetId(null)
   }
 
-  function onCameraCapture(dataUrl: string) {
-    if (cameraTargetId) fillPhoto(cameraTargetId, dataUrl)
+  async function onCameraCapture(dataUrl: string) {
+    const targetId = cameraTargetId
     setCameraTargetId(null)
+    if (!targetId) return
+    try {
+      const buffer = dataUrlToArrayBuffer(dataUrl)
+      const ref = await uploadScrapbookPhoto(buffer)
+      fillPhoto(targetId, ref)
+    } catch (err) {
+      console.error('Failed to upload camera photo:', err)
+    }
   }
 
   function addSong(url: string) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { sendFriendLetterMagicLink, sendSelfLetterEmail } from '@/lib/email'
+import { sendFriendLetterMagicLink, sendSelfLetterEmail, sendSelfLetterNotification } from '@/lib/email'
 import { safeDecrypt } from '@/lib/encryption'
 import { strokesToDataUrl } from '@/lib/doodle-to-image'
 import { createAccessToken } from '@/lib/letter-tokens'
@@ -101,8 +101,24 @@ export async function GET(request: NextRequest) {
           } else {
             results.errors.push(`Failed to send friend letter ${letter.id}: ${error}`)
           }
+        } else if (letter.encryptionType === 'e2ee') {
+          // E2EE self letter — server can't decrypt the body, so emailing
+          // the contents would just paste ciphertext into the inbox. Send a
+          // bodiless "your letter has arrived" notice instead; the user
+          // reads the actual letter in-app via the LetterReveal modal,
+          // where their browser holds the master key.
+          const { success, error } = await sendSelfLetterNotification({
+            to: letter.user.email!,
+            userName: letter.user.name || '',
+          })
+
+          if (success) {
+            results.selfLetters++
+          } else {
+            results.errors.push(`Failed to send self letter notification ${letter.id}: ${error}`)
+          }
         } else {
-          // Self letter - send full letter content email to the user
+          // Server-encrypted self letter - send full letter content email.
           const { success, error } = await sendSelfLetterEmail({
             to: letter.user.email!,
             userName: letter.user.name || '',

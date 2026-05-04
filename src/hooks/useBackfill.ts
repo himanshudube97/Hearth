@@ -74,33 +74,70 @@ export function useBackfill() {
           // orphans for the sweep cron to clean up.
           const uploadedHandles: string[] = []
 
+          // Track previously plaintext handles whose bytes need to be deleted
+          // *after* the entry PUT succeeds with the new encrypted handle.
+          // Doing it before would leave the entry pointing at deleted bytes
+          // if the PUT fails.
+          const oldHandlesToDelete: string[] = []
+
           for (const p of entry.photos ?? []) {
-            if (p.url && p.url.startsWith('data:')) {
-              try {
-                const b64 = p.url.split(',')[1]
-                const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
-                const { ciphertext, iv } = await encryptBytes(bytes.buffer, masterKey)
-                const cipherBytes = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0))
-                const upRes = await fetch('/api/photos', {
-                  method: 'POST',
-                  body: cipherBytes,
-                  headers: { 'Content-Type': 'application/octet-stream' },
-                })
-                if (!upRes.ok) throw new Error('upload failed')
-                const { handle } = await upRes.json()
-                uploadedHandles.push(handle)
-                const refEnc = await encryptString(JSON.stringify({ handle, iv }), masterKey)
-                newPhotos.push({
-                  id: p.id,
-                  url: null,
-                  encryptedRef: refEnc.ciphertext,
-                  encryptedRefIV: refEnc.iv,
-                })
-              } catch (err) {
-                console.error('photo migration failed', p.id, err)
-                newPhotos.push(p)
+            // Two paths produce a plaintext blob the server can read:
+            //   1. legacy `data:image/...` URLs inlined in the row
+            //   2. `/api/photos/{handle}` URLs from the post-adapter,
+            //      pre-E2EE era — bytes sit in Supabase plaintext.
+            // Either way, get the bytes into an ArrayBuffer, encrypt, upload
+            // ciphertext, and swap the row to use encryptedRef. After the
+            // entry PUT lands, delete the old plaintext bytes so the server
+            // can't read them anymore.
+            const isDataUrl = p.url?.startsWith('data:')
+            const isPlainHandle = p.url?.startsWith('/api/photos/')
+
+            if (!isDataUrl && !isPlainHandle) {
+              // Already E2EE (encryptedRef set) or some other shape we don't
+              // touch — pass through unchanged.
+              newPhotos.push(p)
+              continue
+            }
+
+            try {
+              let bytes: Uint8Array
+              if (isDataUrl) {
+                const b64 = p.url!.split(',')[1]
+                bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
+              } else {
+                // Fetch the plaintext bytes from the storage adapter.
+                const dlRes = await fetch(p.url!)
+                if (!dlRes.ok) throw new Error(`fetch failed: ${dlRes.status}`)
+                bytes = new Uint8Array(await dlRes.arrayBuffer())
               }
-            } else {
+
+              const { ciphertext, iv } = await encryptBytes(bytes.buffer as ArrayBuffer, masterKey)
+              const cipherBytes = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0))
+              const upRes = await fetch('/api/photos', {
+                method: 'POST',
+                body: cipherBytes,
+                headers: { 'Content-Type': 'application/octet-stream' },
+              })
+              if (!upRes.ok) throw new Error('upload failed')
+              const { handle } = await upRes.json()
+              uploadedHandles.push(handle)
+
+              const refEnc = await encryptString(JSON.stringify({ handle, iv }), masterKey)
+              newPhotos.push({
+                id: p.id,
+                url: null,
+                encryptedRef: refEnc.ciphertext,
+                encryptedRefIV: refEnc.iv,
+              })
+
+              // Queue the old plaintext blob for deletion (only for the
+              // handle path — data URLs have no server blob).
+              if (isPlainHandle) {
+                const oldHandle = p.url!.slice('/api/photos/'.length)
+                oldHandlesToDelete.push(oldHandle)
+              }
+            } catch (err) {
+              console.error('photo migration failed', p.id, err)
               newPhotos.push(p)
             }
           }
@@ -122,6 +159,14 @@ export function useBackfill() {
               }).catch(() => {})
             }
             throw new Error('PUT failed')
+          }
+
+          // PUT landed — the row now references the encrypted handles, so
+          // it's safe to delete the old plaintext bytes from the storage
+          // adapter. Fire-and-forget: a failed delete only leaves an
+          // unreferenced object behind, the user data is already E2EE.
+          for (const h of oldHandlesToDelete) {
+            fetch(`/api/photos/${encodeURIComponent(h)}`, { method: 'DELETE' }).catch(() => {})
           }
           migrated += 1
           cursor = entry.id

@@ -70,13 +70,15 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
   const inFlightRef = useRef(false)
   const dirtyRef = useRef(false)
 
-  const { encryptEntryData, isE2EEReady, isE2EEEnabled } = useE2EE()
+  const { encryptEntryData, isE2EEReady, isE2EEEnabled, isE2EEInitialized } = useE2EE()
   const encryptEntryDataRef = useRef(encryptEntryData)
   const isE2EEReadyRef = useRef(isE2EEReady)
   const isE2EEEnabledRef = useRef(isE2EEEnabled)
+  const isE2EEInitializedRef = useRef(isE2EEInitialized)
   encryptEntryDataRef.current = encryptEntryData
   isE2EEReadyRef.current = isE2EEReady
   isE2EEEnabledRef.current = isE2EEEnabled
+  isE2EEInitializedRef.current = isE2EEInitialized
 
   const performSaveRef = useRef<(retryCount?: number) => Promise<void>>(async () => {})
 
@@ -89,6 +91,15 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
     }
     if (inFlightRef.current) {
       dirtyRef.current = true
+      return
+    }
+
+    // Defer saves while the E2EE store is still hydrating from /api/e2ee/keys.
+    // Until that fetch resolves, `isEnabled` is its default `false` even for
+    // users who actually have E2EE on — so the `isEnabled && !isReady` guard
+    // below would let plaintext slip through into an e2ee-flagged row.
+    if (!isE2EEInitializedRef.current) {
+      setStatus('idle')
       return
     }
 

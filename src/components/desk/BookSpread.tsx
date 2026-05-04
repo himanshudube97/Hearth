@@ -21,6 +21,8 @@ import type { JournalEntry } from '@/store/journal'
 import { isEntryLocked, getClientTz } from '@/lib/entry-lock-client'
 import { parseStyle } from '@/lib/entry-style'
 import { htmlToSplitPlainText, PAGE_BREAK_MARKER } from '@/lib/text-utils'
+import { deletePhotoBlob } from '@/lib/storage/delete-photo-blob'
+import { useE2EEStore } from '@/store/e2ee'
 
 const HTMLFlipBook = dynamic(() => import('react-pageflip'), { ssr: false })
 
@@ -441,7 +443,18 @@ export default function BookSpread() {
   }, [])
 
   const handlePhotoRemove = useCallback((position: 1 | 2) => {
-    setPendingPhotos(prev => prev.filter(p => p.position !== position))
+    setPendingPhotos(prev => {
+      // Free the underlying storage object as soon as the user removes the
+      // photo, so we don't leak Supabase / blob-table rows. Server can't see
+      // E2EE handles, so deletion has to fire from the browser. Fire-and-
+      // forget — UI removal must not wait on it.
+      const removed = prev.find(p => p.position === position)
+      if (removed) {
+        const masterKey = useE2EEStore.getState().masterKey
+        void deletePhotoBlob(removed, masterKey)
+      }
+      return prev.filter(p => p.position !== position)
+    })
   }, [])
 
   const isNewEntrySpread = globalCurrentSpread === entries.length

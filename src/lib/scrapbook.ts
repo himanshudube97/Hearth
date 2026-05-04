@@ -56,7 +56,13 @@ export interface StickerItemData extends BaseItem {
 
 export interface PhotoItemData extends BaseItem {
   type: 'photo'
-  src: string | null // null = placeholder, awaiting upload/capture
+  // Three storage modes resolved by usePhotoSrc:
+  //   - data: URL          → legacy inline (pre-storage-adapter scrapbooks)
+  //   - /api/photos/{h}    → non-E2EE handle, bytes live in the photo adapter
+  //   - null + encryptedRef → E2EE; the {handle, iv} reference is encrypted
+  src: string | null
+  encryptedRef?: string    // E2EE-encrypted JSON of {handle, iv}
+  encryptedRefIV?: string  // IV for the ref above
   caption?: string
   polaroid: boolean
 }

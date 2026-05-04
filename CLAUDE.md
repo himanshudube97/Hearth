@@ -101,6 +101,34 @@ Entry text and letter metadata are encrypted with AES-256-GCM:
 - Encrypt on save, decrypt on retrieve (see `lib/encryption.ts`)
 - Fields: `text`, `textPreview`, letter recipient info
 
+### Photo / Image Storage Flow
+Both journal entries and scrapbook photos go through the **same storage adapter** at `POST /api/photos`. Nothing else writes image bytes — never inline a `data:` URL into an entry or scrapbook item again.
+
+The adapter is selected at startup by `PHOTO_STORAGE`:
+- `PHOTO_STORAGE=local` (dev) — `LocalPostgresAdapter`: ciphertext is stored as a base64 row in the `EncryptedBlob` table. Handle = blob row id.
+- `PHOTO_STORAGE=supabase` (staging/prod) — `SupabaseStorageAdapter`: ciphertext is uploaded to a private Supabase Storage bucket (`SUPABASE_STORAGE_BUCKET`). Handle = `{userId}/{uuid}.bin`.
+
+The adapter never sees plaintext when E2EE is on — encryption happens on the client before upload. For both code paths the route returns an opaque `handle` and is read back via `GET /api/photos/{handle}` (auth + owner-scoped).
+
+**E2EE on (master key unlocked):**
+1. Client compresses → ArrayBuffer.
+2. `encryptBytes(buffer, masterKey)` → ciphertext bytes.
+3. `POST /api/photos` with the ciphertext bytes → `{handle}`.
+4. `encryptString(JSON.stringify({handle, iv}), masterKey)` → store the result on the row as `encryptedRef` + `encryptedRefIV`. The bare handle never lands on the row.
+5. Display via `usePhotoSrc` (`src/hooks/usePhotoSrc.ts`): decrypt the ref → fetch ciphertext → `decryptBytes` → blob URL.
+
+**E2EE off:**
+1. Client compresses → ArrayBuffer.
+2. `POST /api/photos` with plaintext bytes → `{handle}`.
+3. Store `url: '/api/photos/{handle}'` on the row.
+4. Display: `usePhotoSrc` fetches and wraps as a blob URL.
+
+Where this lives:
+- Journal entries: `src/components/desk/PhotoBlock.tsx` (uploadAndAdd) + `EntryPhoto.encryptedRef` / `EntryPhoto.url`.
+- Scrapbook items: `src/components/scrapbook/ScrapbookCanvas.tsx` (`uploadScrapbookPhoto`) + `PhotoItemData.encryptedRef` / `PhotoItemData.src`.
+
+Legacy scrapbook photos that were saved as inline `data:image/...` URLs in `src` keep rendering (`usePhotoSrc` returns them as-is). Don't write new ones in that shape.
+
 ### Letters Feature
 Time-delayed letters to self or friends:
 - Minimum 1 week delay, stored with `unlockDate` and `isSealed=true`

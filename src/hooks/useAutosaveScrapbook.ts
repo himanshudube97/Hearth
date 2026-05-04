@@ -35,6 +35,22 @@ export function useAutosaveScrapbook({ boardId }: Options): UseAutosaveScrapbook
       dirtyRef.current = true
       return
     }
+    // Defer until the E2EE store has hydrated from /api/e2ee/keys. Before
+    // that, `isEnabled` is its default `false` even for users who actually
+    // have E2EE on, so saving now would silently downgrade the row to
+    // server-encrypted — same shape of race that corrupted journal entries.
+    {
+      const state = useE2EEStore.getState()
+      if (!state.initialized) {
+        setStatus('idle')
+        return
+      }
+      if (state.isEnabled && (!state.isUnlocked || state.masterKey === null)) {
+        setStatus('idle')
+        return
+      }
+    }
+
     inFlightRef.current = true
     setStatus('saving')
     try {
