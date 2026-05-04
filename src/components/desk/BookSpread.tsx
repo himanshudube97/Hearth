@@ -326,6 +326,15 @@ export default function BookSpread() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingPhotos, loading])
 
+  // Best-effort flush before the page goes away so a refresh inside the
+  // 1.5s debounce window doesn't lose the pending text/song/doodle edits.
+  // (Photo add/remove already flushes synchronously in their handlers.)
+  useEffect(() => {
+    const onBeforeUnload = () => { void autosaveRef.current.flush() }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [])
+
   // Library's onFlip event: convert page index -> spread index and sync store
   const handleFlip = useCallback((e: { data: number }) => {
     goToSpread(Math.floor(e.data / 2))
@@ -439,23 +448,35 @@ export default function BookSpread() {
       position,
       rotation,
     }
-    setPendingPhotos(prev => [...prev.filter(p => p.position !== position), newPhoto])
-  }, [])
+    // Update the ref synchronously so the flush() below sees the new photo
+    // even before React re-renders (the useEffect on pendingPhotos that
+    // normally syncs the ref hasn't fired yet at this point).
+    const next = [...pendingPhotosRef.current.filter(p => p.position !== position), newPhoto]
+    pendingPhotosRef.current = next
+    setPendingPhotos(next)
+    // Photos are atomic events — debouncing only creates a window where a
+    // quick refresh kills the timer before the PUT fires. Force the save now.
+    autosaveRef.current.trigger(buildDraft())
+    void autosaveRef.current.flush()
+  }, [buildDraft])
 
   const handlePhotoRemove = useCallback((position: 1 | 2) => {
-    setPendingPhotos(prev => {
+    const removed = pendingPhotosRef.current.find(p => p.position === position)
+    if (removed) {
       // Free the underlying storage object as soon as the user removes the
       // photo, so we don't leak Supabase / blob-table rows. Server can't see
       // E2EE handles, so deletion has to fire from the browser. Fire-and-
       // forget — UI removal must not wait on it.
-      const removed = prev.find(p => p.position === position)
-      if (removed) {
-        const masterKey = useE2EEStore.getState().masterKey
-        void deletePhotoBlob(removed, masterKey)
-      }
-      return prev.filter(p => p.position !== position)
-    })
-  }, [])
+      const masterKey = useE2EEStore.getState().masterKey
+      void deletePhotoBlob(removed, masterKey)
+    }
+    const next = pendingPhotosRef.current.filter(p => p.position !== position)
+    pendingPhotosRef.current = next
+    setPendingPhotos(next)
+    // Same reasoning as add: removal should land server-side immediately.
+    autosaveRef.current.trigger(buildDraft())
+    void autosaveRef.current.flush()
+  }, [buildDraft])
 
   const isNewEntrySpread = globalCurrentSpread === entries.length
 
