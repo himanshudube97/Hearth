@@ -17,19 +17,27 @@ export async function POST(request: NextRequest | Request) {
     return NextResponse.json({ error: 'Invalid subscription payload' }, { status: 400 })
   }
 
-  await prisma.pushSubscription.upsert({
-    where: { endpoint },
-    create: { userId: user.id, endpoint, p256dh, auth, userAgent, tz },
-    update: {
-      userId: user.id,
-      p256dh,
-      auth,
-      userAgent,
-      tz,
-      pausedAt: null,
-      consecutiveIgnored: 0,
-    },
-  })
+  // Wipe any stale rows for this user before upserting the current endpoint.
+  // Without this, an old (now-dead) endpoint can stay in the DB and the cron /
+  // test routes can encrypt with its keys, leading to silently-dropped pushes.
+  await prisma.$transaction([
+    prisma.pushSubscription.deleteMany({
+      where: { userId: user.id, NOT: { endpoint } },
+    }),
+    prisma.pushSubscription.upsert({
+      where: { endpoint },
+      create: { userId: user.id, endpoint, p256dh, auth, userAgent, tz },
+      update: {
+        userId: user.id,
+        p256dh,
+        auth,
+        userAgent,
+        tz,
+        pausedAt: null,
+        consecutiveIgnored: 0,
+      },
+    }),
+  ])
 
   return NextResponse.json({ ok: true })
 }
