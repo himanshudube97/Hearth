@@ -1,5 +1,5 @@
 'use client'
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { useE2EEStore } from '@/store/e2ee'
 import { encryptDraft } from '@/lib/e2ee/draft-encryptor'
 import { encryptBytes, encryptString } from '@/lib/e2ee/crypto'
@@ -24,10 +24,22 @@ interface BackfillScrapbook {
 }
 
 export function useBackfill() {
-  const { masterKey, backfillProgress, setBackfillProgress } = useE2EEStore()
+  // Re-entry guard. The auto-resume effect in E2EEProvider depends on the
+  // store's `backfillProgress.status`; once we set it to 'running' below the
+  // effect re-fires and calls runBackfill again. Without this guard, every
+  // entry migration spawns another concurrent backfill, all racing to PUT
+  // the same rows.
+  const runningRef = useRef(false)
 
   const runBackfill = useCallback(async () => {
+    if (runningRef.current) return
+    // Pull mutable state via getState() so changes to backfillProgress don't
+    // invalidate this callback's identity. Stable identity means the
+    // E2EEProvider effect has stable deps and won't re-fire mid-run.
+    const { masterKey, backfillProgress, setBackfillProgress } = useE2EEStore.getState()
     if (!masterKey) return
+    runningRef.current = true
+    try {
     setBackfillProgress({ status: 'running' })
 
     let cursor = backfillProgress.lastCursor
@@ -227,16 +239,19 @@ export function useBackfill() {
     }
 
     setBackfillProgress({ status: 'done' })
-  }, [masterKey, backfillProgress, setBackfillProgress])
+    } finally {
+      runningRef.current = false
+    }
+  }, [])
 
   // Reset failed-IDs and re-run the migration. The backfill-batch endpoints
   // already return only entries/scrapbooks that aren't yet on E2EE, so a
   // re-run picks up exactly the items we previously failed on without
   // double-encrypting anything that succeeded.
   const retryFailedIds = useCallback(async () => {
-    setBackfillProgress({ status: 'idle', lastCursor: null, failedIds: [] })
+    useE2EEStore.getState().setBackfillProgress({ status: 'idle', lastCursor: null, failedIds: [] })
     await runBackfill()
-  }, [runBackfill, setBackfillProgress])
+  }, [runBackfill])
 
   return { runBackfill, retryFailedIds }
 }
