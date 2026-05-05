@@ -12,7 +12,7 @@ function isIosSafari(): boolean {
 
 export default function ReminderControls() {
   const { theme } = useThemeStore()
-  const { pushSupported, permission, subscribed, subscribe, unsubscribe, setReminderTime } = useReminders()
+  const { pushSupported, permission, subscribed, subscribe, unsubscribe, setReminderTime, refreshPermission } = useReminders()
   const [reminderTime, setReminderTimeLocal] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -84,9 +84,35 @@ export default function ReminderControls() {
       )}
 
       {!subscribed && permission === 'denied' && (
-        <p className="text-sm" style={{ color: theme.text.secondary }}>
-          Notifications are blocked for Hearth. To re-enable, open your browser&apos;s site settings.
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm" style={{ color: theme.text.secondary }}>
+            Notifications are blocked for Hearth in your browser.
+          </p>
+          <details className="text-xs" style={{ color: theme.text.muted }}>
+            <summary className="cursor-pointer select-none" style={{ color: theme.text.secondary }}>
+              How to re-enable
+            </summary>
+            <ol className="list-decimal pl-5 mt-2 space-y-1 leading-relaxed">
+              <li>Click the lock / settings icon in your browser&apos;s address bar.</li>
+              <li>Find <strong>Notifications</strong> and switch it to <strong>Allow</strong>.</li>
+              <li>Come back here and click the button below.</li>
+            </ol>
+            <p className="mt-2 italic">
+              On iPhone: install Hearth as a PWA (Share → Add to Home Screen), open it from the home screen, and grant notifications there.
+            </p>
+          </details>
+          <button
+            onClick={refreshPermission}
+            className="px-3 py-1.5 rounded-lg text-sm"
+            style={{
+              background: theme.glass.bg,
+              border: `1px solid ${theme.glass.border}`,
+              color: theme.text.secondary,
+            }}
+          >
+            I&apos;ve allowed it — try again
+          </button>
+        </div>
       )}
 
       {subscribed && (

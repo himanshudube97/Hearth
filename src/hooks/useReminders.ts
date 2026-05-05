@@ -11,6 +11,7 @@ export interface UseRemindersResult {
   subscribe(): Promise<{ ok: boolean; error?: string }>
   unsubscribe(): Promise<void>
   setReminderTime(mode: ReminderTimeMode): Promise<void>
+  refreshPermission(): void
 }
 
 function urlBase64ToUint8Array(base64: string): Uint8Array {
@@ -40,6 +41,34 @@ export function useReminders(): UseRemindersResult {
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => { if (!cancelled) setSubscribed(Boolean(sub)) })
     return () => { cancelled = true }
+  }, [pushSupported])
+
+  // Auto-update when the user flips the browser's site-notification setting.
+  useEffect(() => {
+    if (!pushSupported || !('permissions' in navigator)) return
+    let cancelled = false
+    let status: PermissionStatus | null = null
+    const handler = () => {
+      if (status) setPermission(status.state as NotificationPermission)
+    }
+    navigator.permissions
+      .query({ name: 'notifications' as PermissionName })
+      .then((s) => {
+        if (cancelled) return
+        status = s
+        s.addEventListener('change', handler)
+        // Sync once, in case permission changed before the listener attached.
+        setPermission(s.state as NotificationPermission)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+      status?.removeEventListener('change', handler)
+    }
+  }, [pushSupported])
+
+  const refreshPermission = useCallback(() => {
+    if (pushSupported) setPermission(Notification.permission)
   }, [pushSupported])
 
   const subscribe = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
@@ -103,5 +132,5 @@ export function useReminders(): UseRemindersResult {
     })
   }, [])
 
-  return { pushSupported, permission, subscribed, subscribe, unsubscribe, setReminderTime }
+  return { pushSupported, permission, subscribed, subscribe, unsubscribe, setReminderTime, refreshPermission }
 }
