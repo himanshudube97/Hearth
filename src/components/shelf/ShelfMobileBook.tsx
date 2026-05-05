@@ -113,6 +113,8 @@ export default function ShelfMobileBook({
   const narrowedPhotos = (currentEntry.photos ?? []).map((p) => ({
     id: p.id,
     url: p.url,
+    encryptedRef: p.encryptedRef,
+    encryptedRefIV: p.encryptedRefIV,
     rotation: p.rotation,
     position: p.position as 1 | 2,
   }))
