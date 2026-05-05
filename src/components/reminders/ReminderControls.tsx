@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useReminders } from '@/hooks/useReminders'
+import { useThemeStore } from '@/store/theme'
 
 function isIosSafari(): boolean {
   if (typeof navigator === 'undefined') return false
@@ -10,6 +11,7 @@ function isIosSafari(): boolean {
 }
 
 export default function ReminderControls() {
+  const { theme } = useThemeStore()
   const { pushSupported, permission, subscribed, subscribe, unsubscribe, setReminderTime } = useReminders()
   const [reminderTime, setReminderTimeLocal] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
@@ -26,12 +28,18 @@ export default function ReminderControls() {
       .then((data) => setPaused(Boolean(data?.paused)))
   }, [])
 
+  const heading = (
+    <h2 className="font-serif text-xl" style={{ color: theme.text.primary }}>
+      Gentle reminders
+    </h2>
+  )
+
   if (!pushSupported) {
     if (isIosSafari()) {
       return (
         <section id="reminders" className="space-y-2">
-          <h2 className="font-serif text-xl">Gentle reminders</h2>
-          <p className="text-stone-600 text-sm">
+          {heading}
+          <p className="text-sm" style={{ color: theme.text.secondary }}>
             To get reminders on iPhone, install Hearth as a PWA: tap Share → Add to Home Screen,
             then open Hearth from your home screen and try again.
           </p>
@@ -40,8 +48,10 @@ export default function ReminderControls() {
     }
     return (
       <section id="reminders" className="space-y-2">
-        <h2 className="font-serif text-xl">Gentle reminders</h2>
-        <p className="text-stone-600 text-sm">Your browser doesn&apos;t support push notifications.</p>
+        {heading}
+        <p className="text-sm" style={{ color: theme.text.secondary }}>
+          Your browser doesn&apos;t support push notifications.
+        </p>
       </section>
     )
   }
@@ -61,16 +71,20 @@ export default function ReminderControls() {
 
   return (
     <section id="reminders" className="space-y-4">
-      <h2 className="font-serif text-xl">Gentle reminders</h2>
+      {heading}
 
       {!subscribed && permission !== 'denied' && (
-        <button onClick={handleEnable} className="px-4 py-2 rounded bg-stone-800 text-white">
+        <button
+          onClick={handleEnable}
+          className="px-4 py-2 rounded-xl text-sm font-medium"
+          style={{ background: theme.accent.primary, color: '#fff' }}
+        >
           Enable nightly reminders
         </button>
       )}
 
       {!subscribed && permission === 'denied' && (
-        <p className="text-stone-600 text-sm">
+        <p className="text-sm" style={{ color: theme.text.secondary }}>
           Notifications are blocked for Hearth. To re-enable, open your browser&apos;s site settings.
         </p>
       )}
@@ -78,30 +92,45 @@ export default function ReminderControls() {
       {subscribed && (
         <>
           {paused && (
-            <p className="text-amber-700 text-sm">
+            <p className="text-sm italic" style={{ color: theme.text.secondary }}>
               Reminders are currently paused (no entries written for a week). Re-enable below to start again.
             </p>
           )}
           <div className="space-y-2">
-            <label className="block text-sm text-stone-700">When should we ping you?</label>
-            <div className="flex gap-2 items-center">
+            <label className="block text-sm" style={{ color: theme.text.secondary }}>
+              When should we ping you?
+            </label>
+            <div className="flex gap-2 items-center flex-wrap">
               <button
                 onClick={() => handleTime('')}
-                className={`px-3 py-1.5 rounded text-sm ${reminderTime === null ? 'bg-stone-800 text-white' : 'border border-stone-300'}`}
+                className="px-3 py-1.5 rounded-lg text-sm"
+                style={
+                  reminderTime === null
+                    ? { background: theme.accent.primary, color: '#fff' }
+                    : {
+                        background: theme.glass.bg,
+                        border: `1px solid ${theme.glass.border}`,
+                        color: theme.text.secondary,
+                      }
+                }
               >
                 Surprise me (7–10pm)
               </button>
-              <span className="text-stone-400">or</span>
+              <span style={{ color: theme.text.muted }}>or</span>
               <input
                 type="time"
                 value={reminderTime ?? ''}
                 onChange={(e) => handleTime(e.target.value)}
-                className="px-2 py-1 border border-stone-300 rounded text-sm"
+                className="px-2 py-1 rounded-lg text-sm bg-transparent"
+                style={{
+                  border: `1px solid ${theme.glass.border}`,
+                  color: theme.text.primary,
+                }}
               />
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={async () => {
                 setTesting(true)
@@ -113,11 +142,21 @@ export default function ReminderControls() {
                 }
               }}
               disabled={testing}
-              className="px-3 py-1.5 rounded border border-stone-400 text-sm"
+              className="px-3 py-1.5 rounded-lg text-sm"
+              style={{
+                background: theme.glass.bg,
+                border: `1px solid ${theme.glass.border}`,
+                color: theme.text.secondary,
+                opacity: testing ? 0.6 : 1,
+              }}
             >
               {testing ? 'Sending...' : 'Send a test reminder'}
             </button>
-            <button onClick={unsubscribe} className="px-3 py-1.5 rounded text-sm text-stone-500">
+            <button
+              onClick={unsubscribe}
+              className="px-3 py-1.5 rounded-lg text-sm"
+              style={{ color: theme.text.muted }}
+            >
               Turn off
             </button>
           </div>

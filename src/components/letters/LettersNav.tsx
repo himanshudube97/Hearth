@@ -20,7 +20,8 @@ export default function LettersNav({ active, onChange, newCount = 0 }: Props) {
         shadow-[0_10px_30px_rgba(0,0,0,0.12)]
       "
     >
-      {(['inbox', 'sent', 'lights'] as LettersTab[]).map(t => (
+      {/* 'lights' (A Small Light) hidden for now — keep type/view intact */}
+      {(['inbox', 'sent'] as LettersTab[]).map(t => (
         <button
           key={t}
           onClick={() => onChange(t)}
