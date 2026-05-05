@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useProfileStore } from '@/store/profile'
 import { useE2EEStore } from '@/store/e2ee'
 import { useAutosaveEntry } from '@/hooks/useAutosaveEntry'
@@ -44,7 +44,10 @@ export default function LetterWriteView({ onBack, onSealed }: Props) {
 
   // Derived schema mapping
   const mapping = mapRecipientToSchema(recipient, closeName, closeEmail || null)
-  const unlockDate = resolveUnlockDate(unlock, createdAt)
+  // resolveUnlockDate returns a fresh Date each call; without useMemo,
+  // unlockDate is a new reference every render and the autosave effect
+  // below (whose deps include unlockDate) re-fires on every render.
+  const unlockDate = useMemo(() => resolveUnlockDate(unlock, createdAt), [unlock, createdAt])
 
   // Push the current state through autosave whenever any letter field changes.
   // The hook debounces to 1500ms internally, so rapid typing fires one save.

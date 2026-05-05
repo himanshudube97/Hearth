@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import PostcardFront from './PostcardFront'
@@ -41,7 +41,11 @@ export default function ComposeView() {
   useEffect(() => { fetchProfile() }, [fetchProfile])
 
   const mapping = mapRecipientToSchema(recipient, closeName, null)
-  const unlockDate = resolveUnlockDate(unlock, createdAt)
+  // resolveUnlockDate returns a fresh Date instance each call, so calling it
+  // inline would make `unlockDate` a different reference every render and
+  // re-fire the autosave effect (whose deps include unlockDate) on every
+  // render — debounce timer reset, autosave thrashing.
+  const unlockDate = useMemo(() => resolveUnlockDate(unlock, createdAt), [unlock, createdAt])
 
   // Autosave whenever fields change
   useEffect(() => {
