@@ -69,6 +69,11 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inFlightRef = useRef(false)
   const dirtyRef = useRef(false)
+  // Signature of the last successfully-saved draft. If a trigger fires with
+  // an identical draft (e.g. a store subscription re-emitted the same value,
+  // or a stray effect ran on mount), short-circuit instead of burning a PUT
+  // on a no-op.
+  const lastSavedSigRef = useRef<string | null>(null)
 
   const { encryptEntryData, isE2EEReady, isE2EEEnabled, isE2EEInitialized } = useE2EE()
   const encryptEntryDataRef = useRef(encryptEntryData)
@@ -110,6 +115,30 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
     // hopefully unlocked.
     if (isE2EEEnabledRef.current && !isE2EEReadyRef.current) {
       setStatus('idle')
+      return
+    }
+
+    // Cheap dirty check: if the draft is byte-identical to what's already on
+    // the server (or to the last thing we PUT), skip the round-trip. The
+    // signature is keyed on the post-shape draft only — entryId is tracked
+    // separately, so re-saving the same content for a different entry still
+    // goes through the network.
+    const draftSig = JSON.stringify({
+      entryId: entryIdRef.current,
+      text: draft.text,
+      song: draft.song,
+      photos: draft.photos,
+      doodles: draft.doodles,
+      style: draft.style,
+      entryType: draft.entryType,
+      recipientEmail: draft.recipientEmail,
+      recipientName: draft.recipientName,
+      senderName: draft.senderName,
+      letterLocation: draft.letterLocation,
+      unlockDate: draft.unlockDate,
+    })
+    if (draftSig === lastSavedSigRef.current) {
+      setStatus('saved')
       return
     }
 
@@ -182,6 +211,22 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
             }
           }
         }
+        // Re-key the signature with the (now-known) entryId so future no-op
+        // triggers for the same content short-circuit correctly.
+        lastSavedSigRef.current = JSON.stringify({
+          entryId: entryIdRef.current,
+          text: draft.text,
+          song: draft.song,
+          photos: draft.photos,
+          doodles: draft.doodles,
+          style: draft.style,
+          entryType: draft.entryType,
+          recipientEmail: draft.recipientEmail,
+          recipientName: draft.recipientName,
+          senderName: draft.senderName,
+          letterLocation: draft.letterLocation,
+          unlockDate: draft.unlockDate,
+        })
         inFlightRef.current = false
         if (dirtyRef.current) {
           // Another change came in while we were saving — kick off another round.

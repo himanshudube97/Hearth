@@ -318,13 +318,10 @@ export default function BookSpread() {
     }
   }, [loading, buildDraft])
 
-  // Photos live in BookSpread state, so a normal effect catches them.
-  useEffect(() => {
-    if (loading) return
-    autosaveRef.current.trigger(buildDraft())
-    // Only fire on photo changes, not on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingPhotos, loading])
+  // Photo add/remove handlers (handlePhotoAdd / handlePhotoRemove) call
+  // trigger+flush directly, so no separate effect is needed here. The
+  // previous effect fired one phantom save on mount when `loading` flipped
+  // false, even with no user input.
 
   // Best-effort flush before the page goes away so a refresh inside the
   // 1.5s debounce window doesn't lose the pending text/song/doodle edits.

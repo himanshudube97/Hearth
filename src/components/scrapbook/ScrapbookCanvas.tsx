@@ -174,7 +174,14 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [editingId])
 
+  // Skip until items diverges from the server-provided initialItems. A bare
+  // "skip first run" ref doesn't survive StrictMode's effect-replay in dev
+  // (the second pass flips the flag and fires a phantom PUT). Comparing by
+  // reference is robust: setItems with a new array (real edit) breaks
+  // equality, while StrictMode's idle replays keep `items === initialItems`.
+  const initialItemsRef = useRef(initialItems)
   useEffect(() => {
+    if (items === initialItemsRef.current) return
     triggerSave(items)
   }, [items, triggerSave])
 
