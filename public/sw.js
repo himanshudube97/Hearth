@@ -1,4 +1,4 @@
-// Hearth service worker — push reminders only (v1).
+// Hearth service worker — push reminders only (v2).
 // Plain JS, no build step. Lives in public/ so it's served at /sw.js.
 
 self.addEventListener('install', (event) => {
@@ -17,11 +17,12 @@ self.addEventListener('push', (event) => {
     payload.body = event.data ? event.data.text() : ''
   }
 
+  // No icon/badge: previous paths (/icon-192.png, /icons/icon-192.png) don't
+  // exist in public/, and on some browser+OS combos a missing icon silently
+  // drops the whole notification. Re-add once real PNGs ship.
   event.waitUntil(
     self.registration.showNotification(payload.title || 'hearth', {
       body: payload.body || '',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
       tag: 'hearth-reminder',
       renotify: true,
     })
