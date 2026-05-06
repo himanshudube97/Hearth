@@ -4,8 +4,8 @@ const GITHUB_OWNER = 'himanshudube97'
 const GITHUB_REPO = 'Hearth'
 
 const ASSET_MATCHERS: Record<string, RegExp[]> = {
-  'mac-arm': [/aarch64.*\.dmg$/i, /arm64.*\.dmg$/i],
-  'mac-intel': [/x64.*\.dmg$/i, /x86_64.*\.dmg$/i],
+  'mac-arm': [/universal\.dmg$/i, /aarch64.*\.dmg$/i, /arm64.*\.dmg$/i],
+  'mac-intel': [/universal\.dmg$/i, /x64.*\.dmg$/i, /x86_64.*\.dmg$/i],
   windows: [/x64.*-setup\.exe$/i, /\.msi$/i, /\.exe$/i],
   linux: [/\.AppImage$/i, /amd64\.deb$/i, /\.deb$/i],
 }
