@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from
 import { useThemeStore } from '@/store/theme'
 import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 import { SPREADS, type Spread } from './spreads'
+import MediaPreview from './MediaPreview'
 
 type Palette = {
   page: string
@@ -20,7 +21,9 @@ function useDiaryPalette(): Palette {
   const { theme } = useThemeStore()
   const colors = getGlassDiaryColors(theme)
   return {
-    page: colors.pageBgSolid,
+    // Soften the rose/sage saturation by mixing in cream paper at 38%.
+    // Reads as paper first, theme tint second.
+    page: `color-mix(in oklab, ${colors.pageBgSolid} 62%, #fbf5e2 38%)`,
     pageEdge: colors.coverBorder,
     ink: colors.bodyText,
     inkSoft: colors.prompt,
@@ -38,8 +41,6 @@ function useCursorTilt(maxTilt = 12) {
   const sy = useSpring(y, { stiffness: 140, damping: 18, mass: 0.6 })
   const rotateY = useTransform(sx, [-1, 1], [-maxTilt, maxTilt])
   const rotateX = useTransform(sy, [-1, 1], [maxTilt * 0.7, -maxTilt * 0.7])
-
-  // Light-spot position (0..100% of book width/height) follows cursor
   const lightX = useTransform(sx, [-1, 1], ['0%', '100%'])
   const lightY = useTransform(sy, [-1, 1], ['0%', '100%'])
 
@@ -59,13 +60,7 @@ function useCursorTilt(maxTilt = 12) {
   return { ref, onMove, onLeave, rotateX, rotateY, lightX, lightY }
 }
 
-function CornerFlourish({
-  position,
-  color,
-}: {
-  position: 'tl' | 'tr' | 'bl' | 'br'
-  color: string
-}) {
+function CornerFlourish({ position, color }: { position: 'tl' | 'tr' | 'bl' | 'br'; color: string }) {
   const positionStyle: Record<typeof position, React.CSSProperties> = {
     tl: { top: 18, left: 18 },
     tr: { top: 18, right: 18, transform: 'scaleX(-1)' },
@@ -86,6 +81,65 @@ function CornerFlourish({
   )
 }
 
+/** Ink-stamp date in the top-right of the left page. Slightly rotated, soft. */
+function DateStamp({ text, color }: { text: string; color: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.85, rotate: -7 }}
+      animate={{ opacity: 0.55, scale: 1, rotate: -4 }}
+      transition={{ duration: 0.5, delay: 0.55 }}
+      style={{
+        position: 'absolute',
+        top: 22,
+        right: 22,
+        padding: '5px 10px',
+        border: `1.5px solid ${color}`,
+        borderRadius: 3,
+        fontFamily: 'ui-monospace, SF Mono, Menlo, monospace',
+        fontSize: 9,
+        letterSpacing: '0.18em',
+        textTransform: 'uppercase',
+        color,
+        opacity: 0.55,
+      }}
+    >
+      {text}
+    </motion.div>
+  )
+}
+
+/** A small wax-seal stamp on the page. Pulses softly. */
+function WaxSeal({ color, threadColor }: { color: string; threadColor: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.7 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, delay: 0.7 }}
+      style={{
+        position: 'absolute',
+        bottom: 38,
+        right: 28,
+        width: 36,
+        height: 36,
+        borderRadius: '50%',
+        background: `radial-gradient(circle at 35% 35%, ${color} 0%, ${threadColor} 70%)`,
+        boxShadow: `0 2px 6px rgba(0,0,0,0.25), inset 0 -2px 4px rgba(0,0,0,0.25), 0 0 12px ${color}55`,
+      }}
+    >
+      <motion.div
+        style={{ position: 'absolute', inset: 0, borderRadius: '50%', boxShadow: `0 0 8px ${color}88` }}
+        animate={{ opacity: [0.5, 1, 0.5] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <svg viewBox="0 0 36 36" width="36" height="36" style={{ position: 'absolute', inset: 0 }}>
+        <text x="18" y="22" textAnchor="middle" fontSize="11" fontFamily="Georgia, serif" fontStyle="italic" fill="rgba(255,255,255,0.6)">
+          h
+        </text>
+      </svg>
+    </motion.div>
+  )
+}
+
 function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number; palette: Palette }) {
   return (
     <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative' }}>
@@ -98,7 +152,7 @@ function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number;
       <div
         style={{
           flex: 1,
-          padding: '56px 56px 56px 70px',
+          padding: '64px 64px 56px 76px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
@@ -106,6 +160,8 @@ function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number;
           position: 'relative',
         }}
       >
+        <DateStamp text={spread.stamp} color={p.inkSoft} />
+
         <div>
           {/* Numeral — large, glowing, breathing */}
           <motion.div
@@ -118,14 +174,14 @@ function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number;
               fontStyle: 'italic',
               color: p.accent,
               letterSpacing: '.06em',
-              fontSize: 56,
+              fontSize: 60,
               lineHeight: 1,
               marginBottom: 8,
               textShadow: `0 0 24px ${p.accent}66, 0 0 4px ${p.accent}88`,
             }}
           >
             <motion.span
-              animate={{ textShadow: [`0 0 16px ${p.accent}55`, `0 0 28px ${p.accent}88`, `0 0 16px ${p.accent}55`] }}
+              animate={{ textShadow: [`0 0 16px ${p.accent}55`, `0 0 32px ${p.accent}aa`, `0 0 16px ${p.accent}55`] }}
               transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
               style={{ display: 'inline-block' }}
             >
@@ -143,7 +199,7 @@ function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number;
               fontFamily: 'var(--font-serif), Georgia, serif',
               fontStyle: 'italic',
               fontWeight: 500,
-              fontSize: 40,
+              fontSize: 42,
               lineHeight: 1.08,
               color: p.ink,
               margin: '0 0 22px',
@@ -162,17 +218,17 @@ function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number;
             transition={{ duration: 0.55, delay: 0.28 }}
             style={{
               fontFamily: 'var(--font-serif), Georgia, serif',
-              fontSize: 15.5,
+              fontSize: 16,
               lineHeight: 1.7,
               color: p.inkSoft,
               margin: '0 0 30px',
-              maxWidth: 380,
+              maxWidth: 400,
             }}
           >
             {spread.blurb}
           </motion.p>
 
-          {/* Bullets — sequential pop-in with glowing dots */}
+          {/* Bullets */}
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {spread.bullets.map((b, i) => (
               <motion.li
@@ -182,7 +238,7 @@ function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number;
                 transition={{ duration: 0.45, delay: 0.4 + i * 0.1, ease: [0.22, 0.61, 0.36, 1] }}
                 style={{
                   fontFamily: 'var(--font-serif), Georgia, serif',
-                  fontSize: 14,
+                  fontSize: 14.5,
                   color: p.inkSoft,
                   display: 'flex',
                   gap: 14,
@@ -192,18 +248,32 @@ function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number;
                 <motion.span
                   animate={{ boxShadow: [`0 0 4px ${p.accent}66`, `0 0 12px ${p.accent}aa`, `0 0 4px ${p.accent}66`] }}
                   transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.4 }}
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 99,
-                    background: p.accent,
-                    flexShrink: 0,
-                  }}
+                  style={{ width: 6, height: 6, borderRadius: 99, background: p.accent, flexShrink: 0 }}
                 />
                 {b}
               </motion.li>
             ))}
           </ul>
+
+          {/* Handwritten margin annotation */}
+          <motion.div
+            key={`a-${idx}`}
+            initial={{ opacity: 0, x: -8, rotate: -2 }}
+            animate={{ opacity: 0.7, x: 0, rotate: -3.5 }}
+            transition={{ duration: 0.6, delay: 0.85 }}
+            style={{
+              marginTop: 26,
+              fontFamily: '"Caveat", "Kalam", "Bradley Hand", cursive',
+              fontSize: 18,
+              color: p.thread,
+              transform: 'rotate(-3.5deg)',
+              transformOrigin: 'left center',
+              opacity: 0.75,
+              maxWidth: 280,
+            }}
+          >
+            — {spread.annotation}
+          </motion.div>
         </div>
 
         {/* Footer line — italic spread title */}
@@ -222,13 +292,16 @@ function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number;
         >
           {spread.title.toLowerCase()} · hearth
         </motion.div>
+
+        {/* Wax seal */}
+        <WaxSeal color={p.accent} threadColor={p.thread} />
       </div>
 
       {/* Right: media polaroid */}
       <div
         style={{
           flex: 1,
-          padding: '56px 70px 56px 56px',
+          padding: '64px 76px 56px 64px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
@@ -242,7 +315,7 @@ function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number;
           style={{
             flex: 1,
             position: 'relative',
-            background: '#fbf9f3',
+            background: '#fbf6e7',
             padding: 14,
             borderRadius: 2,
             boxShadow: `0 1px 0 ${p.pageEdge}88, 0 14px 28px rgba(0,0,0,0.16), 0 4px 8px rgba(0,0,0,0.08)`,
@@ -252,68 +325,65 @@ function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number;
             overflow: 'hidden',
           }}
         >
-          {/* Inner gradient panel */}
+          {/* Washi tape across top corner */}
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute',
+              top: -8,
+              left: 16,
+              width: 80,
+              height: 22,
+              background: `${p.accent}55`,
+              transform: 'rotate(-9deg)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.10)',
+              backgroundImage: `repeating-linear-gradient(135deg, transparent 0 6px, rgba(255,255,255,0.18) 6px 12px)`,
+              zIndex: 4,
+            }}
+          />
+
+          {/* The polaroid "photo area" */}
           <div
             style={{
               position: 'absolute',
               inset: 14,
-              background: `linear-gradient(135deg, ${p.pageEdge}66 0%, ${p.accent}1a 50%, ${p.pageEdge}66 100%)`,
+              background: `linear-gradient(135deg, ${p.pageEdge}55 0%, ${p.accent}10 50%, ${p.pageEdge}55 100%)`,
               overflow: 'hidden',
+              borderRadius: 1,
             }}
           >
-            {/* Sweeping shimmer */}
+            {/* Live mock for this spread */}
+            <MediaPreview n={spread.n} palette={p} />
+
+            {/* Sweeping shimmer over the top */}
             <motion.div
               style={{
                 position: 'absolute',
                 inset: 0,
-                background: `linear-gradient(110deg, transparent 30%, ${p.accent}55 50%, transparent 70%)`,
+                background: `linear-gradient(110deg, transparent 30%, ${p.accent}33 50%, transparent 70%)`,
                 mixBlendMode: 'screen',
+                pointerEvents: 'none',
               }}
               animate={{ x: ['-110%', '110%'] }}
-              transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            {/* Soft drifting glow */}
-            <motion.div
-              style={{
-                position: 'absolute',
-                width: '60%',
-                height: '60%',
-                left: '20%',
-                top: '20%',
-                background: `radial-gradient(circle, ${p.accent}40 0%, transparent 70%)`,
-                filter: 'blur(20px)',
-              }}
-              animate={{ x: [-20, 20, -20], y: [-10, 10, -10], opacity: [0.5, 0.8, 0.5] }}
-              transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
             />
           </div>
 
-          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: 24 }}>
-            <div
-              style={{
-                fontFamily: 'ui-monospace, SF Mono, Menlo, monospace',
-                fontSize: 10,
-                color: p.inkQuiet,
-                letterSpacing: '.2em',
-                textTransform: 'uppercase',
-                marginBottom: 10,
-                opacity: 0.7,
-              }}
-            >
-              media slot
-            </div>
-            <div
-              style={{
-                fontFamily: 'var(--font-serif), Georgia, serif',
-                fontStyle: 'italic',
-                fontSize: 14,
-                color: p.inkSoft,
-                lineHeight: 1.5,
-                maxWidth: 240,
-              }}
-            >
-              {spread.media}
-            </div>
+          {/* Caption underneath the photo, polaroid-style */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 6,
+              left: 14,
+              right: 14,
+              textAlign: 'center',
+              fontFamily: '"Caveat", "Kalam", "Bradley Hand", cursive',
+              fontSize: 16,
+              color: p.inkSoft,
+              opacity: 0.75,
+            }}
+          >
+            {spread.media}
           </div>
         </motion.div>
 
@@ -409,8 +479,8 @@ export default function Diary() {
     setIdx((i) => Math.max(0, Math.min(SPREADS.length - 1, i + d)))
   }
 
-  const bookW = 920
-  const bookH = 580
+  const bookW = 1080
+  const bookH = 660
 
   const pageVariants = {
     enter: (d: number) => ({
@@ -434,8 +504,8 @@ export default function Diary() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 36,
-        padding: '40px 20px',
+        gap: 32,
+        padding: '24px 20px',
       }}
     >
       <div style={{ textAlign: 'center', maxWidth: 620 }}>
@@ -502,7 +572,7 @@ export default function Diary() {
             rotateY: tilt.rotateY,
           }}
         >
-          {/* Outer accent ring (sits behind the book) */}
+          {/* Outer accent ring */}
           <div
             style={{
               position: 'absolute',
@@ -559,7 +629,7 @@ export default function Diary() {
                 borderRadius: 2,
               }}
             >
-              {/* Cursor-following soft light spot — gives the page surface texture */}
+              {/* Cursor light spot */}
               <motion.div
                 aria-hidden
                 style={{
