@@ -60,3 +60,9 @@ public/swe-worker-*.js.map
 
 # Playwright MCP scratch artifacts (page snapshots, console logs)
 .playwright-mcp/
+
+# Verification screenshots from review subagents
+task*-*.png
+diary-*.png
+hero-viewport.png
+diary-viewport.png
