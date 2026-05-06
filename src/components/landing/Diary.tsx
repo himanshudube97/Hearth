@@ -39,6 +39,10 @@ function useCursorTilt(maxTilt = 12) {
   const rotateY = useTransform(sx, [-1, 1], [-maxTilt, maxTilt])
   const rotateX = useTransform(sy, [-1, 1], [maxTilt * 0.7, -maxTilt * 0.7])
 
+  // Light-spot position (0..100% of book width/height) follows cursor
+  const lightX = useTransform(sx, [-1, 1], ['0%', '100%'])
+  const lightY = useTransform(sy, [-1, 1], ['0%', '100%'])
+
   const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = ref.current
     if (!el) return
@@ -52,148 +56,251 @@ function useCursorTilt(maxTilt = 12) {
     x.set(0)
     y.set(0)
   }
-  return { ref, onMove, onLeave, rotateX, rotateY }
+  return { ref, onMove, onLeave, rotateX, rotateY, lightX, lightY }
 }
 
-function PageContent({ spread, palette: p }: { spread: Spread; palette: Palette }) {
+function CornerFlourish({
+  position,
+  color,
+}: {
+  position: 'tl' | 'tr' | 'bl' | 'br'
+  color: string
+}) {
+  const positionStyle: Record<typeof position, React.CSSProperties> = {
+    tl: { top: 18, left: 18 },
+    tr: { top: 18, right: 18, transform: 'scaleX(-1)' },
+    bl: { bottom: 18, left: 18, transform: 'scaleY(-1)' },
+    br: { bottom: 18, right: 18, transform: 'scale(-1, -1)' },
+  }
   return (
-    <div style={{ display: 'flex', width: '100%', height: '100%' }}>
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 22 22"
+      style={{ position: 'absolute', pointerEvents: 'none', opacity: 0.45, ...positionStyle[position] }}
+      aria-hidden
+    >
+      <path d="M 2 12 Q 2 2 12 2" stroke={color} strokeWidth="0.7" fill="none" strokeLinecap="round" />
+      <circle cx="2" cy="2" r="1" fill={color} opacity="0.7" />
+    </svg>
+  )
+}
+
+function PageContent({ spread, idx, palette: p }: { spread: Spread; idx: number; palette: Palette }) {
+  return (
+    <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative' }}>
+      <CornerFlourish position="tl" color={p.accent} />
+      <CornerFlourish position="bl" color={p.accent} />
+      <CornerFlourish position="tr" color={p.accent} />
+      <CornerFlourish position="br" color={p.accent} />
+
       {/* Left: title + bullets */}
       <div
         style={{
           flex: 1,
-          padding: '60px 56px 56px 70px',
+          padding: '56px 56px 56px 70px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           borderRight: `1px solid ${p.inkQuiet}33`,
+          position: 'relative',
         }}
       >
         <div>
-          <div
+          {/* Numeral — large, glowing, breathing */}
+          <motion.div
+            key={`n-${idx}`}
+            initial={{ opacity: 0, y: -10, scale: 0.92 }}
+            animate={{ opacity: 0.7, y: 0, scale: 1 }}
+            transition={{ duration: 0.55, delay: 0.05, ease: [0.22, 0.61, 0.36, 1] }}
             style={{
               fontFamily: 'var(--font-serif), Georgia, serif',
               fontStyle: 'italic',
               color: p.accent,
-              letterSpacing: '.18em',
-              fontSize: 13,
-              marginBottom: 18,
+              letterSpacing: '.06em',
+              fontSize: 56,
+              lineHeight: 1,
+              marginBottom: 8,
+              textShadow: `0 0 24px ${p.accent}66, 0 0 4px ${p.accent}88`,
             }}
           >
-            {spread.n}
-          </div>
-          <h3
+            <motion.span
+              animate={{ textShadow: [`0 0 16px ${p.accent}55`, `0 0 28px ${p.accent}88`, `0 0 16px ${p.accent}55`] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ display: 'inline-block' }}
+            >
+              {spread.n}
+            </motion.span>
+          </motion.div>
+
+          {/* Title */}
+          <motion.h3
+            key={`t-${idx}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
             style={{
               fontFamily: 'var(--font-serif), Georgia, serif',
               fontStyle: 'italic',
               fontWeight: 500,
-              fontSize: 38,
-              lineHeight: 1.1,
+              fontSize: 40,
+              lineHeight: 1.08,
               color: p.ink,
               margin: '0 0 22px',
               textWrap: 'balance' as React.CSSProperties['textWrap'],
+              textShadow: `0 1px 0 ${p.page}, 0 0 24px ${p.accent}14`,
             }}
           >
             {spread.title}
-          </h3>
-          <p
+          </motion.h3>
+
+          {/* Blurb */}
+          <motion.p
+            key={`b-${idx}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.28 }}
             style={{
               fontFamily: 'var(--font-serif), Georgia, serif',
-              fontSize: 15,
-              lineHeight: 1.65,
+              fontSize: 15.5,
+              lineHeight: 1.7,
               color: p.inkSoft,
-              margin: '0 0 28px',
-              maxWidth: 360,
+              margin: '0 0 30px',
+              maxWidth: 380,
             }}
           >
             {spread.blurb}
-          </p>
-          <ul
-            style={{
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-            }}
-          >
+          </motion.p>
+
+          {/* Bullets — sequential pop-in with glowing dots */}
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {spread.bullets.map((b, i) => (
-              <li
-                key={i}
+              <motion.li
+                key={`bul-${idx}-${i}`}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.45, delay: 0.4 + i * 0.1, ease: [0.22, 0.61, 0.36, 1] }}
                 style={{
                   fontFamily: 'var(--font-serif), Georgia, serif',
-                  fontSize: 13.5,
+                  fontSize: 14,
                   color: p.inkSoft,
                   display: 'flex',
-                  gap: 12,
-                  alignItems: 'baseline',
+                  gap: 14,
+                  alignItems: 'center',
                 }}
               >
-                <span
+                <motion.span
+                  animate={{ boxShadow: [`0 0 4px ${p.accent}66`, `0 0 12px ${p.accent}aa`, `0 0 4px ${p.accent}66`] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.4 }}
                   style={{
-                    width: 14,
-                    height: 1,
+                    width: 6,
+                    height: 6,
+                    borderRadius: 99,
                     background: p.accent,
-                    opacity: 0.6,
                     flexShrink: 0,
-                    transform: 'translateY(-4px)',
                   }}
                 />
                 {b}
-              </li>
+              </motion.li>
             ))}
           </ul>
         </div>
-        <div
+
+        {/* Footer line — italic spread title */}
+        <motion.div
+          key={`f-${idx}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.5 }}
+          transition={{ duration: 0.6, delay: 0.65 }}
           style={{
             fontFamily: 'var(--font-serif), Georgia, serif',
             fontStyle: 'italic',
             fontSize: 11,
             color: p.inkQuiet,
-            letterSpacing: '.12em',
+            letterSpacing: '.08em',
           }}
         >
-          {String(spread.n).toLowerCase()} · hearth
-        </div>
+          {spread.title.toLowerCase()} · hearth
+        </motion.div>
       </div>
 
-      {/* Right: media placeholder */}
+      {/* Right: media polaroid */}
       <div
         style={{
           flex: 1,
-          padding: '60px 70px 56px 56px',
+          padding: '56px 70px 56px 56px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
         }}
       >
-        <div
+        <motion.div
+          key={`m-${idx}`}
+          initial={{ opacity: 0, y: 12, rotate: -1.5 }}
+          animate={{ opacity: 1, y: 0, rotate: 0 }}
+          transition={{ duration: 0.65, delay: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
           style={{
             flex: 1,
-            background: `repeating-linear-gradient(135deg, ${p.inkQuiet}14 0 8px, transparent 8px 18px)`,
-            border: `1px dashed ${p.inkQuiet}66`,
-            borderRadius: 6,
+            position: 'relative',
+            background: '#fbf9f3',
+            padding: 14,
+            borderRadius: 2,
+            boxShadow: `0 1px 0 ${p.pageEdge}88, 0 14px 28px rgba(0,0,0,0.16), 0 4px 8px rgba(0,0,0,0.08)`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: 24,
-            textAlign: 'center',
-            minHeight: 0,
+            overflow: 'hidden',
           }}
         >
-          <div>
+          {/* Inner gradient panel */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 14,
+              background: `linear-gradient(135deg, ${p.pageEdge}66 0%, ${p.accent}1a 50%, ${p.pageEdge}66 100%)`,
+              overflow: 'hidden',
+            }}
+          >
+            {/* Sweeping shimmer */}
+            <motion.div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: `linear-gradient(110deg, transparent 30%, ${p.accent}55 50%, transparent 70%)`,
+                mixBlendMode: 'screen',
+              }}
+              animate={{ x: ['-110%', '110%'] }}
+              transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            {/* Soft drifting glow */}
+            <motion.div
+              style={{
+                position: 'absolute',
+                width: '60%',
+                height: '60%',
+                left: '20%',
+                top: '20%',
+                background: `radial-gradient(circle, ${p.accent}40 0%, transparent 70%)`,
+                filter: 'blur(20px)',
+              }}
+              animate={{ x: [-20, 20, -20], y: [-10, 10, -10], opacity: [0.5, 0.8, 0.5] }}
+              transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
+
+          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: 24 }}>
             <div
               style={{
                 fontFamily: 'ui-monospace, SF Mono, Menlo, monospace',
-                fontSize: 11,
+                fontSize: 10,
                 color: p.inkQuiet,
-                letterSpacing: '.16em',
+                letterSpacing: '.2em',
                 textTransform: 'uppercase',
-                marginBottom: 8,
+                marginBottom: 10,
+                opacity: 0.7,
               }}
             >
-              [ media slot ]
+              media slot
             </div>
             <div
               style={{
@@ -208,8 +315,13 @@ function PageContent({ spread, palette: p }: { spread: Spread; palette: Palette 
               {spread.media}
             </div>
           </div>
-        </div>
-        <div
+        </motion.div>
+
+        <motion.div
+          key={`p-${idx}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.55 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
           style={{
             fontFamily: 'var(--font-serif), Georgia, serif',
             fontSize: 11,
@@ -220,7 +332,7 @@ function PageContent({ spread, palette: p }: { spread: Spread; palette: Palette 
           }}
         >
           {String(SPREADS.indexOf(spread) + 1).padStart(2, '0')} / {String(SPREADS.length).padStart(2, '0')}
-        </div>
+        </motion.div>
       </div>
     </div>
   )
@@ -390,29 +502,42 @@ export default function Diary() {
             rotateY: tilt.rotateY,
           }}
         >
-          {/* Shadow underneath */}
+          {/* Outer accent ring (sits behind the book) */}
           <div
             style={{
               position: 'absolute',
-              left: '6%',
-              right: '6%',
-              bottom: -36,
-              height: 60,
-              background: 'radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.25), transparent 70%)',
-              filter: 'blur(8px)',
+              inset: -3,
+              borderRadius: 6,
+              background: `linear-gradient(135deg, ${palette.accent}55 0%, ${palette.thread}33 50%, ${palette.accent}55 100%)`,
+              filter: 'blur(6px)',
+              opacity: 0.55,
+              transform: 'translateZ(-3px)',
+            }}
+          />
+
+          {/* Soft halo underneath */}
+          <div
+            style={{
+              position: 'absolute',
+              left: '4%',
+              right: '4%',
+              bottom: -42,
+              height: 72,
+              background: `radial-gradient(50% 50% at 50% 50%, ${palette.accent}55, transparent 70%)`,
+              filter: 'blur(14px)',
               transform: 'translateZ(-1px)',
             }}
           />
 
           <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d' }}>
-            {/* Page stack edge */}
+            {/* Page-stack edge */}
             <div
               style={{
                 position: 'absolute',
                 inset: -4,
                 borderRadius: 4,
                 background: `linear-gradient(180deg, ${palette.pageEdge} 0%, ${palette.page} 8%, ${palette.page} 92%, ${palette.pageEdge} 100%)`,
-                boxShadow: `0 1px 0 ${palette.pageEdge}, 0 2px 0 ${palette.pageEdge}, 0 30px 60px -20px rgba(0,0,0,.35)`,
+                boxShadow: `0 1px 0 ${palette.pageEdge}, 0 2px 0 ${palette.pageEdge}, 0 30px 60px -20px rgba(0,0,0,.4)`,
                 transform: 'translateZ(-2px)',
               }}
             />
@@ -423,11 +548,37 @@ export default function Diary() {
                 position: 'absolute',
                 inset: 0,
                 background: palette.page,
-                boxShadow: `inset 0 0 60px ${palette.pageEdge}55, 0 18px 40px -12px rgba(0,0,0,.35)`,
+                boxShadow: `
+                  inset 0 0 0 1px ${palette.accent}26,
+                  inset 0 0 80px ${palette.pageEdge}55,
+                  0 0 24px ${palette.accent}14,
+                  0 18px 40px -12px rgba(0,0,0,.35)
+                `,
                 display: 'flex',
                 overflow: 'hidden',
+                borderRadius: 2,
               }}
             >
+              {/* Cursor-following soft light spot — gives the page surface texture */}
+              <motion.div
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  width: 360,
+                  height: 360,
+                  borderRadius: '50%',
+                  background: `radial-gradient(circle, ${palette.accent}33 0%, transparent 60%)`,
+                  filter: 'blur(40px)',
+                  pointerEvents: 'none',
+                  left: tilt.lightX,
+                  top: tilt.lightY,
+                  x: '-50%',
+                  y: '-50%',
+                  mixBlendMode: 'soft-light',
+                  zIndex: 1,
+                }}
+              />
+
               <AnimatePresence mode="wait" custom={dir}>
                 <motion.div
                   key={idx}
@@ -437,9 +588,9 @@ export default function Diary() {
                   animate="center"
                   exit="exit"
                   transition={{ duration: 0.55, ease: [0.22, 0.61, 0.36, 1] }}
-                  style={{ width: '100%', height: '100%' }}
+                  style={{ width: '100%', height: '100%', position: 'relative', zIndex: 2 }}
                 >
-                  <PageContent spread={spread} palette={palette} />
+                  <PageContent spread={spread} idx={idx} palette={palette} />
                 </motion.div>
               </AnimatePresence>
 
@@ -455,6 +606,7 @@ export default function Diary() {
                   background: `linear-gradient(90deg, transparent 0%, ${palette.pageEdge}88 35%, ${palette.pageEdge}aa 50%, ${palette.pageEdge}88 65%, transparent 100%)`,
                   mixBlendMode: 'multiply',
                   pointerEvents: 'none',
+                  zIndex: 3,
                 }}
               />
 
@@ -501,6 +653,7 @@ export default function Diary() {
                 cursor: 'pointer',
                 padding: 0,
                 transition: 'all .35s cubic-bezier(.4,0,.2,1)',
+                boxShadow: i === idx ? `0 0 12px ${palette.accent}88` : 'none',
               }}
             />
           ))}
