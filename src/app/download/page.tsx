@@ -6,18 +6,16 @@ import Link from 'next/link'
 import { useThemeStore } from '@/store/theme'
 import type { Theme } from '@/lib/themes'
 
-type OS = 'mac-arm' | 'mac-intel' | 'windows' | 'linux' | 'unknown'
+type OS = 'mac' | 'windows' | 'linux' | 'unknown'
 
 const DOWNLOAD_LINKS: Record<Exclude<OS, 'unknown'>, string> = {
-  'mac-arm': '/api/download/mac-arm',
-  'mac-intel': '/api/download/mac-intel',
+  mac: '/api/download/mac-arm',
   windows: '/api/download/windows',
   linux: '/api/download/linux',
 }
 
 const OS_LABELS: Record<Exclude<OS, 'unknown'>, string> = {
-  'mac-arm': 'Mac (Apple Silicon)',
-  'mac-intel': 'Mac (Intel)',
+  mac: 'Mac',
   windows: 'Windows',
   linux: 'Linux',
 }
@@ -26,14 +24,7 @@ function detectOS(): OS {
   if (typeof navigator === 'undefined') return 'unknown'
   const ua = navigator.userAgent.toLowerCase()
   const platform = navigator.platform?.toLowerCase() ?? ''
-  if (ua.includes('mac') || platform.includes('mac')) {
-    const isArm =
-      // Best-effort: M-series Macs report arm in the ua hints when available
-      // @ts-expect-error - userAgentData is not on all browsers
-      navigator.userAgentData?.platform === 'macOS' ||
-      /arm|apple silicon/.test(ua)
-    return isArm ? 'mac-arm' : 'mac-intel'
-  }
+  if (ua.includes('mac') || platform.includes('mac')) return 'mac'
   if (ua.includes('win') || platform.includes('win')) return 'windows'
   if (ua.includes('linux') || platform.includes('linux')) return 'linux'
   return 'unknown'
@@ -48,7 +39,7 @@ export default function DownloadPage() {
   }, [])
 
   const otherOptions: Array<Exclude<OS, 'unknown'>> = (
-    ['mac-arm', 'mac-intel', 'windows', 'linux'] as const
+    ['mac', 'windows', 'linux'] as const
   ).filter((o) => o !== detected)
 
   return (
@@ -182,10 +173,14 @@ function FirstLaunchNote({
         <strong style={{ color: theme.text.primary }}>Mac:</strong>{' '}
         right-click the app → Open → Open. macOS will remember after that.
       </p>
-      <p>
+      <p className="mb-3">
         <strong style={{ color: theme.text.primary }}>Windows:</strong>{' '}
         click <em>More info</em> → <em>Run anyway</em> if SmartScreen warns
         you.
+      </p>
+      <p className="opacity-70">
+        Mac build is for Apple Silicon (M1, M2, M3, M4). Intel Mac support
+        coming later.
       </p>
     </div>
   )
