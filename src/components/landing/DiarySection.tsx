@@ -29,7 +29,7 @@ export default function DiarySection() {
       <div
         className="w-full max-w-4xl mx-auto p-12 rounded-md"
         style={{
-          background: `color-mix(in srgb, #fbf4e3, ${theme.accent.primary} 8%)`,
+          background: `color-mix(in oklab, #fbf4e3, ${theme.accent.primary} 8%)`,
           color: '#3a3128',
           fontFamily: 'var(--font-serif, Georgia), serif',
         }}
@@ -45,6 +45,7 @@ export default function DiarySection() {
         current={nav.currentSpread}
         canGoForward={nav.canGoForward}
         canGoBack={nav.canGoBack}
+        isFlipping={nav.isFlipping}
         onPrev={nav.flipPrev}
         onNext={nav.flipNext}
         onJump={nav.jumpTo}

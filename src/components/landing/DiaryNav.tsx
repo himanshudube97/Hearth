@@ -9,12 +9,13 @@ type Props = {
   current: number
   canGoForward: boolean
   canGoBack: boolean
+  isFlipping: boolean
   onPrev: () => void
   onNext: () => void
   onJump: (index: number) => void
 }
 
-export default function DiaryNav({ total, current, canGoForward, canGoBack, onPrev, onNext, onJump }: Props) {
+export default function DiaryNav({ total, current, canGoForward, canGoBack, isFlipping, onPrev, onNext, onJump }: Props) {
   const { theme } = useThemeStore()
 
   const baseBtn =
@@ -25,8 +26,8 @@ export default function DiaryNav({ total, current, canGoForward, canGoBack, onPr
       <button
         aria-label="Previous page"
         onClick={onPrev}
-        disabled={!canGoBack}
-        className={`${baseBtn} ${canGoBack ? '' : 'opacity-30 cursor-not-allowed'}`}
+        disabled={!canGoBack || isFlipping}
+        className={`${baseBtn} ${canGoBack && !isFlipping ? '' : 'opacity-30 cursor-not-allowed'}`}
         style={{
           background: `${theme.accent.warm}20`,
           color: theme.text.primary,
@@ -36,12 +37,13 @@ export default function DiaryNav({ total, current, canGoForward, canGoBack, onPr
         ‹
       </button>
 
-      <div className="flex items-center gap-2" role="tablist" aria-label="Diary pages">
+      <div className="flex items-center gap-2" aria-label="Diary pages">
         {Array.from({ length: total }).map((_, i) => (
           <motion.button
             key={i}
             aria-label={`Page ${i + 1}`}
             aria-current={i === current ? 'page' : undefined}
+            disabled={isFlipping || i === current}
             onClick={() => onJump(i)}
             className="rounded-full"
             initial={false}
@@ -52,6 +54,7 @@ export default function DiaryNav({ total, current, canGoForward, canGoBack, onPr
               backgroundColor: i === current ? theme.accent.primary : theme.text.muted,
             }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
+            style={{ pointerEvents: isFlipping ? 'none' : 'auto' }}
           />
         ))}
       </div>
@@ -59,8 +62,8 @@ export default function DiaryNav({ total, current, canGoForward, canGoBack, onPr
       <button
         aria-label="Next page"
         onClick={onNext}
-        disabled={!canGoForward}
-        className={`${baseBtn} ${canGoForward ? '' : 'opacity-30 cursor-not-allowed'}`}
+        disabled={!canGoForward || isFlipping}
+        className={`${baseBtn} ${canGoForward && !isFlipping ? '' : 'opacity-30 cursor-not-allowed'}`}
         style={{
           background: `${theme.accent.warm}20`,
           color: theme.text.primary,
