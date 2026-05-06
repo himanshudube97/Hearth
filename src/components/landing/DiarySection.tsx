@@ -26,6 +26,16 @@ export default function DiarySection() {
     }
   }, [nav.isFlipping, nav.currentSpread])
 
+  // Hover-corner-bend gating: disable for reduced-motion and touch devices.
+  const [cornersEnabled, setCornersEnabled] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const isTouch = window.matchMedia('(pointer: coarse)').matches
+    setCornersEnabled(!reduceMotion && !isTouch)
+  }, [])
+  const peelable = cornersEnabled && !nav.isFlipping
+
   const renderLeft = (s: SpreadDef): React.ReactNode => {
     if (s.kind === 'feature') return <DiarySpreadLeft spread={s} />
     if (s.kind === 'cover') {
@@ -105,6 +115,9 @@ export default function DiarySection() {
             onComplete={nav.onFlipComplete}
           />
         }
+        cornersEnabled={peelable}
+        onPeelNext={nav.flipNext}
+        onPeelPrev={nav.flipPrev}
       />
 
       <DiaryNav

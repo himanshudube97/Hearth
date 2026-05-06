@@ -3,14 +3,25 @@
 
 import type { ReactNode } from 'react'
 import { useThemeStore } from '@/store/theme'
+import DiaryCornerPeel from './DiaryCornerPeel'
 
 type Props = {
   leftPage: ReactNode
   rightPage: ReactNode
   rightFlipOverlay?: ReactNode
+  cornersEnabled?: boolean
+  onPeelNext?: () => void
+  onPeelPrev?: () => void
 }
 
-export default function DiaryBook({ leftPage, rightPage, rightFlipOverlay }: Props) {
+export default function DiaryBook({
+  leftPage,
+  rightPage,
+  rightFlipOverlay,
+  cornersEnabled,
+  onPeelNext,
+  onPeelPrev,
+}: Props) {
   const { theme } = useThemeStore()
 
   // Tinted paper: cream base, theme accent at 8%
@@ -53,6 +64,16 @@ export default function DiaryBook({ leftPage, rightPage, rightFlipOverlay }: Pro
         {/* Left page */}
         <div className="relative flex-1 p-10 md:p-14 overflow-hidden">
           {leftPage}
+          <DiaryCornerPeel
+            corner="tl"
+            enabled={!!cornersEnabled}
+            onCommit={() => onPeelPrev?.()}
+          />
+          <DiaryCornerPeel
+            corner="bl"
+            enabled={!!cornersEnabled}
+            onCommit={() => onPeelPrev?.()}
+          />
         </div>
 
         {/* Spine */}
@@ -76,6 +97,16 @@ export default function DiaryBook({ leftPage, rightPage, rightFlipOverlay }: Pro
               {rightFlipOverlay}
             </div>
           )}
+          <DiaryCornerPeel
+            corner="tr"
+            enabled={!!cornersEnabled}
+            onCommit={() => onPeelNext?.()}
+          />
+          <DiaryCornerPeel
+            corner="br"
+            enabled={!!cornersEnabled}
+            onCommit={() => onPeelNext?.()}
+          />
         </div>
       </div>
     </div>
