@@ -294,6 +294,7 @@ textarea,
 .diary-paper-grain {
   position: absolute;
   inset: 0;
+  z-index: 2;
   pointer-events: none;
   opacity: 0.06;
   mix-blend-mode: multiply;
