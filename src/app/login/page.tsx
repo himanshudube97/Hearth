@@ -203,6 +203,12 @@ function LoginForm() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
+          <Link
+            href="/"
+            className="inline-block mb-6 text-xs tracking-[0.3em] text-[var(--text-muted)] opacity-60 hover:opacity-100 transition"
+          >
+            ← HEARTH
+          </Link>
           <h1 className="font-[var(--font-serif)] text-4xl text-[var(--text-primary)] mb-2">
             Welcome to Hearth
           </h1>
