@@ -9,6 +9,7 @@ type Props = {
   leftPage: ReactNode
   rightPage: ReactNode
   rightFlipOverlay?: ReactNode
+  coverOverlay?: ReactNode
   cornersEnabled?: boolean
   onPeelNext?: () => void
   onPeelPrev?: () => void
@@ -18,6 +19,7 @@ export default function DiaryBook({
   leftPage,
   rightPage,
   rightFlipOverlay,
+  coverOverlay,
   cornersEnabled,
   onPeelNext,
   onPeelPrev,
@@ -32,48 +34,64 @@ export default function DiaryBook({
   return (
     <div
       className="relative w-full max-w-[1100px] aspect-[16/10] mx-auto"
-      style={{ perspective: '2400px' }}
+      style={{
+        perspective: '2200px',
+        perspectiveOrigin: '50% 30%',
+      }}
     >
-      {/* Stage vignette */}
+      {/* Cast shadow under the tilted book — gives the floating-modal feel */}
       <div
-        className="absolute -inset-12 pointer-events-none rounded-[40px]"
+        aria-hidden
+        className="absolute pointer-events-none"
         style={{
-          background:
-            'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.18) 100%)',
+          bottom: '-6%',
+          left: '8%',
+          right: '8%',
+          height: '14%',
+          background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, transparent 70%)',
+          filter: 'blur(20px)',
         }}
       />
 
+      {/* The book itself — tilted in 3D */}
       <div
         className="relative w-full h-full flex"
         style={{
           transformStyle: 'preserve-3d',
+          transform: 'rotateX(6deg) rotateY(-1deg)',
           background: paper,
           color: ink,
           borderRadius: '4px',
           boxShadow:
-            '0 24px 60px rgba(0,0,0,0.18), 0 8px 20px rgba(0,0,0,0.10), inset 0 0 0 1px rgba(0,0,0,0.04)',
+            '0 40px 80px rgba(0,0,0,0.32), 0 18px 40px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(0,0,0,0.05)',
           fontFamily: 'var(--font-serif, Georgia), serif',
           // Deckled edge: slightly irregular polygon clip
           clipPath:
             'polygon(0% 0.3%, 0.3% 0%, 99.7% 0%, 100% 0.3%, 100% 99.7%, 99.7% 100%, 0.3% 100%, 0% 99.7%)',
         }}
       >
+        {/* Ruled lines overlay — theme-aware */}
+        <div
+          aria-hidden
+          className="diary-ruled-lines"
+          style={{
+            // Use the theme's text muted color, low alpha, for the lines
+            ['--rule-color' as never]: theme.text.muted,
+          }}
+        />
+
         {/* Paper grain overlay */}
         <div className="diary-paper-grain" />
 
         {/* Left page */}
         <div className="relative flex-1 p-10 md:p-14 overflow-hidden">
           {leftPage}
-          <DiaryCornerPeel
-            corner="tl"
-            enabled={!!cornersEnabled}
-            onCommit={() => onPeelPrev?.()}
-          />
-          <DiaryCornerPeel
-            corner="bl"
-            enabled={!!cornersEnabled}
-            onCommit={() => onPeelPrev?.()}
-          />
+          {cornersEnabled && (
+            <>
+              <DiaryCornerPeel corner="tl" enabled onCommit={() => onPeelPrev?.()} />
+              <DiaryCornerPeel corner="bl" enabled onCommit={() => onPeelPrev?.()} />
+            </>
+          )}
         </div>
 
         {/* Spine */}
@@ -82,7 +100,7 @@ export default function DiaryBook({
           style={{
             width: '20px',
             background:
-              'linear-gradient(90deg, rgba(0,0,0,0.04), rgba(0,0,0,0.16) 50%, rgba(0,0,0,0.04))',
+              'linear-gradient(90deg, rgba(0,0,0,0.04), rgba(0,0,0,0.18) 50%, rgba(0,0,0,0.04))',
           }}
         />
 
@@ -97,18 +115,16 @@ export default function DiaryBook({
               {rightFlipOverlay}
             </div>
           )}
-          <DiaryCornerPeel
-            corner="tr"
-            enabled={!!cornersEnabled}
-            onCommit={() => onPeelNext?.()}
-          />
-          <DiaryCornerPeel
-            corner="br"
-            enabled={!!cornersEnabled}
-            onCommit={() => onPeelNext?.()}
-          />
+          {cornersEnabled && (
+            <>
+              <DiaryCornerPeel corner="tr" enabled onCommit={() => onPeelNext?.()} />
+              <DiaryCornerPeel corner="br" enabled onCommit={() => onPeelNext?.()} />
+            </>
+          )}
         </div>
       </div>
+
+      {coverOverlay}
     </div>
   )
 }

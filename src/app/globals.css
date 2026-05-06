@@ -302,4 +302,20 @@ textarea,
   background-size: 160px 160px;
 }
 
+/* Ruled lines for the diary paper — theme-aware via CSS variable */
+.diary-ruled-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.3;
+  mix-blend-mode: multiply;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 31px,
+    color-mix(in oklab, var(--rule-color, #888), transparent 80%) 31px,
+    color-mix(in oklab, var(--rule-color, #888), transparent 80%) 32px
+  );
+}
+
 
