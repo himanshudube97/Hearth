@@ -3,9 +3,11 @@
 
 import { useEffect, useRef } from 'react'
 import { useThemeStore } from '@/store/theme'
+import Background from '@/components/Background'
 import { SPREADS } from './spreads'
 import { useDiaryNav } from './useDiaryNav'
 import DiaryNav from './DiaryNav'
+import DiaryBook from './DiaryBook'
 
 export default function DiarySection() {
   const sectionRef = useRef<HTMLElement | null>(null)
@@ -13,9 +15,9 @@ export default function DiarySection() {
   const nav = useDiaryNav(sectionRef)
   const spread = SPREADS[nav.currentSpread]
 
-  // The stub has no flip animation, so release the flip lock immediately on
-  // each spread change. The 3D book stage (Task 3) will replace this by calling
-  // nav.onFlipComplete from its Framer Motion onAnimationComplete.
+  // STUB-ONLY: Task 1's hook locks until onFlipComplete fires. Until Task 5
+  // wires the page-flip animation's onAnimationComplete to onFlipComplete,
+  // release the lock immediately on spread change so subsequent flips work.
   useEffect(() => {
     nav.onFlipComplete()
   }, [nav.currentSpread, nav.onFlipComplete])
@@ -23,22 +25,39 @@ export default function DiarySection() {
   return (
     <section
       ref={sectionRef}
-      className="relative py-24 px-6 min-h-[80vh] flex flex-col items-center justify-center"
-      style={{ color: theme.text.primary }}
+      className="relative py-24 px-6 overflow-hidden"
+      style={{
+        background: theme.bg.gradient,
+        color: theme.text.primary,
+      }}
     >
-      <div
-        className="w-full max-w-4xl mx-auto p-12 rounded-md"
-        style={{
-          background: `color-mix(in oklab, #fbf4e3, ${theme.accent.primary} 8%)`,
-          color: '#3a3128',
-          fontFamily: 'var(--font-serif, Georgia), serif',
-        }}
-      >
-        <p className="text-xs uppercase tracking-[0.3em] opacity-50 mb-4">
-          spread {nav.currentSpread + 1} / {nav.total}
-        </p>
-        <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(spread, null, 2)}</pre>
+      {/* Theme-aware particle layer behind the diary */}
+      <div className="absolute inset-0 pointer-events-none opacity-80">
+        <Background />
       </div>
+
+      <DiaryBook
+        leftPage={
+          <div>
+            <p className="font-serif italic text-3xl md:text-4xl opacity-40 leading-none mb-3">
+              {'numeral' in spread ? spread.numeral : ''}
+            </p>
+            <h3 className="font-serif italic text-2xl md:text-3xl mb-4">
+              {'title' in spread ? spread.title : 'Cover'}
+            </h3>
+            {'copy' in spread && (
+              <p className="text-base leading-relaxed max-w-[36ch]" style={{ opacity: 0.85 }}>
+                {spread.copy}
+              </p>
+            )}
+          </div>
+        }
+        rightPage={
+          <div className="w-full h-full flex items-center justify-center text-sm italic opacity-40">
+            (right page — coming next)
+          </div>
+        }
+      />
 
       <DiaryNav
         total={nav.total}
