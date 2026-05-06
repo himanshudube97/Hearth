@@ -12,12 +12,38 @@ import DiaryBook from './DiaryBook'
 import DiaryCover from './DiaryCover'
 import DiaryPageFlip from './DiaryPageFlip'
 import { DiarySpreadLeft, DiarySpreadRight } from './DiarySpread'
+import { type ThemeName } from '@/lib/themes'
+import DiaryPolaroidGrid from './DiaryPolaroidGrid'
+import { DiaryCtaLeft, DiaryCtaRight } from './DiaryCTASpread'
 
 export default function DiarySection() {
   const sectionRef = useRef<HTMLElement | null>(null)
   const { theme } = useThemeStore()
+  const themeName = useThemeStore((s) => s.themeName)
+  const setTheme = useThemeStore((s) => s.setTheme)
   const nav = useDiaryNav(sectionRef)
   const spread = SPREADS[nav.currentSpread]
+
+  // Capture the user's original theme exactly once on mount
+  const originalThemeRef = useRef<ThemeName | null>(null)
+  const [hasOverridden, setHasOverridden] = useState(false)
+
+  useEffect(() => {
+    if (originalThemeRef.current === null) {
+      originalThemeRef.current = themeName
+    }
+  }, [themeName])
+
+  const handlePickTheme = (name: ThemeName) => {
+    setTheme(name)
+    setHasOverridden(name !== originalThemeRef.current)
+  }
+  const handleResetTheme = () => {
+    if (originalThemeRef.current) {
+      setTheme(originalThemeRef.current)
+      setHasOverridden(false)
+    }
+  }
 
   // Track the previous-rendered spread index so we can render the "from"
   // face of the flip while the animation is in flight.
@@ -48,13 +74,7 @@ export default function DiarySection() {
       )
     }
     if (s.kind === 'themes') return <DiarySpreadLeft spread={s} />
-    if (s.kind === 'cta') {
-      return (
-        <div className="h-full flex items-center justify-center font-serif italic text-2xl">
-          {s.text}
-        </div>
-      )
-    }
+    if (s.kind === 'cta') return <DiaryCtaLeft spread={s} />
     const _exhaustive: never = s
     void _exhaustive
     return null
@@ -71,18 +91,15 @@ export default function DiarySection() {
     }
     if (s.kind === 'themes') {
       return (
-        <div className="h-full flex items-center justify-center text-sm italic opacity-40">
-          (polaroids wired in Task 8)
-        </div>
+        <DiaryPolaroidGrid
+          current={themeName}
+          hasOverridden={hasOverridden}
+          onPick={handlePickTheme}
+          onReset={handleResetTheme}
+        />
       )
     }
-    if (s.kind === 'cta') {
-      return (
-        <div className="h-full flex items-center justify-center text-sm italic opacity-40">
-          (CTA wired in Task 9)
-        </div>
-      )
-    }
+    if (s.kind === 'cta') return <DiaryCtaRight spread={s} />
     const _exhaustive: never = s
     void _exhaustive
     return null
