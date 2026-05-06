@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Hearth",
+  "version": "0.1.0",
+  "identifier": "app.hearth.desktop",
+  "build": {
+    "frontendDist": "https://hearth-sage.vercel.app",
+    "devUrl": "https://hearth-sage.vercel.app"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Hearth",
+        "url": "https://hearth-sage.vercel.app",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "publisher": "Hearth",
+    "category": "Lifestyle",
+    "shortDescription": "A quiet place to journal.",
+    "longDescription": "Hearth is a beautiful, private journal for your thoughts, letters, and small moments.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

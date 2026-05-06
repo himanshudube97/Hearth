@@ -61,6 +61,16 @@ export default function StickyHeader() {
                 </motion.span>
               </Link>
 
+              <Link href="/download">
+                <motion.span
+                  className="text-sm"
+                  style={{ color: theme.text.secondary }}
+                  whileHover={{ color: theme.text.primary }}
+                >
+                  Desktop
+                </motion.span>
+              </Link>
+
               {/* CTA */}
               <Link href="/write">
                 <motion.button

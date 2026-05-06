@@ -430,6 +430,44 @@ export default function MePage() {
         <ReminderControls />
       </motion.div>
 
+      {/* Desktop App */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        className="p-6 rounded-2xl mb-8 flex items-center justify-between gap-4"
+        style={{
+          background: theme.glass.bg,
+          backdropFilter: `blur(${theme.glass.blur})`,
+          border: `1px solid ${theme.glass.border}`,
+        }}
+      >
+        <div>
+          <h3
+            className="text-base font-medium mb-1"
+            style={{ color: theme.text.primary }}
+          >
+            Hearth on your desktop
+          </h3>
+          <p
+            className="text-sm"
+            style={{ color: theme.text.muted }}
+          >
+            A quiet little app for your dock.
+          </p>
+        </div>
+        <Link
+          href="/download"
+          className="px-4 py-2 rounded-full text-sm whitespace-nowrap"
+          style={{
+            background: theme.accent.primary,
+            color: theme.bg.primary,
+          }}
+        >
+          Get the app
+        </Link>
+      </motion.div>
+
       {/* E2EE Settings */}
       <E2EESettings />
 

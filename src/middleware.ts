@@ -11,9 +11,10 @@ const PUBLIC_PATHS = [
   '/api/webhooks',
   '/api/webhooks/lemonsqueezy',
   '/api/letter',
+  '/api/download',
   '/letter',
 ]
-const PUBLIC_EXACT_PATHS = ['/', '/pricing', '/forgot', '/reset', '/verify']
+const PUBLIC_EXACT_PATHS = ['/', '/pricing', '/forgot', '/reset', '/verify', '/download']
 const STATIC_PATHS = ['/_next', '/favicon.ico', '/images', '/icons', '/manifest.json', '/sw.js', '/workbox']
 
 const isDevAuth = process.env.USE_DEV_AUTH === 'true'

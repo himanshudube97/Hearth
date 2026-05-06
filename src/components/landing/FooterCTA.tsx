@@ -98,9 +98,26 @@ export default function FooterCTA() {
           </Link>
         </motion.div>
 
+        {/* Desktop nudge */}
+        <motion.div
+          className="mt-12"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 0.7 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1, delay: 0.6 }}
+        >
+          <Link
+            href="/download"
+            className="text-sm italic underline-offset-4 hover:underline"
+            style={{ color: theme.text.muted }}
+          >
+            Also on desktop — Mac · Windows · Linux
+          </Link>
+        </motion.div>
+
         {/* Subtle Footer Text */}
         <motion.p
-          className="mt-16 text-sm"
+          className="mt-8 text-sm"
           style={{ color: theme.text.muted }}
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 0.6 }}
