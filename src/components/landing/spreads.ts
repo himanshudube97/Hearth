@@ -98,6 +98,7 @@ export const SPREADS: SpreadDef[] = [
     title: 'Yours alone',
     copy: 'Encrypted with a key only you hold. Not us, not anyone. Lose the key, lose the diary. That’s the deal — and the point.',
     marginalia: '— only yours',
+    // illustration intentionally absent — photo-only spread
     imagePath: '/landing/diary/master-key.png',
     imageAlt: 'The master-key unlock screen.',
     caption: 'a key only you hold.',

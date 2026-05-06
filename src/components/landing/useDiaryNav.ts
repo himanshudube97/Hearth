@@ -13,31 +13,49 @@ export function useDiaryNav(containerRef: RefObject<HTMLElement | null>) {
   const [isFlipping, setIsFlipping] = useState(false)
   const flipDirectionRef = useRef<FlipDirection>('forward')
 
+  // Mirror state into refs so guards in flipNext/flipPrev/jumpTo can read
+  // synchronously and avoid double-flip races under key-repeat / rapid taps.
+  const isFlippingRef = useRef(false)
+  const currentSpreadRef = useRef(0)
+
+  // keep refs in sync with state on each render
+  useEffect(() => {
+    currentSpreadRef.current = currentSpread
+  }, [currentSpread])
+  useEffect(() => {
+    isFlippingRef.current = isFlipping
+  }, [isFlipping])
+
   const flipNext = useCallback(() => {
-    if (isFlipping) return
-    if (currentSpread >= TOTAL - 1) return
+    if (isFlippingRef.current) return
+    if (currentSpreadRef.current >= TOTAL - 1) return
     flipDirectionRef.current = 'forward'
+    isFlippingRef.current = true
     setIsFlipping(true)
     setCurrentSpread((s) => s + 1)
-  }, [isFlipping, currentSpread])
+  }, [])
 
   const flipPrev = useCallback(() => {
-    if (isFlipping) return
-    if (currentSpread <= 0) return
+    if (isFlippingRef.current) return
+    if (currentSpreadRef.current <= 0) return
     flipDirectionRef.current = 'backward'
+    isFlippingRef.current = true
     setIsFlipping(true)
     setCurrentSpread((s) => s - 1)
-  }, [isFlipping, currentSpread])
+  }, [])
 
   const jumpTo = useCallback((index: number) => {
-    if (isFlipping) return
-    if (index === currentSpread || index < 0 || index >= TOTAL) return
-    flipDirectionRef.current = index > currentSpread ? 'forward' : 'backward'
+    if (isFlippingRef.current) return
+    const current = currentSpreadRef.current
+    if (index === current || index < 0 || index >= TOTAL) return
+    flipDirectionRef.current = index > current ? 'forward' : 'backward'
+    isFlippingRef.current = true
     setIsFlipping(true)
     setCurrentSpread(index)
-  }, [isFlipping, currentSpread])
+  }, [])
 
   const onFlipComplete = useCallback(() => {
+    isFlippingRef.current = false
     setIsFlipping(false)
   }, [])
 
@@ -74,12 +92,17 @@ export function useDiaryNav(containerRef: RefObject<HTMLElement | null>) {
       io.disconnect()
       window.removeEventListener('keydown', onKey)
     }
-  }, [containerRef, flipNext, flipPrev])
+  }, [containerRef])
 
   return {
     currentSpread,
     total: TOTAL,
     isFlipping,
+    /**
+     * Read-only snapshot of the current flip direction, valid only during render.
+     * Do not close over this value in effects or memos — read directly from the
+     * hook's return value at use time, or pass through to a Framer Motion variant.
+     */
     flipDirection: flipDirectionRef.current,
     flipNext,
     flipPrev,
