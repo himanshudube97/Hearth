@@ -165,7 +165,7 @@ function Entry({ feature, index }: { feature: Feature; index: number }) {
   )
 }
 
-function Illustration({ kind }: { kind: Feature['illustration'] }) {
+export function Illustration({ kind }: { kind: 'journal' | 'letters' | 'scrapbook' | 'memory' }) {
   const { theme } = useThemeStore()
   const stroke = theme.text.primary
   const accent = theme.accent.warm

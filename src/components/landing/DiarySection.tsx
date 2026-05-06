@@ -8,6 +8,7 @@ import { SPREADS } from './spreads'
 import { useDiaryNav } from './useDiaryNav'
 import DiaryNav from './DiaryNav'
 import DiaryBook from './DiaryBook'
+import { DiarySpreadLeft, DiarySpreadRight } from './DiarySpread'
 
 export default function DiarySection() {
   const sectionRef = useRef<HTMLElement | null>(null)
@@ -21,6 +22,57 @@ export default function DiarySection() {
   useEffect(() => {
     nav.onFlipComplete()
   }, [nav.currentSpread, nav.onFlipComplete])
+
+  let left: React.ReactNode = null
+  let right: React.ReactNode = null
+
+  if (spread.kind === 'feature') {
+    left = <DiarySpreadLeft spread={spread} />
+    right = <DiarySpreadRight spread={spread} spreadIndex={nav.currentSpread} />
+  } else if (spread.kind === 'cover') {
+    left = (
+      <div className="h-full flex items-center justify-center">
+        <h2 className="font-serif italic text-4xl tracking-[0.3em]">{spread.title}</h2>
+      </div>
+    )
+    right = (
+      <div className="h-full flex items-center justify-center text-sm italic opacity-40">
+        (cover wired in Task 7)
+      </div>
+    )
+  } else if (spread.kind === 'themes') {
+    left = (
+      <div className="h-full flex flex-col">
+        <p className="font-serif italic text-3xl md:text-4xl leading-none mb-3" style={{ opacity: 0.4 }}>
+          {spread.numeral}
+        </p>
+        <h3 className="font-serif italic text-2xl md:text-3xl mb-5 leading-snug">{spread.title}</h3>
+        <p className="text-base leading-relaxed max-w-[36ch]" style={{ opacity: 0.85 }}>
+          {spread.copy}
+        </p>
+        <p className="font-serif italic text-xs mt-auto" style={{ opacity: 0.5 }}>
+          {spread.marginalia}
+        </p>
+      </div>
+    )
+    right = (
+      <div className="h-full flex items-center justify-center text-sm italic opacity-40">
+        (polaroids wired in Task 8)
+      </div>
+    )
+  } else {
+    // cta
+    left = (
+      <div className="h-full flex items-center justify-center font-serif italic text-2xl">
+        {spread.text}
+      </div>
+    )
+    right = (
+      <div className="h-full flex items-center justify-center text-sm italic opacity-40">
+        (CTA wired in Task 9)
+      </div>
+    )
+  }
 
   return (
     <section
@@ -36,28 +88,7 @@ export default function DiarySection() {
         <Background bounded />
       </div>
 
-      <DiaryBook
-        leftPage={
-          <div>
-            <p className="font-serif italic text-3xl md:text-4xl opacity-40 leading-none mb-3">
-              {'numeral' in spread ? spread.numeral : ''}
-            </p>
-            <h3 className="font-serif italic text-2xl md:text-3xl mb-4">
-              {'title' in spread ? spread.title : 'Cover'}
-            </h3>
-            {'copy' in spread && (
-              <p className="text-base leading-relaxed max-w-[36ch]" style={{ opacity: 0.85 }}>
-                {spread.copy}
-              </p>
-            )}
-          </div>
-        }
-        rightPage={
-          <div className="w-full h-full flex items-center justify-center text-sm italic opacity-40">
-            (right page — coming next)
-          </div>
-        }
-      />
+      <DiaryBook leftPage={left} rightPage={right} />
 
       <DiaryNav
         total={nav.total}
