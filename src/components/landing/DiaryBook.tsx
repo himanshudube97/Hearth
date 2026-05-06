@@ -7,9 +7,10 @@ import { useThemeStore } from '@/store/theme'
 type Props = {
   leftPage: ReactNode
   rightPage: ReactNode
+  rightFlipOverlay?: ReactNode
 }
 
-export default function DiaryBook({ leftPage, rightPage }: Props) {
+export default function DiaryBook({ leftPage, rightPage, rightFlipOverlay }: Props) {
   const { theme } = useThemeStore()
 
   // Tinted paper: cream base, theme accent at 8%
@@ -67,6 +68,14 @@ export default function DiaryBook({ leftPage, rightPage }: Props) {
         {/* Right page */}
         <div className="relative flex-1 p-10 md:p-14 overflow-hidden">
           {rightPage}
+          {rightFlipOverlay && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ transformStyle: 'preserve-3d' }}
+            >
+              {rightFlipOverlay}
+            </div>
+          )}
         </div>
       </div>
     </div>

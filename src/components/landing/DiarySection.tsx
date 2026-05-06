@@ -1,13 +1,14 @@
 // src/components/landing/DiarySection.tsx
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useThemeStore } from '@/store/theme'
 import Background from '@/components/Background'
-import { SPREADS } from './spreads'
+import { SPREADS, type SpreadDef } from './spreads'
 import { useDiaryNav } from './useDiaryNav'
 import DiaryNav from './DiaryNav'
 import DiaryBook from './DiaryBook'
+import DiaryPageFlip from './DiaryPageFlip'
 import { DiarySpreadLeft, DiarySpreadRight } from './DiarySpread'
 
 export default function DiarySection() {
@@ -16,53 +17,66 @@ export default function DiarySection() {
   const nav = useDiaryNav(sectionRef)
   const spread = SPREADS[nav.currentSpread]
 
-  // STUB-ONLY: Task 1's hook locks until onFlipComplete fires. Until Task 5
-  // wires the page-flip animation's onAnimationComplete to onFlipComplete,
-  // release the lock immediately on spread change so subsequent flips work.
+  // Track the previous-rendered spread index so we can render the "from"
+  // face of the flip while the animation is in flight.
+  const [prevSpreadIndex, setPrevSpreadIndex] = useState(0)
   useEffect(() => {
-    nav.onFlipComplete()
-  }, [nav.currentSpread, nav.onFlipComplete])
+    if (!nav.isFlipping) {
+      setPrevSpreadIndex(nav.currentSpread)
+    }
+  }, [nav.isFlipping, nav.currentSpread])
 
-  let left: React.ReactNode = null
-  let right: React.ReactNode = null
-
-  if (spread.kind === 'feature') {
-    left = <DiarySpreadLeft spread={spread} />
-    right = <DiarySpreadRight spread={spread} spreadIndex={nav.currentSpread} />
-  } else if (spread.kind === 'cover') {
-    left = (
-      <div className="h-full flex items-center justify-center">
-        <h2 className="font-serif italic text-4xl tracking-[0.3em]">{spread.title}</h2>
-      </div>
-    )
-    right = (
-      <div className="h-full flex items-center justify-center text-sm italic opacity-40">
-        (cover wired in Task 7)
-      </div>
-    )
-  } else if (spread.kind === 'themes') {
-    left = <DiarySpreadLeft spread={spread} />
-    right = (
-      <div className="h-full flex items-center justify-center text-sm italic opacity-40">
-        (polaroids wired in Task 8)
-      </div>
-    )
-  } else if (spread.kind === 'cta') {
-    left = (
-      <div className="h-full flex items-center justify-center font-serif italic text-2xl">
-        {spread.text}
-      </div>
-    )
-    right = (
-      <div className="h-full flex items-center justify-center text-sm italic opacity-40">
-        (CTA wired in Task 9)
-      </div>
-    )
-  } else {
-    // Exhaustiveness guard — TS will error here if a new SpreadDef kind is added
-    const _exhaustive: never = spread
+  const renderLeft = (s: SpreadDef): React.ReactNode => {
+    if (s.kind === 'feature') return <DiarySpreadLeft spread={s} />
+    if (s.kind === 'cover') {
+      return (
+        <div className="h-full flex items-center justify-center">
+          <h2 className="font-serif italic text-4xl tracking-[0.3em]">{s.title}</h2>
+        </div>
+      )
+    }
+    if (s.kind === 'themes') return <DiarySpreadLeft spread={s} />
+    if (s.kind === 'cta') {
+      return (
+        <div className="h-full flex items-center justify-center font-serif italic text-2xl">
+          {s.text}
+        </div>
+      )
+    }
+    const _exhaustive: never = s
     void _exhaustive
+    return null
   }
+
+  const renderRight = (s: SpreadDef, index: number): React.ReactNode => {
+    if (s.kind === 'feature') return <DiarySpreadRight spread={s} spreadIndex={index} />
+    if (s.kind === 'cover') {
+      return (
+        <div className="h-full flex items-center justify-center text-sm italic opacity-40">
+          (cover wired in Task 7)
+        </div>
+      )
+    }
+    if (s.kind === 'themes') {
+      return (
+        <div className="h-full flex items-center justify-center text-sm italic opacity-40">
+          (polaroids wired in Task 8)
+        </div>
+      )
+    }
+    if (s.kind === 'cta') {
+      return (
+        <div className="h-full flex items-center justify-center text-sm italic opacity-40">
+          (CTA wired in Task 9)
+        </div>
+      )
+    }
+    const _exhaustive: never = s
+    void _exhaustive
+    return null
+  }
+
+  const prevSpread = SPREADS[prevSpreadIndex]
 
   return (
     <section
@@ -78,7 +92,20 @@ export default function DiarySection() {
         <Background bounded />
       </div>
 
-      <DiaryBook leftPage={left} rightPage={right} />
+      <DiaryBook
+        leftPage={renderLeft(spread)}
+        rightPage={renderRight(spread, nav.currentSpread)}
+        rightFlipOverlay={
+          <DiaryPageFlip
+            spreadKey={`${prevSpreadIndex}-${nav.currentSpread}`}
+            current={renderRight(prevSpread, prevSpreadIndex)}
+            upcoming={renderRight(spread, nav.currentSpread)}
+            direction={nav.flipDirection}
+            isFlipping={nav.isFlipping}
+            onComplete={nav.onFlipComplete}
+          />
+        }
+      />
 
       <DiaryNav
         total={nav.total}
