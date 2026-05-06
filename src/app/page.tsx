@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import HeroSection from '@/components/landing/HeroSection'
-import FeaturesSection from '@/components/landing/FeaturesSection'
+import DiarySection from '@/components/landing/DiarySection'
 import FooterCTA from '@/components/landing/FooterCTA'
 import StickyHeader from '@/components/landing/StickyHeader'
 
@@ -63,55 +63,8 @@ export default function LandingPage() {
 
       {/* Page Sections */}
       <HeroSection />
-
-      {/* Whisper Gallery - Floating whispers between sections */}
-      <WhisperGallery />
-
-      <FeaturesSection />
+      <DiarySection />
       <FooterCTA />
     </main>
-  )
-}
-
-function WhisperGallery() {
-  const { theme } = useThemeStore()
-
-  const floatingWhispers = [
-    "The stars have time. So do you.",
-    "Write freely.",
-    "This moment is yours alone.",
-    "Be gentle with yourself.",
-    "Let your thoughts drift.",
-  ]
-
-  return (
-    <section className="relative py-16 overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        {floatingWhispers.map((whisper, i) => (
-          <motion.p
-            key={i}
-            className="absolute text-sm italic whitespace-nowrap"
-            style={{
-              color: theme.text.muted,
-              left: `${5 + i * 20}%`,
-              top: `${20 + (i % 3) * 30}%`,
-              fontSize: `${0.75 + (i % 3) * 0.15}rem`,
-            }}
-            animate={{
-              x: [0, 30, 0],
-              opacity: [0.2, 0.5, 0.2],
-            }}
-            transition={{
-              duration: 8 + i * 2,
-              repeat: Infinity,
-              delay: i * 1.5,
-              ease: 'easeInOut',
-            }}
-          >
-            "{whisper}"
-          </motion.p>
-        ))}
-      </div>
-    </section>
   )
 }
