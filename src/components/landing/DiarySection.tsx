@@ -33,7 +33,7 @@ export default function DiarySection() {
     >
       {/* Theme-aware particle layer behind the diary */}
       <div className="absolute inset-0 pointer-events-none opacity-80">
-        <Background />
+        <Background bounded />
       </div>
 
       <DiaryBook

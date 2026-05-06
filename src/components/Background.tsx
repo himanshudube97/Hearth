@@ -768,7 +768,16 @@ function initParticlesOnce() {
   return particlesInitPromise
 }
 
-function BackgroundComponent() {
+type BackgroundProps = {
+  /**
+   * When true, the outer container uses absolute positioning instead of fixed,
+   * so the background is contained by its positioned ancestor (e.g. a section).
+   * Default: false (full-viewport fixed layer, current behavior).
+   */
+  bounded?: boolean
+}
+
+function BackgroundComponent({ bounded = false }: BackgroundProps = {}) {
   const [mounted, setMounted] = useState(false)
   const [particlesReady, setParticlesReady] = useState(false)
   const { theme, themeName } = useThemeStore()
@@ -805,7 +814,7 @@ function BackgroundComponent() {
   const isOceanTwilight = theme.particles === 'foam'
 
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+    <div className={`${bounded ? 'absolute' : 'fixed'} inset-0 overflow-hidden pointer-events-none`}>
       {/* Base gradient — always renders so the theme color is visible even
           when animations are disabled. */}
       <div className="absolute inset-0" style={{ background: theme.bg.gradient }} />
