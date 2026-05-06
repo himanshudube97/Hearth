@@ -40,7 +40,7 @@ Eight spreads, navigated 1 → 8. Total 7 forward clicks from cover to CTA.
 | 3 | **II. Letters that wait** — copy + reused `letters` SVG. | Screenshot of compose / sealed letter (`letter-sealed.png`) + caption. |
 | 4 | **III. Small things, kept** — copy + reused `scrapbook` SVG. | Screenshot of a populated scrapbook canvas (`scrapbook.png`) + caption. |
 | 5 | **IV. Where memory grows** — copy + reused `memory` SVG. | Screenshot of the memory/constellation view (`memory-constellation.png`) + caption. |
-| 6 | **V. A house with many windows** — copy on themes. | **Live polaroid grid** of all 10 themes. CSS-rendered, no screenshots. Click any polaroid → diary tint, surrounding background, and particle layer all morph to that theme over ~600ms. |
+| 6 | **V. A house with many windows** — copy on themes. | **Live polaroid grid** of all 7 themes. CSS-rendered, no screenshots. Click any polaroid → diary tint, surrounding background, and particle layer all morph to that theme over ~600ms. |
 | 7 | **VI. Yours alone** — copy on E2EE / privacy. | Lock/key visual + screenshot of master-key UI (`master-key.png`) + caption. |
 | 8 | **Begin** — soft closing prose ("the page is yours"). | Big themed CTA button — same "Begin Writing" target as the hero CTA. |
 
@@ -156,11 +156,11 @@ When `prefers-reduced-motion: reduce`:
 
 ### Polaroid grid (spread #6)
 
-- 10 polaroids in a 5×2 grid with slight rotation variance (-3° to +3° per polaroid, deterministic by index).
+- 7 polaroids in a 4-on-top / 3-on-bottom cluster with slight rotation variance (-3° to +3° per polaroid, deterministic by index).
 - Each polaroid: ~120×140px, white frame, holds:
   - "Photo" area (~96×96px) showing that theme's `bg.gradient` + 2–3 small floating particle dots positioned via deterministic seed
   - Theme name underneath in italic at ~0.85rem (font choice resolved during implementation — see Open Question #2)
-- Tape strips: 3 of the 10 polaroids have a semi-transparent yellow rectangle at one top corner, deterministically chosen.
+- Tape strips: 3 of the 7 polaroids have a semi-transparent yellow rectangle at one top corner, deterministically chosen.
 
 ### Typography
 
@@ -221,7 +221,7 @@ src/components/landing/
 ├── DiaryPageFlip.tsx         flipping leaf with front + back faces
 ├── DiaryCornerPeel.tsx       hover-corner-peel layer (4 corners per page)
 ├── DiaryNav.tsx              Prev/Next + page-pips + sound toggle
-├── DiaryPolaroidGrid.tsx     spread #6: 10 live theme polaroids
+├── DiaryPolaroidGrid.tsx     spread #6: 7 live theme polaroids
 ├── DiaryThemePolaroid.tsx    single polaroid (mini bg, particles, name)
 ├── DiaryCTASpread.tsx        spread #8: closing prose + Begin button
 ├── spreads.ts                SPREADS: SpreadDef[] data
