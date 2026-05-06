@@ -41,27 +41,13 @@ export default function DiarySection() {
       </div>
     )
   } else if (spread.kind === 'themes') {
-    left = (
-      <div className="h-full flex flex-col">
-        <p className="font-serif italic text-3xl md:text-4xl leading-none mb-3" style={{ opacity: 0.4 }}>
-          {spread.numeral}
-        </p>
-        <h3 className="font-serif italic text-2xl md:text-3xl mb-5 leading-snug">{spread.title}</h3>
-        <p className="text-base leading-relaxed max-w-[36ch]" style={{ opacity: 0.85 }}>
-          {spread.copy}
-        </p>
-        <p className="font-serif italic text-xs mt-auto" style={{ opacity: 0.5 }}>
-          {spread.marginalia}
-        </p>
-      </div>
-    )
+    left = <DiarySpreadLeft spread={spread} />
     right = (
       <div className="h-full flex items-center justify-center text-sm italic opacity-40">
         (polaroids wired in Task 8)
       </div>
     )
-  } else {
-    // cta
+  } else if (spread.kind === 'cta') {
     left = (
       <div className="h-full flex items-center justify-center font-serif italic text-2xl">
         {spread.text}
@@ -72,6 +58,10 @@ export default function DiarySection() {
         (CTA wired in Task 9)
       </div>
     )
+  } else {
+    // Exhaustiveness guard — TS will error here if a new SpreadDef kind is added
+    const _exhaustive: never = spread
+    void _exhaustive
   }
 
   return (

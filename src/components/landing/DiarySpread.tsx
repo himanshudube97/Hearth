@@ -4,12 +4,12 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import type { FeatureSpread } from './spreads'
+import type { FeatureSpread, ThemesSpread } from './spreads'
 import { Illustration } from './FeaturesSection'
 
 const PLACEHOLDER_SRC = '/landing/diary/placeholder.svg'
 
-export function DiarySpreadLeft({ spread }: { spread: FeatureSpread }) {
+export function DiarySpreadLeft({ spread }: { spread: FeatureSpread | ThemesSpread }) {
   return (
     <div className="h-full flex flex-col">
       <p className="font-serif italic text-3xl md:text-4xl leading-none mb-3" style={{ opacity: 0.4 }}>
@@ -22,7 +22,7 @@ export function DiarySpreadLeft({ spread }: { spread: FeatureSpread }) {
         {spread.copy}
       </p>
 
-      {spread.illustration && (
+      {'illustration' in spread && spread.illustration && (
         <div className="opacity-70 mb-auto">
           <Illustration kind={spread.illustration} />
         </div>
