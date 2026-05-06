@@ -24,17 +24,31 @@ const AUTH_COOKIE_NAME = 'hearth-auth-token'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (STATIC_PATHS.some(path => pathname.startsWith(path))) return NextResponse.next()
-  if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) return NextResponse.next()
-  if (PUBLIC_EXACT_PATHS.includes(pathname)) return NextResponse.next()
+  if (STATIC_PATHS.some(path => pathname.startsWith(path))) return passThrough(request)
+  if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) return passThrough(request)
+  if (PUBLIC_EXACT_PATHS.includes(pathname)) return passThrough(request)
 
   if (isDevAuth) {
     const authenticated = await checkDevAuth(request)
     if (!authenticated) return unauthorized(request, pathname)
-    return NextResponse.next()
+    return passThrough(request)
   }
 
   return checkSupabaseAuth(request, pathname)
+}
+
+// Strip any client-supplied x-hearth-* auth headers before forwarding the
+// request to a route handler. Without this, /api/auth/me (which bypasses
+// auth checks) would be impersonable by setting these headers on the request.
+function scrubAuthHeaders(request: NextRequest): Headers {
+  const h = new Headers(request.headers)
+  h.delete('x-hearth-user-id')
+  h.delete('x-hearth-user-email')
+  return h
+}
+
+function passThrough(request: NextRequest): NextResponse {
+  return NextResponse.next({ request: { headers: scrubAuthHeaders(request) } })
 }
 
 async function checkDevAuth(request: NextRequest): Promise<boolean> {
@@ -50,7 +64,13 @@ async function checkDevAuth(request: NextRequest): Promise<boolean> {
 }
 
 async function checkSupabaseAuth(request: NextRequest, pathname: string): Promise<NextResponse> {
-  let response = NextResponse.next({ request })
+  const forwardHeaders = scrubAuthHeaders(request)
+
+  // Capture cookies that Supabase wants to set during getUser() (session
+  // refresh) and apply them to the final response below, so we only build
+  // one outgoing response.
+  type CookieToSet = { name: string; value: string; options: Parameters<typeof NextResponse.prototype.cookies.set>[2] }
+  let pendingCookies: CookieToSet[] = []
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -62,10 +82,7 @@ async function checkSupabaseAuth(request: NextRequest, pathname: string): Promis
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
+          pendingCookies = cookiesToSet as CookieToSet[]
         },
       },
     }
@@ -83,6 +100,16 @@ async function checkSupabaseAuth(request: NextRequest, pathname: string): Promis
     return NextResponse.redirect(verifyUrl)
   }
 
+  // Forward the verified identity so route handlers can skip a redundant
+  // supabase.auth.getUser() round-trip. scrubAuthHeaders() above already
+  // stripped any client-supplied versions of these.
+  forwardHeaders.set('x-hearth-user-id', user.id)
+  if (user.email) forwardHeaders.set('x-hearth-user-email', user.email)
+
+  const response = NextResponse.next({ request: { headers: forwardHeaders } })
+  pendingCookies.forEach(({ name, value, options }) =>
+    response.cookies.set(name, value, options)
+  )
   return response
 }
 

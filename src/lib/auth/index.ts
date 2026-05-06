@@ -1,4 +1,5 @@
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
+import { cache } from 'react'
 import { isDevAuth, AUTH_COOKIE_NAME } from './config'
 import { verifyDevToken } from './dev-auth'
 import { createClient as createSupabaseClient } from './supabase/server'
@@ -13,12 +14,15 @@ export interface AuthUser {
   provider: string
 }
 
-export async function getCurrentUser(): Promise<AuthUser | null> {
+// React's cache() memoizes per-request, so multiple getCurrentUser() calls
+// within the same handler/page render share one result instead of each
+// hitting Supabase.
+export const getCurrentUser = cache(async (): Promise<AuthUser | null> => {
   if (isDevAuth) {
     return getDevUser()
   }
   return getSupabaseUser()
-}
+})
 
 async function getDevUser(): Promise<AuthUser | null> {
   const cookieStore = await cookies()
@@ -51,6 +55,28 @@ async function getDevUser(): Promise<AuthUser | null> {
 }
 
 async function getSupabaseUser(): Promise<AuthUser | null> {
+  // Fast path: middleware already validated the JWT and forwarded the
+  // verified email via x-hearth-user-email. Skip the Supabase round-trip
+  // and just look up the local user record. Middleware scrubs any
+  // client-supplied version of this header, so it's trustworthy here.
+  const headerStore = await headers()
+  const verifiedEmail = headerStore.get('x-hearth-user-email')
+  if (verifiedEmail) {
+    const existing = await prisma.user.findUnique({ where: { email: verifiedEmail } })
+    if (existing) {
+      return {
+        id: existing.id,
+        email: existing.email,
+        name: existing.name,
+        avatar: existing.avatar,
+        provider: existing.provider,
+      }
+    }
+    // First-time sign-in for a verified user: fall through to the slow
+    // path so we can read their full profile (name, avatar, provider) from
+    // Supabase and create the local row.
+  }
+
   const supabase = await createSupabaseClient()
   const { data: { user: supabaseUser } } = await supabase.auth.getUser()
 
