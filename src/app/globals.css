@@ -290,4 +290,32 @@ textarea,
   animation: sb-wing 0.7s ease-in-out infinite;
 }
 
+/* Paper grain filter for the diary */
+.diary-paper-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+}
+
+/* Ruled lines for the diary paper — theme-aware via CSS variable */
+.diary-ruled-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.3;
+  mix-blend-mode: multiply;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 31px,
+    color-mix(in oklab, var(--rule-color, #888), transparent 80%) 31px,
+    color-mix(in oklab, var(--rule-color, #888), transparent 80%) 32px
+  );
+}
+
 

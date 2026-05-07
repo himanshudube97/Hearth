@@ -1,34 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useThemeStore } from '@/store/theme'
 
 export default function StickyHeader() {
   const { theme } = useThemeStore()
-  const [scrollProgress, setScrollProgress] = useState(0)
-
-  useEffect(() => {
-    const handleScroll = () => {
-      // Calculate scroll progress (0 to 1) over the first 30% of viewport
-      const scrollThreshold = window.innerHeight * 0.3
-      const progress = Math.min(window.scrollY / scrollThreshold, 1)
-      setScrollProgress(progress)
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   return (
     <motion.header
       className="fixed top-0 left-0 right-0 z-50 px-6 py-4"
-      style={{
-        opacity: scrollProgress,
-        y: (1 - scrollProgress) * -20,
-        pointerEvents: scrollProgress > 0.5 ? 'auto' : 'none',
-      }}
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: 'easeOut' }}
     >
           <div
             className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3 rounded-full"

@@ -39,7 +39,15 @@ export default function Navigation() {
   const avatarLetter = nickname?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '?'
 
   return (
-    <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
+    <>
+      <Link
+        href="/"
+        className="fixed top-6 left-6 z-40 text-xs tracking-[0.3em] opacity-60 hover:opacity-100 transition"
+        style={{ color: theme.text.muted }}
+      >
+        ← HEARTH
+      </Link>
+      <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
       <div
         className="flex gap-1 p-1 rounded-full items-center"
         style={{
@@ -108,5 +116,6 @@ export default function Navigation() {
         )}
       </div>
     </nav>
+    </>
   )
 }

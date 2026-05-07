@@ -44,7 +44,7 @@ export default function DownloadPage() {
 
   return (
     <main
-      className="relative min-h-screen flex flex-col items-center justify-center px-6 py-16 overflow-hidden"
+      className="relative min-h-[calc(100vh-7rem)] flex flex-col items-center justify-center px-6 py-16 overflow-hidden"
       style={{ background: theme.bg.gradient, color: theme.text.primary }}
     >
       {/* soft accent orb */}
