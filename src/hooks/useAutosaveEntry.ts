@@ -6,6 +6,7 @@ import type { EntryStyle } from '@/lib/entry-style'
 import { useDeskStore, type AutosaveStatus } from '@/store/desk'
 import { getClientTz } from '@/lib/entry-lock-client'
 import { useE2EE } from './useE2EE'
+import { clearBadgeIfTauri } from '@/lib/desktop/badge'
 
 const DEBOUNCE_MS = 1500
 const RETRY_DELAY_MS = 2000
@@ -199,6 +200,7 @@ export function useAutosaveEntry(initialEntryId: string | null = null): UseAutos
       console.log('[hearth] autosave ←', res.status, id ?? '(new)')
 
       if (res.ok) {
+        void clearBadgeIfTauri()
         if (!id) {
           const data = await res.json()
           if (data?.id) {
