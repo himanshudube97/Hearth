@@ -44,6 +44,13 @@ export async function GET(request: NextRequest) {
   // Enabled = at least one unpaused subscription exists.
   const enabled = !!activeSub
 
+  // Backward-compat fields consumed by ReminderControls.tsx (pre-existing endpoint shape).
+  const latestSub = await prisma.pushSubscription.findFirst({
+    where: { userId: user.id },
+    orderBy: { createdAt: 'desc' },
+    select: { pausedAt: true, consecutiveIgnored: true },
+  })
+
   // Time: decrypt User.profile, look for reminderTime (string "HH:MM").
   let time: string | null = null
   const userRow = await prisma.user.findUnique({
@@ -71,5 +78,7 @@ export async function GET(request: NextRequest) {
     timezone,
     journaledToday: !!todayEntry,
     today: localDateStr(now, timezone),
+    paused: Boolean(latestSub?.pausedAt),
+    consecutiveIgnored: latestSub?.consecutiveIgnored ?? 0,
   })
 }
