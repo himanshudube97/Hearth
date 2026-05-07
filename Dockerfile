@@ -6,22 +6,19 @@ WORKDIR /app
 # Install dependencies for Prisma and native modules
 RUN apk add --no-cache openssl libc6-compat
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 # ==================== DEPS ====================
 FROM base AS deps
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
 # Install dependencies with cache mount
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 # Generate Prisma client
-RUN pnpm prisma generate
+RUN npx prisma generate
 
 # ==================== DEV ====================
 FROM base AS dev
@@ -36,7 +33,7 @@ COPY --from=deps /app/prisma ./prisma
 EXPOSE 3111
 
 # Start dev server
-CMD ["pnpm", "dev", "--hostname", "0.0.0.0", "--port", "3111"]
+CMD ["npm", "run", "dev"]
 
 # ==================== BUILDER ====================
 FROM base AS builder
@@ -52,7 +49,7 @@ COPY . .
 
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm build
+RUN npm run build
 
 # ==================== PRODUCTION ====================
 FROM base AS production
