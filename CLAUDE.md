@@ -37,6 +37,8 @@ docker compose exec app npx tsx prisma/seed.ts    # Seed data
 **Important:** Never create migrations that delete data. When modifying schema, use additive changes (new columns with defaults, new optional fields). If Prisma warns about data loss, find an alternative approach.
 
 ### Installing Packages
+**This project uses `npm` exclusively** (locally, in Docker, and on Vercel). Do not commit a `pnpm-lock.yaml` or `yarn.lock` — only `package-lock.json` is the source of truth.
+
 The container has its own `node_modules` volume (separate from host). To install packages:
 ```bash
 docker compose exec app npm install <package-name>
