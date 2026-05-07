@@ -33,7 +33,7 @@ COPY --from=deps /app/prisma ./prisma
 EXPOSE 3111
 
 # Start dev server
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--port", "3111"]
 
 # ==================== BUILDER ====================
 FROM base AS builder
