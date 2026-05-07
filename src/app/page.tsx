@@ -12,11 +12,17 @@ export default function LandingPage() {
   const { theme } = useThemeStore()
 
   useEffect(() => {
-    document.documentElement.style.scrollBehavior = 'smooth'
-    document.documentElement.style.scrollSnapType = 'y mandatory'
+    // Hand the page-level scroll over to <main> so we can use scroll-snap
+    // with predictable behavior. Restore on unmount.
+    const html = document.documentElement
+    const body = document.body
+    const prevHtmlOverflow = html.style.overflow
+    const prevBodyOverflow = body.style.overflow
+    html.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
     return () => {
-      document.documentElement.style.scrollBehavior = ''
-      document.documentElement.style.scrollSnapType = ''
+      html.style.overflow = prevHtmlOverflow
+      body.style.overflow = prevBodyOverflow
     }
   }, [])
 
@@ -26,6 +32,10 @@ export default function LandingPage() {
       style={{
         background: theme.bg.gradient,
         color: theme.text.primary,
+        height: '100vh',
+        overflowY: 'auto',
+        scrollSnapType: 'y mandatory',
+        scrollBehavior: 'smooth',
       }}
     >
       {/* Ambient Background - only shows below the fold */}
