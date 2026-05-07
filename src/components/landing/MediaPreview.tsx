@@ -8,6 +8,8 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
+import { useThemeStore } from '@/store/theme'
+import { themes, type ThemeName } from '@/lib/themes'
 
 type Palette = {
   page: string
@@ -50,7 +52,6 @@ function MockSealedLetter({ p }: { p: Palette }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
       <div style={{ position: 'relative', width: 200, height: 130 }}>
-        {/* envelope */}
         <div
           style={{
             position: 'absolute',
@@ -61,11 +62,9 @@ function MockSealedLetter({ p }: { p: Palette }) {
             boxShadow: '0 6px 14px rgba(0,0,0,0.12)',
           }}
         />
-        {/* envelope flap (V shape) */}
         <svg width="200" height="130" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
           <path d="M 0 0 L 100 70 L 200 0" stroke={p.inkQuiet} strokeWidth="1.5" fill="none" />
         </svg>
-        {/* wax seal */}
         <motion.div
           style={{
             position: 'absolute',
@@ -124,7 +123,6 @@ function MockScrapbook({ p }: { p: Palette }) {
           >
             <div style={{ width: '100%', height: 60, background: i === 1 ? p.accent + '55' : p.thread + '44', borderRadius: 1 }} />
             <div style={{ marginTop: 6, height: 3, background: p.inkQuiet, opacity: 0.5, borderRadius: 99 }} />
-            {/* washi tape strip */}
             <div
               style={{
                 position: 'absolute',
@@ -158,7 +156,6 @@ function MockConstellation({ p }: { p: Palette }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
       <svg width="200" height="120" viewBox="0 0 200 120">
-        {/* connecting lines */}
         {stars.slice(0, -1).map((s, i) => {
           const next = stars[i + 1]
           return (
@@ -199,7 +196,6 @@ function MockQuiet({ p }: { p: Palette }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
       <div style={{ position: 'relative', width: 120, height: 120 }}>
-        {/* phone outline */}
         <div
           style={{
             position: 'absolute',
@@ -209,7 +205,6 @@ function MockQuiet({ p }: { p: Palette }) {
             opacity: 0.65,
           }}
         />
-        {/* notification badge — fades and shrinks to nothing */}
         <motion.div
           style={{
             position: 'absolute',
@@ -224,7 +219,6 @@ function MockQuiet({ p }: { p: Palette }) {
           animate={{ opacity: [1, 0, 0, 1], scale: [1, 0.4, 0.4, 1] }}
           transition={{ duration: 4, repeat: Infinity, times: [0, 0.4, 0.7, 1], ease: 'easeInOut' }}
         />
-        {/* the calm dot in the middle */}
         <motion.div
           style={{
             position: 'absolute',
@@ -250,7 +244,6 @@ function MockLock({ p }: { p: Palette }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
       <svg width="100" height="120" viewBox="0 0 100 120">
-        {/* shackle */}
         <motion.path
           d="M 28 48 L 28 32 Q 28 16 50 16 Q 72 16 72 32 L 72 48"
           stroke={p.accent}
@@ -265,7 +258,6 @@ function MockLock({ p }: { p: Palette }) {
           transition={{ duration: 4, times: [0, 0.4, 1], repeat: Infinity, ease: 'easeInOut' }}
           style={{ filter: `drop-shadow(0 0 6px ${p.accent}66)` }}
         />
-        {/* body */}
         <rect x="20" y="48" width="60" height="56" rx="6" fill={p.accent} opacity="0.85" />
         <motion.circle
           cx="50"
@@ -280,153 +272,151 @@ function MockLock({ p }: { p: Palette }) {
   )
 }
 
-// VII — soft speech bubble pulsing with three dots
-function MockReflect({ p }: { p: Palette }) {
+// VII — Interactive theme switcher. Click any swatch to switch the diary's theme.
+const THEME_ORDER: ThemeName[] = ['rivendell', 'hearth', 'rose', 'sage', 'ocean', 'postal', 'linen']
+
+function MockThemeSwitcher() {
+  const themeName = useThemeStore((s) => s.themeName)
+  const setTheme = useThemeStore((s) => s.setTheme)
   return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div style={{ position: 'relative', width: 160, height: 100 }}>
-        <motion.div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: p.accent + '22',
-            border: `1.5px solid ${p.accent}66`,
-            borderRadius: 24,
-          }}
-          animate={{ scale: [1, 1.025, 1], boxShadow: [`0 0 0 0 ${p.accent}33`, `0 0 0 10px ${p.accent}00`, `0 0 0 0 ${p.accent}33`] }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        {/* tail */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: -10,
-            left: 28,
-            width: 0,
-            height: 0,
-            borderLeft: '10px solid transparent',
-            borderRight: '10px solid transparent',
-            borderTop: `12px solid ${p.accent}22`,
-          }}
-        />
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          {[0, 1, 2].map((i) => (
-            <motion.span
-              key={i}
-              style={{ width: 8, height: 8, borderRadius: '50%', background: p.accent }}
-              animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
-              transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
-            />
-          ))}
-        </div>
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+      <div style={{ display: 'flex', gap: 6 }}>
+        {THEME_ORDER.map((name) => {
+          const t = themes[name]
+          const active = name === themeName
+          return (
+            <motion.button
+              key={name}
+              type="button"
+              onClick={() => setTheme(name)}
+              aria-label={`Try ${t.name}`}
+              aria-pressed={active}
+              whileHover={{ y: -4, scale: 1.06 }}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                width: 22,
+                height: 88,
+                borderRadius: 4,
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                background: t.bg.gradient,
+                boxShadow: active
+                  ? `0 0 0 2px ${t.accent.primary}, 0 4px 14px rgba(0,0,0,0.22)`
+                  : '0 2px 8px rgba(0,0,0,0.18)',
+                transition: 'box-shadow 0.25s ease',
+                position: 'relative',
+              }}
+            >
+              {/* Tiny accent dot inside each swatch — reads as a particle */}
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '30%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 4,
+                  height: 4,
+                  borderRadius: '50%',
+                  background: t.accent.primary,
+                  boxShadow: `0 0 6px ${t.accent.primary}`,
+                  opacity: 0.85,
+                }}
+              />
+            </motion.button>
+          )
+        })}
+      </div>
+      <div
+        style={{
+          fontFamily: 'var(--font-serif), Georgia, serif',
+          fontStyle: 'italic',
+          fontSize: 11,
+          color: themes[themeName].text.muted,
+          opacity: 0.75,
+        }}
+      >
+        {themes[themeName].name}
       </div>
     </div>
   )
 }
 
-// VIII — palette swatches cycling colors (warm → cool → night)
-function MockThemes({ p }: { p: Palette }) {
-  const swatches = ['#d6b890', '#a8b890', '#7a8da8', '#3e4a64', '#2a1d2e', '#5a3d3a', '#d6b890']
+// VIII — Desktop app preview: a window frame with a tiny diary inside
+function MockDownload({ p }: { p: Palette }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
-      <div style={{ display: 'flex', gap: 6 }}>
-        {swatches.slice(0, 6).map((color, i) => (
-          <motion.div
-            key={i}
-            style={{
-              width: 18,
-              height: 84,
-              background: color,
-              borderRadius: 3,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-            }}
-            animate={{ scaleY: [1, 1.18, 1], opacity: [0.85, 1, 0.85] }}
-            transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
-          />
-        ))}
-      </div>
-      {/* glow underneath */}
+      <motion.div
+        style={{
+          position: 'relative',
+          width: 220,
+          height: 150,
+          background: p.page,
+          border: `1.5px solid ${p.inkQuiet}`,
+          borderRadius: 6,
+          boxShadow: '0 12px 28px rgba(0,0,0,0.22), 0 4px 8px rgba(0,0,0,0.10)',
+          overflow: 'hidden',
+        }}
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        {/* Title bar */}
+        <div
+          style={{
+            height: 18,
+            background: `${p.inkQuiet}22`,
+            borderBottom: `1px solid ${p.inkQuiet}55`,
+            display: 'flex',
+            alignItems: 'center',
+            paddingLeft: 8,
+            gap: 6,
+          }}
+        >
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ed6a5e' }} />
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f6c046' }} />
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#62c554' }} />
+        </div>
+        {/* "Hearth" inside the window — a tiny open diary */}
+        <div style={{ position: 'absolute', inset: '28px 22px 22px 22px', display: 'flex', gap: 6 }}>
+          <div style={{ flex: 1, background: `${p.accent}1a`, borderRadius: 2, padding: 6 }}>
+            {[0.9, 0.7, 0.85].map((w, i) => (
+              <motion.div
+                key={i}
+                style={{ height: 3, borderRadius: 99, background: p.ink, opacity: 0.4, marginBottom: 5, transformOrigin: 'left' }}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: w }}
+                transition={{ duration: 0.7, delay: 0.4 + i * 0.25, repeat: Infinity, repeatDelay: 4, repeatType: 'reverse' }}
+              />
+            ))}
+          </div>
+          <div style={{ flex: 1, background: `${p.thread}1a`, borderRadius: 2, position: 'relative' }}>
+            <motion.div
+              style={{
+                position: 'absolute',
+                inset: 8,
+                background: `linear-gradient(135deg, ${p.accent}33, ${p.thread}22)`,
+                borderRadius: 2,
+              }}
+              animate={{ opacity: [0.55, 1, 0.55] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
+        </div>
+      </motion.div>
+      {/* Soft glow underneath */}
       <motion.div
         style={{
           position: 'absolute',
-          bottom: '20%',
+          bottom: '18%',
           width: '60%',
           height: 24,
           background: `radial-gradient(ellipse, ${p.accent}55, transparent 70%)`,
           filter: 'blur(12px)',
+          pointerEvents: 'none',
         }}
-        animate={{ opacity: [0.5, 0.9, 0.5] }}
+        animate={{ opacity: [0.45, 0.85, 0.45] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       />
-    </div>
-  )
-}
-
-// IX — stack of devices (phone, tablet, laptop) — twinkling
-function MockDevices({ p }: { p: Palette }) {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div style={{ position: 'relative', width: 160, height: 110 }}>
-        {/* laptop base */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 8,
-            left: '50%',
-            translateX: '-50%',
-            width: 130,
-            height: 6,
-            background: p.inkQuiet,
-            borderRadius: 2,
-            opacity: 0.7,
-          }}
-        />
-        {/* laptop screen */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            bottom: 14,
-            left: '50%',
-            translateX: '-50%',
-            width: 110,
-            height: 70,
-            border: `2px solid ${p.inkQuiet}`,
-            borderRadius: 4,
-            background: p.accent + '22',
-          }}
-          animate={{ background: [`${p.accent}1a`, `${p.accent}44`, `${p.accent}1a`] }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        {/* phone */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            bottom: 30,
-            right: -8,
-            width: 28,
-            height: 50,
-            border: `1.5px solid ${p.inkQuiet}`,
-            borderRadius: 4,
-            background: p.thread + '33',
-          }}
-          animate={{ y: [0, -3, 0] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        {/* twinkle */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            top: 16,
-            left: 28,
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: p.accent,
-          }}
-          animate={{ opacity: [0, 1, 0], scale: [0.6, 1.4, 0.6] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      </div>
     </div>
   )
 }
@@ -438,12 +428,13 @@ const MOCKS: Record<string, React.FC<{ p: Palette }>> = {
   IV: MockConstellation,
   V: MockQuiet,
   VI: MockLock,
-  VII: MockReflect,
-  VIII: MockThemes,
-  IX: MockDevices,
+  VIII: MockDownload,
 }
 
 export default function MediaPreview({ n, palette }: { n: string; palette: Palette }) {
+  // VII is the interactive theme switcher — special-cased because it talks
+  // to the global theme store directly (no palette prop needed).
+  if (n === 'VII') return <MockThemeSwitcher />
   const Mock = MOCKS[n] ?? MockJournalText
   return <Mock p={palette} />
 }

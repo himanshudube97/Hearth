@@ -572,83 +572,48 @@ export default function Diary() {
             rotateY: tilt.rotateY,
           }}
         >
-          {/* Outer accent ring */}
+          {/* Brown leather frame — uniform on all four sides. */}
           <div
+            aria-hidden
             style={{
               position: 'absolute',
-              inset: -3,
+              inset: -14,
               borderRadius: 6,
-              background: `linear-gradient(135deg, ${palette.accent}55 0%, ${palette.thread}33 50%, ${palette.accent}55 100%)`,
-              filter: 'blur(6px)',
-              opacity: 0.55,
-              transform: 'translateZ(-3px)',
+              background: '#3e2718',
+              backgroundImage:
+                'repeating-linear-gradient(45deg, rgba(0,0,0,0.08) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, rgba(0,0,0,0.06) 0 1px, transparent 1px 5px)',
+              boxShadow:
+                'inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 0 30px rgba(0,0,0,0.45), 0 30px 60px -18px rgba(0,0,0,0.55), 0 12px 24px -10px rgba(0,0,0,0.3)',
+              transform: 'translateZ(-2px)',
             }}
           />
-
-          {/* Soft halo underneath */}
+          {/* Inset gilt-line on the leather frame */}
           <div
+            aria-hidden
             style={{
               position: 'absolute',
-              left: '4%',
-              right: '4%',
-              bottom: -42,
-              height: 72,
-              background: `radial-gradient(50% 50% at 50% 50%, ${palette.accent}55, transparent 70%)`,
-              filter: 'blur(14px)',
+              inset: -4,
+              borderRadius: 3,
+              border: '1px solid rgba(0,0,0,0.4)',
+              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)',
+              pointerEvents: 'none',
               transform: 'translateZ(-1px)',
             }}
           />
 
           <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d' }}>
-            {/* Page-stack edge */}
-            <div
-              style={{
-                position: 'absolute',
-                inset: -4,
-                borderRadius: 4,
-                background: `linear-gradient(180deg, ${palette.pageEdge} 0%, ${palette.page} 8%, ${palette.page} 92%, ${palette.pageEdge} 100%)`,
-                boxShadow: `0 1px 0 ${palette.pageEdge}, 0 2px 0 ${palette.pageEdge}, 0 30px 60px -20px rgba(0,0,0,.4)`,
-                transform: 'translateZ(-2px)',
-              }}
-            />
-
             {/* The spread */}
             <div
               style={{
                 position: 'absolute',
                 inset: 0,
                 background: palette.page,
-                boxShadow: `
-                  inset 0 0 0 1px ${palette.accent}26,
-                  inset 0 0 80px ${palette.pageEdge}55,
-                  0 0 24px ${palette.accent}14,
-                  0 18px 40px -12px rgba(0,0,0,.35)
-                `,
+                boxShadow: `inset 0 0 80px ${palette.pageEdge}44, 0 18px 40px -12px rgba(0,0,0,.35)`,
                 display: 'flex',
                 overflow: 'hidden',
                 borderRadius: 2,
               }}
             >
-              {/* Cursor light spot */}
-              <motion.div
-                aria-hidden
-                style={{
-                  position: 'absolute',
-                  width: 360,
-                  height: 360,
-                  borderRadius: '50%',
-                  background: `radial-gradient(circle, ${palette.accent}33 0%, transparent 60%)`,
-                  filter: 'blur(40px)',
-                  pointerEvents: 'none',
-                  left: tilt.lightX,
-                  top: tilt.lightY,
-                  x: '-50%',
-                  y: '-50%',
-                  mixBlendMode: 'soft-light',
-                  zIndex: 1,
-                }}
-              />
-
               <AnimatePresence mode="wait" custom={dir}>
                 <motion.div
                   key={idx}
