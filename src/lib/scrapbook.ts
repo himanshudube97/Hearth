@@ -481,6 +481,13 @@ const PAPER_PRESETS: Record<ThemeName, PaperPreset> = {
     highlight: 'rgba(255, 248, 230, 0.45)',
     shadow: 'rgba(110, 85, 45, 0.09)',
   },
+  // golden-hour peach — warm paper kissed by sunset light
+  sunset: {
+    base: '#f4d4b0',
+    grain: 'rgba(160, 70, 40, 0.06)',
+    highlight: 'rgba(255, 230, 200, 0.48)',
+    shadow: 'rgba(150, 60, 40, 0.12)',
+  },
 }
 
 export function paperForTheme(themeName: ThemeName): PaperPreset {

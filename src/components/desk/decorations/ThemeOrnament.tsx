@@ -104,6 +104,33 @@ const ornaments: Record<ThemeName, React.ReactNode> = {
       <line x1="19" y1="24" x2="16" y2="21" stroke="currentColor" strokeWidth="0.7" />
     </>
   ),
+  sunset: (
+    <>
+      {/* Half-sun on the horizon */}
+      <path
+        d="M6 20 A 10 10 0 0 1 26 20"
+        fill="currentColor"
+        opacity="0.9"
+      />
+      {/* Horizon line */}
+      <line
+        x1="3"
+        y1="20"
+        x2="29"
+        y2="20"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      {/* Three rays above the sun */}
+      <line x1="16" y1="6" x2="16" y2="9" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
+      <line x1="9" y1="9" x2="11" y2="11" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" />
+      <line x1="23" y1="9" x2="21" y2="11" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" />
+      {/* Reflection ripples below */}
+      <line x1="9" y1="24" x2="23" y2="24" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" opacity="0.6" />
+      <line x1="11" y1="27" x2="21" y2="27" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" opacity="0.45" />
+    </>
+  ),
 }
 
 interface ThemeOrnamentProps {

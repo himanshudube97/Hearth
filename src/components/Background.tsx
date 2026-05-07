@@ -812,6 +812,7 @@ function BackgroundComponent({ bounded = false }: BackgroundProps = {}) {
   const isCherryBlossom = theme.particles === 'sakura'
   const isCandlelight = theme.particles === 'dust'
   const isOceanTwilight = theme.particles === 'foam'
+  const isSunset = theme.ambience === 'sunset'
 
   return (
     <div className={`${bounded ? 'absolute' : 'fixed'} inset-0 overflow-hidden pointer-events-none`}>
@@ -1045,6 +1046,63 @@ function BackgroundComponent({ bounded = false }: BackgroundProps = {}) {
             animate={{ opacity: [0.6, 0.8, 0.6], scale: [1, 1.05, 1] }}
             transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
           />
+        </>
+      )}
+
+      {/* Sunset ambience — warm sun, horizon haze, drifting silhouette birds */}
+      {isSunset && (
+        <>
+          {/* Soft sun disc, low on the horizon */}
+          <motion.div
+            className="absolute"
+            style={{
+              top: '38%',
+              left: '70%',
+              width: '220px',
+              height: '220px',
+              background: 'radial-gradient(circle, rgba(255, 220, 150, 0.55) 0%, rgba(255, 180, 110, 0.35) 35%, rgba(240, 130, 90, 0.15) 60%, transparent 80%)',
+              borderRadius: '50%',
+              filter: 'blur(2px)',
+            }}
+            animate={{ opacity: [0.85, 1, 0.85], scale: [1, 1.04, 1] }}
+            transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Wide warm horizon glow */}
+          <motion.div
+            className="absolute"
+            style={{
+              bottom: '20%',
+              left: '-5%',
+              width: '110%',
+              height: '32%',
+              background: 'linear-gradient(180deg, transparent 0%, rgba(255, 168, 110, 0.18) 45%, rgba(232, 110, 80, 0.10) 100%)',
+              filter: 'blur(40px)',
+            }}
+            animate={{ opacity: [0.55, 0.8, 0.55] }}
+            transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Long golden ray */}
+          <motion.div
+            className="absolute"
+            style={{
+              top: '20%',
+              left: '40%',
+              width: '50%',
+              height: '40%',
+              background: 'linear-gradient(120deg, transparent 0%, rgba(255, 210, 150, 0.10) 40%, transparent 80%)',
+              filter: 'blur(30px)',
+              transformOrigin: 'top right',
+            }}
+            animate={{ opacity: [0.4, 0.65, 0.4] }}
+            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Distant silhouette birds drifting across the sky */}
+          <FlyingBird delay={5} yPosition={22} />
+          <FlyingBird delay={20} yPosition={28} />
+          <FlyingBird delay={42} yPosition={18} />
         </>
       )}
 

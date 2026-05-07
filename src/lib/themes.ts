@@ -8,6 +8,7 @@ export type ThemeName =
   | 'ocean'
   | 'postal'
   | 'linen'
+  | 'sunset'
 
 export interface Theme {
   name: string
@@ -44,7 +45,7 @@ export interface Theme {
   moodEmojis: string[]
   moodLabels: string[]
   particles: 'fireflies' | 'embers' | 'goldFlecks' | 'leaves' | 'sakura' | 'sunbeam' | 'foam' | 'mist' | 'dust'
-  ambience: 'forest' | 'firelight' | 'rose' | 'sage' | 'ocean' | 'postal' | 'linen'
+  ambience: 'forest' | 'firelight' | 'rose' | 'sage' | 'ocean' | 'postal' | 'linen' | 'sunset'
   /** Optional per-theme override for the hardcover frame around the
    *  spread. When unset, the cover falls back to a darkened version
    *  of `accent.primary`. */
@@ -328,6 +329,46 @@ export const linenTheme: Theme = {
   ambience: 'linen',
 }
 
+// Sunset — golden hour, warm peach paper, drifting sun motes
+export const sunsetTheme: Theme = {
+  name: 'Sunset',
+  description: 'Golden hour over distant hills',
+  mode: 'light',
+  bg: {
+    primary: '#FFD2A8',
+    secondary: '#F4A57E',
+    gradient: 'linear-gradient(180deg, #FFE2BC 0%, #FFB888 35%, #F08A6B 65%, #B85E5C 100%)',
+  },
+  text: {
+    primary: '#3A1F26',
+    secondary: '#6E4248',
+    muted: '#9A7078',
+  },
+  accent: {
+    primary: '#C8472D',
+    secondary: '#A53A20',
+    warm: '#E8945A',
+    highlight: '#FFC890',
+  },
+  glass: {
+    bg: 'rgba(255, 222, 198, 0.68)',
+    border: 'rgba(200, 71, 45, 0.18)',
+    blur: '24px',
+  },
+  moods: {
+    0: '#7A5A58',
+    1: '#9A7068',
+    2: '#C8472D',
+    3: '#E8945A',
+    4: '#FFC890',
+  },
+  moodEmojis: ['☁️', '🌥️', '🌇', '🌅', '✨'],
+  moodLabels: ['Heavy', 'Low', 'Okay', 'Good', 'Radiant'],
+  particles: 'sunbeam',
+  ambience: 'sunset',
+  cover: '#A04030',
+}
+
 export const themes: Record<ThemeName, Theme> = {
   rose: roseTheme,
   sage: sageTheme,
@@ -336,6 +377,7 @@ export const themes: Record<ThemeName, Theme> = {
   rivendell: rivendellTheme,
   hearth: hearthTheme,
   linen: linenTheme,
+  sunset: sunsetTheme,
 }
 
 // Time-based greetings

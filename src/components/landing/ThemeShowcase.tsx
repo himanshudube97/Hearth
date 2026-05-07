@@ -13,6 +13,7 @@ const themeList: { key: ThemeName; emoji: string }[] = [
   { key: 'postal', emoji: '✉️' },
   { key: 'ocean', emoji: '🌊' },
   { key: 'rivendell', emoji: '🌲' },
+  { key: 'sunset', emoji: '🌅' },
 ]
 
 export default function ThemeShowcase() {

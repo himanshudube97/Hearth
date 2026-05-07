@@ -37,6 +37,7 @@ const themeStamps: Record<ThemeName, { icon: string; color: string }> = {
   ocean: { icon: '🌊', color: '#2C5260' },
   postal: { icon: '✉️', color: '#1F2750' },
   linen: { icon: '🕊️', color: '#A85530' },
+  sunset: { icon: '🌅', color: '#C8472D' },
 }
 
 // Floating sparkle particles for reading phase

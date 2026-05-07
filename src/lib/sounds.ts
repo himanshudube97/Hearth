@@ -8,6 +8,7 @@ export const ambientSources: Record<Theme['ambience'], string | null> = {
   ocean: '/sounds/ambient/ocean.mp3',
   postal: null,
   linen: null,
+  sunset: null,
 }
 
 export type SfxName = 'pageTurn'
