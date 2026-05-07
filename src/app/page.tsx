@@ -13,8 +13,10 @@ export default function LandingPage() {
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = 'smooth'
+    document.documentElement.style.scrollSnapType = 'y mandatory'
     return () => {
       document.documentElement.style.scrollBehavior = ''
+      document.documentElement.style.scrollSnapType = ''
     }
   }, [])
 

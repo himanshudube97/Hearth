@@ -8,7 +8,10 @@ export default function FooterCTA() {
   const { theme } = useThemeStore()
 
   return (
-    <section className="py-32 px-6 relative overflow-hidden">
+    <section
+      className="min-h-screen py-32 px-6 relative overflow-hidden flex items-center justify-center"
+      style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}
+    >
       {/* Ambient Background Glow */}
       <div className="absolute inset-0 pointer-events-none">
         <motion.div

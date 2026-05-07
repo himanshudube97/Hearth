@@ -10,10 +10,12 @@ export default function DiarySection() {
 
   return (
     <section
-      className="relative overflow-hidden flex items-center justify-center px-6 py-24"
+      className="relative min-h-screen overflow-hidden flex items-center justify-center px-6 py-16"
       style={{
         background: theme.bg.gradient,
         color: theme.text.primary,
+        scrollSnapAlign: 'start',
+        scrollSnapStop: 'always',
       }}
     >
       {/* Theme particle layer */}
