@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useLayoutMode } from '@/hooks/useMediaQuery'
 import BookSpread from './BookSpread'
+import WhisperFooter from './WhisperFooter'
 
 // Pre-generate random particle data at module level to keep render pure
 const DUST_PARTICLES = Array.from({ length: 12 }, () => ({
@@ -101,6 +102,15 @@ export default function DeskScene() {
         <MobileJournalEntry onClose={handleMobileClose} />
       ) : (
         <>
+          {/* Whisper line — anchored just below the global navbar so it
+              hovers above the diary as a quiet header. */}
+          <div
+            className="absolute left-0 right-0 z-30 flex justify-center pointer-events-none"
+            style={{ top: '70px' }}
+          >
+            <WhisperFooter color={theme.text.muted} />
+          </div>
+
           {/* Book - center.
               `top` uses max() so on short viewports the book stays
               anchored ~100px below the page top, keeping the global

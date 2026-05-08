@@ -11,7 +11,7 @@ import RightPage, { type RightPageHandle } from './RightPage'
 import { RibbonBookmark } from './interactive/RibbonBookmark'
 import RibbonTag from './interactive/RibbonTag'
 import ThemeOrnament from './decorations/ThemeOrnament'
-import WhisperFooter from './WhisperFooter'
+import PromptCard from './PromptCard'
 import SpineOrnaments from './SpineOrnaments'
 import DateTabRail from './DateTabRail'
 import { StrokeData, useJournalStore } from '@/store/journal'
@@ -562,9 +562,9 @@ export default function BookSpread() {
         </RibbonBookmark>
 
         {/* Whisper + ornaments below the spread */}
-        <div className="absolute -bottom-12 left-0 right-0 flex items-center justify-center gap-4 pointer-events-none z-10">
+        <div className="absolute -bottom-20 left-0 right-0 flex items-center justify-center gap-4 pointer-events-none z-10">
           <ThemeOrnament themeName={themeName} color={colors.ribbon} size={28} flip />
-          <WhisperFooter color={colors.prompt} />
+          <PromptCard color={colors.prompt} />
           <ThemeOrnament themeName={themeName} color={colors.ribbon} size={28} />
         </div>
 
