@@ -491,18 +491,59 @@ export default function BookSpread() {
     : null
   const spreadDate = visibleEntry ? new Date(visibleEntry.createdAt) : new Date()
 
-  // Share-capture target: prefer the spread's visible entry, but fall back
-  // to the autosaved draft when the user is on the new-entry spread that's
-  // bound to a freshly-saved draft. Without the fallback the camera would
-  // never appear while authoring a new entry.
-  const shareEntry = visibleEntry
-    ?? (autosave.entryId ? entries.find((e) => e.id === autosave.entryId) ?? null : null)
-  const shareDate = shareEntry ? new Date(shareEntry.createdAt) : new Date()
+  // Share-capture target: lazy resolution at click-time so we can read the
+  // current draft from the desk store without subscribing to it (which
+  // would re-render BookSpread on every keystroke and tear down the
+  // flipbook). Three cases, in priority order:
+  //   1. The spread is showing a saved entry (visibleEntry).
+  //   2. The new-entry spread has been autosaved → use that saved entry.
+  //   3. The new-entry spread has live draft text/photos but no save yet
+  //      → synthesize a JournalEntry from the desk store + pendingPhotos.
+  const resolveShareCardContent = (): React.ReactNode => {
+    const JE = (e: unknown) => e as import('@/store/journal').JournalEntry
+
+    if (visibleEntry) {
+      return <JournalShareCard entry={JE(visibleEntry)} />
+    }
+
+    const savedDraft = autosave.entryId
+      ? entries.find((e) => e.id === autosave.entryId)
+      : null
+    if (savedDraft) {
+      return <JournalShareCard entry={JE(savedDraft)} />
+    }
+
+    const desk = useDeskStore.getState()
+    const text = combineDraftHtml(desk.leftPageDraft, desk.rightPageDraft)
+    const livePhotos = pendingPhotosRef.current
+    const hasContent = desk.leftPageDraft.trim().length > 0
+      || desk.rightPageDraft.trim().length > 0
+      || livePhotos.length > 0
+    if (!hasContent) return null
+
+    const synthetic = {
+      id: autosave.entryId ?? 'draft',
+      text,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: [],
+      doodles: [],
+      photos: livePhotos.map((p) => ({
+        id: p.id,
+        url: p.url,
+        rotation: p.rotation,
+        position: p.position,
+        spread: 0,
+      })),
+      style: desk.entryStyleDraft,
+    }
+    return <JournalShareCard entry={JE(synthetic)} />
+  }
 
   const { CameraButton: ShareCameraButton, Capture: ShareCapture } = useShareableCapture({
-    cardContent: shareEntry ? <JournalShareCard entry={shareEntry as import('@/store/journal').JournalEntry} /> : null,
+    cardContent: resolveShareCardContent,
     surface: 'diary',
-    date: shareDate,
+    date: spreadDate,
   })
 
   return (

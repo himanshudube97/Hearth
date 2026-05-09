@@ -14,8 +14,14 @@ const BUTTERFLY_HUES = [0, -55, 200, 280, 95]
 type Phase = 'closed' | 'butterfly' | 'preview'
 
 interface UseShareableCaptureOptions {
-  /** The composed off-screen card (e.g. <JournalShareCard entry={...} />). */
-  cardContent: React.ReactNode
+  /**
+   * The composed off-screen card to capture. Either a static ReactNode
+   * (e.g. `<JournalShareCard entry={savedEntry} />`) or a lazy function
+   * that returns one — the function form is read at click time so it can
+   * pull from external state stores (like draft text) without forcing the
+   * caller to re-render on every keystroke.
+   */
+  cardContent: React.ReactNode | (() => React.ReactNode)
   surface: ShareSurface
   /** Date used for filename + (if shown) the frame footer. */
   date: Date
@@ -29,6 +35,11 @@ export function useShareableCapture({ cardContent, surface, date }: UseShareable
   const [imageBlob, setImageBlob] = useState<Blob | null>(null)
   const [captureError, setCaptureError] = useState(false)
   const [mounted, setMounted] = useState(false)
+  // Resolved off-screen content at the moment open() was called. Held in
+  // state so the off-screen container renders the same JSX through both
+  // the butterfly and preview phases, even if the lazy function would
+  // produce different output on a later read.
+  const [resolvedCard, setResolvedCard] = useState<React.ReactNode>(null)
   const offscreenRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -53,13 +64,15 @@ export function useShareableCapture({ cardContent, surface, date }: UseShareable
   }, [imageUrl])
 
   const open = useCallback(async () => {
-    // Bail early when there's nothing to capture — opening a butterfly that
-    // can never resolve would just feel like a dead-end.
-    if (!cardContent) {
+    // Resolve the lazy form (if any) so we read fresh state at click-time
+    // rather than at the parent's render-time.
+    const card = typeof cardContent === 'function' ? cardContent() : cardContent
+    if (!card) {
       console.warn('[share] no cardContent — nothing to capture')
       return
     }
 
+    setResolvedCard(card)
     setCaptureError(false)
     setImageUrl(null)
     setImageBlob(null)
@@ -145,7 +158,7 @@ export function useShareableCapture({ cardContent, surface, date }: UseShareable
             pointerEvents: 'none',
           }}
         >
-          {cardContent}
+          {resolvedCard}
         </div>
       )}
 
