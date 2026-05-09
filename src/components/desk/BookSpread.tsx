@@ -117,7 +117,6 @@ export default function BookSpread() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flipBookRef = useRef<any>(null)
   const diaryRootRef = useRef<HTMLDivElement>(null)
-  const spreadCaptureRef = useRef<HTMLDivElement>(null)
 
   const autosave = useAutosaveEntry()
   const autosaveRef = useRef(autosave)
@@ -491,15 +490,17 @@ export default function BookSpread() {
     : null
   const spreadDate = visibleEntry ? new Date(visibleEntry.createdAt) : new Date()
 
-  // Share-capture: snapshot the live spread DOM directly. Off-screen
-  // synthesis was fragile here because LeftPage/RightPage rely on parent
-  // contexts (flipbook, desk refs) that don't exist outside their real
-  // mount point — they silently render null off-screen. Capturing the
-  // live element is also literally what the user is looking at.
+  // Share-capture: snapshot the live diary DOM directly. We target
+  // diaryRootRef (outermost wrapper) so the captured image includes the
+  // wooden book cover, the date-tab rail, and ribbon — the full diary,
+  // not just the inner spread. The result is wrapped in a polaroid frame
+  // (white border + caption strip) for a marketing-friendly share asset.
+  const polaroidCaption = `${spreadDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · hearth`
   const { CameraButton: ShareCameraButton, Capture: ShareCapture } = useShareableCapture({
-    captureTarget: () => spreadCaptureRef.current,
+    captureTarget: () => diaryRootRef.current,
     surface: 'diary',
     date: spreadDate,
+    polaroidCaption,
   })
 
   return (
@@ -542,7 +543,6 @@ export default function BookSpread() {
           in alone before the pages. */}
       {!loading && (
       <motion.div
-        ref={spreadCaptureRef}
         className="relative"
         style={{
           width: `${PAGE_WIDTH * 2}px`,

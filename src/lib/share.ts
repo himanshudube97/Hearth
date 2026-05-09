@@ -95,6 +95,80 @@ export function downloadBlob(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
+/**
+ * Wrap a captured PNG inside a polaroid-style frame: white border, thicker
+ * bottom strip with a handwritten-feel caption. Returns a new PNG blob.
+ *
+ * Pure canvas — no DOM dependency — so it can run after a live-DOM capture
+ * without re-introducing the parent-context fragility we saw when synthesizing
+ * the diary off-screen.
+ */
+export async function wrapInPolaroid(
+  sourceBlob: Blob,
+  caption: string,
+): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(sourceBlob)
+    const img = new Image()
+    img.onload = () => {
+      try {
+        const SIDE = Math.round(img.width * 0.04) // ~4% of width
+        const TOP = SIDE
+        const BOTTOM = Math.round(img.height * 0.16) // thicker bottom strip
+        const W = img.width + SIDE * 2
+        const H = img.height + TOP + BOTTOM
+
+        const canvas = document.createElement('canvas')
+        canvas.width = W
+        canvas.height = H
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl)
+          resolve(null)
+          return
+        }
+
+        // Off-white paper background
+        ctx.fillStyle = '#fbfaf6'
+        ctx.fillRect(0, 0, W, H)
+
+        // Very subtle paper grain via radial vignette in the corners
+        const grad = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.1, W / 2, H / 2, Math.max(W, H) * 0.7)
+        grad.addColorStop(0, 'rgba(0,0,0,0)')
+        grad.addColorStop(1, 'rgba(0,0,0,0.04)')
+        ctx.fillStyle = grad
+        ctx.fillRect(0, 0, W, H)
+
+        // The captured diary image
+        ctx.drawImage(img, SIDE, TOP)
+
+        // Caption in the bottom strip — caveat-style cursive feel via Georgia italic
+        const fontSize = Math.round(BOTTOM * 0.30)
+        ctx.fillStyle = '#5a4a3e'
+        ctx.font = `italic ${fontSize}px "Caveat", "Georgia", serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        const captionY = TOP + img.height + BOTTOM / 2
+        ctx.fillText(caption, W / 2, captionY)
+
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(objectUrl)
+          resolve(blob)
+        }, 'image/png')
+      } catch (err) {
+        console.error('[share] polaroid wrap failed', err)
+        URL.revokeObjectURL(objectUrl)
+        resolve(null)
+      }
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(null)
+    }
+    img.src = objectUrl
+  })
+}
+
 /** `hearth-diary-2026-05-09.png` */
 export function makeShareFilename(surface: ShareSurface, date: Date): string {
   const yyyy = date.getFullYear()

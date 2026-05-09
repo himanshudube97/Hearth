@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Plant } from '@/components/constellation/garden/Plant'
 import { useThemeStore } from '@/store/theme'
-import { captureToBlob, downloadBlob, makeShareFilename, shareOrDownload, type ShareSurface } from '@/lib/share'
+import { captureToBlob, downloadBlob, makeShareFilename, shareOrDownload, wrapInPolaroid, type ShareSurface } from '@/lib/share'
 import CameraIcon from './CameraIcon'
 
 // Hue rotations matching PromptCard's butterfly palette.
@@ -34,9 +34,15 @@ interface UseShareableCaptureOptions {
   surface: ShareSurface
   /** Date used for filename + (if shown) the frame footer. */
   date: Date
+  /**
+   * If provided, the captured PNG is wrapped in a Polaroid frame with this
+   * caption in the bottom strip (e.g. "May 9, 2026 · hearth"). The wrapped
+   * blob is what gets shared/downloaded — the original is discarded.
+   */
+  polaroidCaption?: string
 }
 
-export function useShareableCapture({ cardContent, captureTarget, surface, date }: UseShareableCaptureOptions) {
+export function useShareableCapture({ cardContent, captureTarget, surface, date, polaroidCaption }: UseShareableCaptureOptions) {
   const { theme } = useThemeStore()
   const [phase, setPhase] = useState<Phase>('closed')
   const [butterflyHue, setButterflyHue] = useState(0)
@@ -112,14 +118,20 @@ export function useShareableCapture({ cardContent, captureTarget, surface, date 
       return
     }
 
-    const blob = await captureToBlob(target)
-    if (!blob) {
+    const rawBlob = await captureToBlob(target)
+    if (!rawBlob) {
       setCaptureError(true)
       return
     }
-    setImageBlob(blob)
-    setImageUrl(URL.createObjectURL(blob))
-  }, [cardContent, captureTarget])
+
+    // Optional polaroid wrap. Falls back to the raw capture if wrapping fails.
+    const finalBlob = polaroidCaption
+      ? (await wrapInPolaroid(rawBlob, polaroidCaption)) ?? rawBlob
+      : rawBlob
+
+    setImageBlob(finalBlob)
+    setImageUrl(URL.createObjectURL(finalBlob))
+  }, [cardContent, captureTarget, polaroidCaption])
 
   const close = useCallback(() => {
     setPhase('closed')
