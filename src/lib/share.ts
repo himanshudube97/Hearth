@@ -43,7 +43,11 @@ export async function captureToBlob(element: HTMLElement): Promise<Blob | null> 
 
     const blob = await toBlob(element, {
       pixelRatio: 2,
-      cacheBust: true,
+      // cacheBust appends `?timestamp` to image URLs, which breaks the
+      // blob: URLs that usePhotoSrc returns for E2EE-decrypted photos.
+      // Photos are already same-origin and freshly fetched, so caching
+      // isn't a concern here.
+      cacheBust: false,
       backgroundColor: undefined, // let the frame paint its own background
     })
     if (!blob) {
