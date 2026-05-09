@@ -101,12 +101,13 @@ export function useShareableCapture({ cardContent, surface, date }: UseShareable
     <button
       type="button"
       onClick={open}
+      disabled={phase !== 'closed'}
       aria-label="Share this page"
       style={{
         background: 'transparent',
         border: 'none',
         padding: 8,
-        cursor: 'pointer',
+        cursor: phase !== 'closed' ? 'default' : 'pointer',
         color: theme.text.muted,
         opacity: 0.55,
         transition: 'opacity 0.2s ease',
