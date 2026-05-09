@@ -83,7 +83,7 @@ export default function DeskSettingsPanel() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: '110%', opacity: 0 }}
               transition={{ type: 'spring', stiffness: 280, damping: 32 }}
-              className="fixed top-0 right-0 z-50 h-full w-[360px] flex flex-col"
+              className="fixed top-0 right-0 z-50 h-full w-full max-w-90 flex flex-col"
               style={{
                 background: theme.glass.bg,
                 backdropFilter: `blur(${theme.glass.blur})`,

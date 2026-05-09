@@ -1,11 +1,11 @@
 // src/components/desk/MobileJournalEntry.tsx
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence, PanInfo } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useJournalStore, StrokeData } from '@/store/journal'
-import { JOURNAL, getMobileWritingLinesPerPage, getMobileCharsPerPage } from '@/lib/journal-constants'
+import { JOURNAL, getMobileWritingLinesPerPage, getMobileTotalWritingPages, countVisualLines } from '@/lib/journal-constants'
 import { htmlToPlainText } from '@/lib/text-utils'
 import { getRandomPrompt } from '@/lib/themes'
 import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
@@ -13,7 +13,9 @@ import SongEmbed from '@/components/SongEmbed'
 import PhotoBlock from './PhotoBlock'
 import CompactDoodleCanvas from './CompactDoodleCanvas'
 import EntrySelector from './EntrySelector'
-import { getClientTz } from '@/lib/entry-lock-client'
+import { getClientTz, isEntryLocked } from '@/lib/entry-lock-client'
+import { useAutosaveEntry } from '@/hooks/useAutosaveEntry'
+import { useDeskStore, type AutosaveStatus } from '@/store/desk'
 import { useE2EE } from '@/hooks/useE2EE'
 import type { JournalEntry } from '@/store/journal'
 
@@ -40,30 +42,53 @@ interface MobileJournalEntryProps {
 }
 
 /**
- * Split a string into N pages of `charsPerPage` characters, breaking on the
- * last whitespace before the boundary when possible (so words don't split).
- * Returns at minimum one (possibly empty) page.
+ * Split a string into pages capped at `linesPerPage` visual lines each,
+ * where a line counts both manual `\n` breaks and the natural soft-wrap at
+ * `charsPerLine` chars. Breaks on the last whitespace before the boundary
+ * so words don't split mid-page.
+ *
+ * Why visual-line based and not char-count: a user typing many newlines
+ * (poetry, lists) fills a page visually well before they hit any char cap,
+ * and we want pagination to fire when the page LOOKS full, not when an
+ * arbitrary char counter trips.
  */
-function paginate(text: string, charsPerPage: number): string[] {
+function paginate(text: string, linesPerPage: number, charsPerLine: number): string[] {
   if (text.length === 0) return ['']
   const pages: string[] = []
   let i = 0
   while (i < text.length) {
-    let end = Math.min(i + charsPerPage, text.length)
-    if (end < text.length) {
-      const slice = text.slice(i, end)
-      const lastBreak = Math.max(
-        slice.lastIndexOf('\n'),
-        slice.lastIndexOf(' '),
-      )
-      if (lastBreak > charsPerPage * 0.5) {
-        end = i + lastBreak + 1
+    // Binary search for the largest j such that text.slice(i, j) fits.
+    let lo = i + 1
+    let hi = text.length
+    let best = i + 1
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1
+      if (countVisualLines(text.slice(i, mid), charsPerLine) <= linesPerPage) {
+        best = mid
+        lo = mid + 1
+      } else {
+        hi = mid - 1
       }
     }
-    pages.push(text.slice(i, end))
-    i = end
+    let j = best
+    if (j < text.length) {
+      const slice = text.slice(i, j)
+      const lastBreak = Math.max(slice.lastIndexOf('\n'), slice.lastIndexOf(' '))
+      if (lastBreak > 0 && lastBreak > slice.length * 0.5) {
+        j = i + lastBreak + 1
+      }
+    }
+    if (j <= i) j = i + 1 // safety: always advance
+    pages.push(text.slice(i, j))
+    i = j
   }
   return pages.length === 0 ? [''] : pages
+}
+
+/** Pad a pages array up to `min` entries with empty strings. */
+function padPages(pages: string[], min: number): string[] {
+  if (pages.length >= min) return pages
+  return [...pages, ...Array.from({ length: min - pages.length }, () => '')]
 }
 
 export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps) {
@@ -87,20 +112,44 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
   }, [])
 
   const linesPerPage = getMobileWritingLinesPerPage(viewportHeight)
-  const charsPerPage = getMobileCharsPerPage(linesPerPage)
+  const totalWritingPages = getMobileTotalWritingPages(linesPerPage)
+  const charsPerLine = JOURNAL.CHARS_PER_LINE
 
   const [entries, setEntries] = useState<Entry[]>([])
   const [todayEntries, setTodayEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
   const { decryptEntriesFromServer, isE2EEReady } = useE2EE()
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
-  const [pages, setPages] = useState<string[]>([''])
+  // Initial pages array padded to totalWritingPages so the user sees all
+  // their available "diary pages" as dots from the moment they open a fresh
+  // entry — same up-front sense as the desktop's left+right page pair.
+  const [pages, setPages] = useState<string[]>(() =>
+    Array.from({ length: getMobileTotalWritingPages(getMobileWritingLinesPerPage(
+      typeof window !== 'undefined' ? window.innerHeight : 720
+    )) }, () => '')
+  )
   const [activePage, setActivePage] = useState(0)
   const [songInput, setSongInput] = useState(currentSong || '')
   const [pendingPhotos, setPendingPhotos] = useState<Photo[]>([])
-  const [saving, setSaving] = useState(false)
-  const [showSaved, setShowSaved] = useState(false)
   const [prompt, setPrompt] = useState('')
+
+  const autosave = useAutosaveEntry(null)
+  const { trigger: autosaveTrigger, flush: autosaveFlush, reset: autosaveReset } = autosave
+  const autosaveStatus = useDeskStore((s) => s.autosaveStatus)
+
+  // Auto-load gating + hydration gating. Refs because they don't need to
+  // trigger re-renders.
+  const hasAutoLoadedRef = useRef(false)
+  const lastHydratedIdRef = useRef<string | null>(null)
+  // Skip the first autosave trigger right after we hydrate from server data —
+  // it would just PUT the same content back to the server.
+  const skipNextAutosaveRef = useRef(false)
+  // Set when forward-typing pushed text into a new page. Picked up by the
+  // focus effect to move the cursor onto the freshly-advanced page.
+  const justAutoAdvancedRef = useRef(false)
+  // Ref to the currently-mounted writing textarea (only one is mounted at a
+  // time — AnimatePresence mode="wait" unmounts the previous page).
+  const writingTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   const photosDoodleIndex = pages.length // last "page" (synthetic)
   const totalPages = pages.length + 1
@@ -141,18 +190,146 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
   const currentEntry = currentEntryId
     ? entries.find(e => e.id === currentEntryId) || null
     : null
-  const isNewEntry = currentEntryId === null
+  const isPastEntry = currentEntry ? isEntryLocked(currentEntry.createdAt) : false
 
-  // Pagination — when a page's text exceeds capacity, split overflow onto next.
-  const handlePageTextChange = useCallback((index: number, value: string) => {
+  // On first arrival of today's entries, auto-load the latest one — so
+  // continuing an entry that was started on desktop "just works."
+  useEffect(() => {
+    if (hasAutoLoadedRef.current) return
+    if (todayEntries.length === 0) return
+    hasAutoLoadedRef.current = true
+    const latest = [...todayEntries].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0]
+    setCurrentEntryId(latest.id)
+  }, [todayEntries])
+
+  // Hydrate the editor when the user (or auto-load) selects a today's entry.
+  // Past entries skip hydration — they render in the read-only branch below.
+  useEffect(() => {
+    if (!currentEntry) return
+    if (lastHydratedIdRef.current === currentEntry.id) return
+    if (isPastEntry) {
+      lastHydratedIdRef.current = currentEntry.id
+      return
+    }
+    lastHydratedIdRef.current = currentEntry.id
+    skipNextAutosaveRef.current = true
+    const plain = htmlToPlainText(currentEntry.text || '')
+    setPages(padPages(paginate(plain, linesPerPage, charsPerLine), totalWritingPages))
+    setActivePage(0)
+    setSongInput(currentEntry.song || '')
+    setCurrentSong(currentEntry.song || '')
+    setPendingPhotos((currentEntry.photos || []).map(p => ({
+      id: p.id,
+      url: p.url,
+      encryptedRef: p.encryptedRef,
+      encryptedRefIV: p.encryptedRefIV,
+      position: p.position,
+      rotation: p.rotation,
+    })))
+    setDoodleStrokes(currentEntry.doodles?.[0]?.strokes || [])
+    autosaveReset(currentEntry.id)
+  }, [currentEntry, isPastEntry, linesPerPage, charsPerLine, totalWritingPages, autosaveReset, setCurrentSong, setDoodleStrokes])
+
+  // Trigger autosave whenever a draft field changes. Covers both new entries
+  // (POST on first content) and today's entries (PUT on every change).
+  useEffect(() => {
+    if (loading) return
+    if (isPastEntry) return
+    if (skipNextAutosaveRef.current) {
+      skipNextAutosaveRef.current = false
+      return
+    }
+    // Strip pagination padding before saving: when the user hits Enter
+    // multiple times to push past a mobile page, those newlines get baked
+    // into the text. On desktop those blank lines push real content onto
+    // the right page artificially. Collapse 3+ consecutive newlines to 1
+    // (preserves intentional paragraph breaks of \n or \n\n) and trim the
+    // very-end newlines too so cross-device the text reads as the user
+    // wrote it, not as the mobile pager structured it.
+    const rawText = pages.join('')
+    const fullText = rawText.replace(/\n{3,}/g, '\n').replace(/^\n+|\n+$/g, '')
+    const hasContent = fullText.trim().length > 0
+      || (songInput && /https?:\/\//.test(songInput))
+      || pendingPhotos.length > 0
+      || currentDoodleStrokes.length > 0
+    // Don't POST a new entry until there's actually something to save.
+    if (!hasContent && !currentEntryId) return
+    const html = '<p>' + fullText.replace(/\n/g, '</p><p>') + '</p>'
+    autosaveTrigger({
+      text: html,
+      song: songInput && /https?:\/\//.test(songInput) ? songInput : null,
+      photos: pendingPhotos.map(p => ({
+        url: p.url,
+        encryptedRef: p.encryptedRef,
+        encryptedRefIV: p.encryptedRefIV,
+        position: p.position,
+        rotation: p.rotation,
+        spread: 1,
+      })),
+      doodles: currentDoodleStrokes.length > 0
+        ? [{ strokes: currentDoodleStrokes, spread: 1 }]
+        : [],
+    })
+  }, [pages, songInput, pendingPhotos, currentDoodleStrokes, currentEntryId, isPastEntry, loading, autosaveTrigger])
+
+  // When the autosave hook creates a fresh entry (POST → 200), pull the new
+  // id into local state and refetch so the EntrySelector reflects it. Mark
+  // the entry as already-hydrated so we don't bounce the editor.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { entryId?: string; isFirstSaveOfSession?: boolean }
+      if (detail?.isFirstSaveOfSession && detail.entryId) {
+        lastHydratedIdRef.current = detail.entryId
+        setCurrentEntryId(detail.entryId)
+        fetchEntries()
+      }
+    }
+    window.addEventListener('hearth:entry-saved', handler)
+    return () => window.removeEventListener('hearth:entry-saved', handler)
+  }, [fetchEntries])
+
+  // Pagination — splits text by VISUAL LINES (newlines + soft-wrap), so
+  // pressing Enter Enter Enter properly fills a page and triggers a flip.
+  // Auto-advances only on forward-typing overflow at the active page so
+  // mid-edits to earlier pages don't yank the user forward.
+  const handlePageTextChange = useCallback((index: number, value: string, cursorAtEnd: boolean) => {
     setPages(prev => {
       const next = [...prev]
       // Combine all text from this page onward, then re-paginate from `index`.
+      // Empty trailing pads contribute nothing to the join; they get re-added
+      // by padPages at the end so the dot count stays stable.
       const tail = [value, ...next.slice(index + 1)].join('')
-      const repaginated = paginate(tail, charsPerPage)
-      return [...next.slice(0, index), ...repaginated]
+      const repaginated = paginate(tail, linesPerPage, charsPerLine)
+      const merged = [...next.slice(0, index), ...repaginated]
+      return padPages(merged, totalWritingPages)
     })
-  }, [charsPerPage])
+    if (cursorAtEnd && countVisualLines(value, charsPerLine) > linesPerPage) {
+      const splitOfThisPage = paginate(value, linesPerPage, charsPerLine)
+      if (splitOfThisPage.length > 1) {
+        justAutoAdvancedRef.current = true
+        setActivePage(prev => prev === index ? index + splitOfThisPage.length - 1 : prev)
+      }
+    }
+  }, [linesPerPage, charsPerLine, totalWritingPages])
+
+  // After auto-advance, focus the new page's textarea + drop the cursor at
+  // its end so typing continues seamlessly. Manual swipes don't trigger
+  // this (justAutoAdvancedRef stays false), so reading earlier pages is
+  // not interrupted.
+  useEffect(() => {
+    if (!justAutoAdvancedRef.current) return
+    const id = setTimeout(() => {
+      justAutoAdvancedRef.current = false
+      const ta = writingTextareaRef.current
+      if (!ta) return
+      ta.focus()
+      const len = ta.value.length
+      ta.setSelectionRange(len, len)
+    }, 280) // slightly after AnimatePresence's 250ms x-transition
+    return () => clearTimeout(id)
+  }, [activePage])
 
   // Char count = sum of all page texts
   const charCount = pages.reduce((sum, p) => sum + p.length, 0)
@@ -176,60 +353,28 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
     setDoodleStrokes(strokes)
   }, [setDoodleStrokes])
 
-  const handleSave = useCallback(async () => {
-    const fullText = pages.join('').trim()
-    if (!fullText) return
-    setSaving(true)
-    try {
-      const html = '<p>' + fullText.replace(/\n/g, '</p><p>') + '</p>'
-      const photos = pendingPhotos.map(p => ({
-        url: p.url,
-        encryptedRef: p.encryptedRef,
-        encryptedRefIV: p.encryptedRefIV,
-        position: p.position,
-        rotation: p.rotation,
-        spread: 1,
-      }))
-      const doodles = currentDoodleStrokes.length > 0
-        ? [{ strokes: currentDoodleStrokes }]
-        : []
-
-      const res = await fetch('/api/entries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: html,
-          song: songInput && /https?:\/\//.test(songInput) ? songInput : null,
-          photos,
-          doodles,
-        }),
-      })
-
-      if (res.ok) {
-        setPages([''])
-        setActivePage(0)
-        setSongInput('')
-        setPendingPhotos([])
-        resetCurrentEntry()
-        setPrompt(getRandomPrompt())
-        setShowSaved(true)
-        fetchEntries()
-        setTimeout(() => setShowSaved(false), 2000)
-      } else {
-        const data = await res.json()
-        alert(`Failed to save: ${data.error || 'Unknown error'}`)
-      }
-    } finally {
-      setSaving(false)
+  const handleEntrySelect = useCallback(async (entryId: string | null) => {
+    // Flush any pending changes for the entry we're leaving.
+    await autosaveFlush()
+    if (entryId === null) {
+      // New entry: clear local state, autosave will POST on first content.
+      // Pad pages so the dot strip still shows the full writing capacity.
+      skipNextAutosaveRef.current = true
+      setPages(Array.from({ length: totalWritingPages }, () => ''))
+      setActivePage(0)
+      setSongInput('')
+      setCurrentSong('')
+      setPendingPhotos([])
+      setDoodleStrokes([])
+      resetCurrentEntry()
+      autosaveReset(null)
+      lastHydratedIdRef.current = null
+      setCurrentEntryId(null)
+      return
     }
-  }, [pages, songInput, pendingPhotos, currentDoodleStrokes, resetCurrentEntry, fetchEntries])
-
-  const handleEntrySelect = useCallback((entryId: string | null) => {
+    // Hydration effect handles loading state for the chosen entry.
     setCurrentEntryId(entryId)
-    setPages([''])
-    setActivePage(0)
-    setPendingPhotos([])
-  }, [])
+  }, [autosaveFlush, autosaveReset, resetCurrentEntry, setCurrentSong, setDoodleStrokes, totalWritingPages])
 
   // Swipe between pages
   const handleSwipeEnd = useCallback((_: unknown, info: PanInfo) => {
@@ -240,7 +385,11 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
     }
   }, [activePage, totalPages])
 
-  if (loading) {
+  // Hide the editor flash while we wait for auto-load to settle on today's
+  // most recent entry.
+  const isAutoLoadPending = todayEntries.length > 0 && !hasAutoLoadedRef.current
+
+  if (loading || isAutoLoadPending) {
     return (
       <div className="fixed inset-0 flex items-center justify-center" style={{ background: theme.bg.primary }}>
         <span style={{ color: colors.prompt }}>Loading...</span>
@@ -248,8 +397,8 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
     )
   }
 
-  // Viewing existing entry — read-only stack (kept simple; does not paginate)
-  if (!isNewEntry && currentEntry) {
+  // Read-only view for past entries (older than today's calendar day).
+  if (currentEntry && isPastEntry) {
     const plainText = htmlToPlainText(currentEntry.text)
     const entryPhotos = currentEntry.photos || []
     const captionDate = currentEntry?.createdAt ? new Date(currentEntry.createdAt) : new Date()
@@ -291,21 +440,38 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
     )
   }
 
-  // New entry — paginated authoring
+  // Editable view: new entry OR today's entry. Autosave drives persistence.
   return (
     <div className="fixed inset-0 z-40 flex flex-col" style={{ background: theme.bg.primary }}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3" style={{ minHeight: 56 }}>
-        <button onClick={onClose} className="text-xs px-3 py-1.5 rounded-full"
-          style={{ background: colors.buttonBg, color: colors.bodyText, border: `1px solid ${colors.buttonBorder}`, fontFamily: 'Georgia, serif' }}>
-          Close
-        </button>
-        <span className="text-xs italic" style={{ color: colors.date, fontFamily: 'Georgia, serif' }}>
-          {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-        </span>
+      {/* Header — left/right spacers reserve room for the floating hamburger
+          (top-4 left-4) and gear (top-6 right-6) so the centered date never
+          slides under them. */}
+      <div className="flex items-center justify-between gap-2 px-16 py-3" style={{ minHeight: 56 }}>
+        <div className="w-0 shrink-0" aria-hidden />
+        <div className="flex flex-col items-center gap-0.5 min-w-0">
+          <span className="text-xs italic truncate" style={{ color: colors.date, fontFamily: 'Georgia, serif' }}>
+            {currentEntry?.createdAt
+              ? new Date(currentEntry.createdAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+              : new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </span>
+          <AutosaveIndicator status={autosaveStatus} color={colors.prompt} />
+        </div>
+        <div className="w-0 shrink-0" aria-hidden />
       </div>
 
-      {/* Pager */}
+      {/* Selector — switch between today's entries / start new */}
+      {todayEntries.length > 0 && (
+        <div className="flex justify-center px-4 pb-2">
+          <EntrySelector
+            entries={todayEntries}
+            currentEntryId={currentEntryId}
+            onEntrySelect={handleEntrySelect}
+          />
+        </div>
+      )}
+
+      {/* Pager — page card fills the viewport so each page reads like a real
+          diary page; pagination + auto-advance handle the breaks. */}
       <motion.div
         className="flex-1 overflow-hidden px-3"
         drag="x"
@@ -327,13 +493,14 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
                 colors={colors}
                 isFirstPage={activePage === 0}
                 pageText={pages[activePage]}
-                onPageTextChange={(value) => handlePageTextChange(activePage, value)}
+                onPageTextChange={(value, cursorAtEnd) => handlePageTextChange(activePage, value, cursorAtEnd)}
                 linesPerPage={linesPerPage}
                 prompt={prompt}
                 charCount={charCount}
                 songInput={songInput}
                 onSongChange={handleSongChange}
-                onSongClear={() => setSongInput('')}
+                onSongClear={() => handleSongChange('')}
+                textareaRef={writingTextareaRef}
               />
             ) : (
               <PhotosDoodlePage
@@ -342,9 +509,6 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
                 onPhotoAdd={handlePhotoAdd}
                 doodleStrokes={currentDoodleStrokes}
                 onStrokesChange={handleStrokesChange}
-                canSave={pages.join('').trim().length > 0}
-                saving={saving}
-                onSave={handleSave}
               />
             )}
           </motion.div>
@@ -368,25 +532,31 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
           />
         ))}
       </div>
-
-      {/* Saved overlay */}
-      <AnimatePresence>
-        {showSaved && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ background: 'rgba(0,0,0,0.3)' }}>
-            <motion.div className="flex flex-col items-center gap-2"
-              initial={{ scale: 0.5 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }}>
-              <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl text-white"
-                style={{ background: colors.saveButton }}>
-                ✓
-              </div>
-              <span className="text-lg font-serif" style={{ color: colors.bodyText }}>Saved</span>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
+  )
+}
+
+// ----------------------------------------------------------------------------
+
+function AutosaveIndicator({ status, color }: { status: AutosaveStatus; color: string }) {
+  const label = status === 'saving' ? 'Saving…'
+    : status === 'saved' ? 'Saved'
+    : status === 'error' ? 'Save failed'
+    : ''
+  return (
+    <span
+      className="text-[10px] italic"
+      style={{
+        color: status === 'error' ? '#c0392b' : color,
+        opacity: label ? 0.7 : 0,
+        minWidth: 64,
+        textAlign: 'center',
+        transition: 'opacity 200ms',
+      }}
+      aria-live="polite"
+    >
+      {label}
+    </span>
   )
 }
 
@@ -394,18 +564,19 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
 
 function WritingPage({
   colors, isFirstPage, pageText, onPageTextChange, linesPerPage,
-  prompt, charCount, songInput, onSongChange, onSongClear,
+  prompt, charCount, songInput, onSongChange, onSongClear, textareaRef,
 }: {
   colors: ReturnType<typeof getGlassDiaryColors>
   isFirstPage: boolean
   pageText: string
-  onPageTextChange: (value: string) => void
+  onPageTextChange: (value: string, cursorAtEnd: boolean) => void
   linesPerPage: number
   prompt: string
   charCount: number
   songInput: string
   onSongChange: (value: string) => void
   onSongClear: () => void
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>
 }) {
   return (
     <div
@@ -461,13 +632,23 @@ function WritingPage({
       )}
 
       <textarea
+        ref={textareaRef}
         value={pageText}
-        onChange={e => onPageTextChange(e.target.value)}
+        onChange={e => {
+          const cursorAtEnd = e.target.selectionStart === e.target.value.length
+          onPageTextChange(e.target.value, cursorAtEnd)
+        }}
         placeholder={isFirstPage ? "What's on your mind today..." : ''}
         rows={linesPerPage}
         maxLength={JOURNAL.MAX_CHARS}
-        className="flex-1 w-full resize-none outline-none rounded-lg p-3"
+        className="w-full resize-none outline-none rounded-lg p-3"
         style={{
+          // Fixed height = exactly linesPerPage tall, no internal scroll.
+          // Pagination guarantees content never exceeds this height; the
+          // overflow: hidden is a belt-and-braces against a 1-frame flash
+          // before re-paginate runs.
+          height: linesPerPage * JOURNAL.LINE_HEIGHT + 24,
+          overflow: 'hidden',
           color: colors.bodyText,
           fontFamily: 'var(--font-caveat), Georgia, serif',
           fontSize: `${JOURNAL.FONT_SIZE}px`,
@@ -491,16 +672,13 @@ function WritingPage({
 // ----------------------------------------------------------------------------
 
 function PhotosDoodlePage({
-  colors, photos, onPhotoAdd, doodleStrokes, onStrokesChange, canSave, saving, onSave,
+  colors, photos, onPhotoAdd, doodleStrokes, onStrokesChange,
 }: {
   colors: ReturnType<typeof getGlassDiaryColors>
   photos: Photo[]
   onPhotoAdd: (position: 1 | 2, photo: Pick<Photo, 'url' | 'encryptedRef' | 'encryptedRefIV'>) => void
   doodleStrokes: StrokeData[]
   onStrokesChange: (strokes: StrokeData[]) => void
-  canSave: boolean
-  saving: boolean
-  onSave: () => void
 }) {
   const captionDate = new Date()
   const dateCaption = captionDate
@@ -542,22 +720,6 @@ function PhotosDoodlePage({
           />
         </div>
       </div>
-
-      {canSave && (
-        <button
-          onClick={onSave}
-          disabled={saving}
-          className="w-full py-3 rounded-full text-sm font-medium mt-auto"
-          style={{
-            background: colors.saveButton,
-            color: 'white',
-            opacity: saving ? 0.6 : 1,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
-          }}
-        >
-          {saving ? 'Saving...' : 'Save Entry'}
-        </button>
-      )}
     </div>
   )
 }

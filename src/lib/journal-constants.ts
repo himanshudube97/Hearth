@@ -72,8 +72,30 @@ export function getMobileWritingLinesPerPage(viewportHeight: number): number {
 
 /**
  * Estimate how many text characters fit on a mobile writing page given a
- * line capacity. Used as the boundary for splitting overflow.
+ * line capacity. Used as a coarse upper bound; the real pagination is
+ * visual-line based (newlines count too — see countVisualLines).
  */
 export function getMobileCharsPerPage(linesPerPage: number): number {
   return linesPerPage * JOURNAL.CHARS_PER_LINE
+}
+
+/**
+ * Total writing pages we display as dots from the moment a fresh entry
+ * opens. Derived from MAX_CHARS so the user sees up-front how much room
+ * they have to fill (matching the desktop's two pre-existing pages).
+ * Pages may grow beyond this if a user newlines extensively.
+ */
+export function getMobileTotalWritingPages(linesPerPage: number): number {
+  return Math.max(2, Math.ceil(JOURNAL.MAX_CHARS / (linesPerPage * JOURNAL.CHARS_PER_LINE)))
+}
+
+/**
+ * Count the visual lines a string occupies if rendered with `charsPerLine`
+ * soft-wrap. Each `\n` is 1 line; each segment between newlines wraps every
+ * `charsPerLine` chars. An empty segment counts as 1 blank line.
+ */
+export function countVisualLines(text: string, charsPerLine: number): number {
+  if (text === '') return 0
+  return text.split('\n').reduce((sum, seg) =>
+    sum + (seg === '' ? 1 : Math.ceil(seg.length / charsPerLine)), 0)
 }

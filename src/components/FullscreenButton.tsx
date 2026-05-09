@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useFullscreen } from '@/hooks/useFullscreen'
+import { useLayoutMode } from '@/hooks/useMediaQuery'
 
 function ExpandIcon({ collapsed }: { collapsed: boolean }) {
   if (collapsed) {
@@ -44,7 +45,11 @@ function ExpandIcon({ collapsed }: { collapsed: boolean }) {
 export default function FullscreenButton() {
   const { theme } = useThemeStore()
   const { isFullscreen, supported, toggle } = useFullscreen()
+  const layoutMode = useLayoutMode()
   if (!supported) return null
+  // Mobile browsers handle fullscreen via PWA install / native chrome; the
+  // fullscreen API is unreliable here and the slot is reused by the menu.
+  if (layoutMode === 'mobile') return null
 
   const label = isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'
 
