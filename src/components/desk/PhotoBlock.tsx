@@ -140,26 +140,28 @@ const PhotoBlock = memo(function PhotoBlock({
   return (
     <>
       <motion.div
-        className={`relative flex items-start justify-around gap-6 ${className}`}
+        className={`relative flex items-start justify-center gap-2 ${className}`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
       >
-        {/* Photo 1 — left side of the block */}
-        <PhotoSlot
-          photo={photo1}
-          position={1}
-          spread={1}
-          onPhotoAdd={handlePhotoAdd(1)}
-          onCameraCapture={handleCameraOpen(1)}
-          onRemove={onPhotoRemove ? () => onPhotoRemove(1) : undefined}
-          disabled={disabled || !!photo1}
-          className="w-32"
-          dateCaption={dateCaption}
-        />
+        {/* Photo 1 - slightly overlapping to the left */}
+        <div className="relative z-10" style={{ marginRight: '-12px' }}>
+          <PhotoSlot
+            photo={photo1}
+            position={1}
+            spread={1}
+            onPhotoAdd={handlePhotoAdd(1)}
+            onCameraCapture={handleCameraOpen(1)}
+            onRemove={onPhotoRemove ? () => onPhotoRemove(1) : undefined}
+            disabled={disabled || !!photo1}
+            className="w-28"
+            dateCaption={dateCaption}
+          />
+        </div>
 
-        {/* Photo 2 — right side, slight downward offset for visual interest */}
-        <div style={{ marginTop: '12px' }}>
+        {/* Photo 2 - slightly overlapping to the right */}
+        <div className="relative z-0" style={{ marginLeft: '-12px', marginTop: '8px' }}>
           <PhotoSlot
             photo={photo2}
             position={2}
@@ -168,7 +170,7 @@ const PhotoBlock = memo(function PhotoBlock({
             onCameraCapture={handleCameraOpen(2)}
             onRemove={onPhotoRemove ? () => onPhotoRemove(2) : undefined}
             disabled={disabled || !!photo2}
-            className="w-32"
+            className="w-28"
             dateCaption={dateCaption}
           />
         </div>
