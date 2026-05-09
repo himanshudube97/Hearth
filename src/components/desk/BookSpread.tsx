@@ -491,10 +491,18 @@ export default function BookSpread() {
     : null
   const spreadDate = visibleEntry ? new Date(visibleEntry.createdAt) : new Date()
 
+  // Share-capture target: prefer the spread's visible entry, but fall back
+  // to the autosaved draft when the user is on the new-entry spread that's
+  // bound to a freshly-saved draft. Without the fallback the camera would
+  // never appear while authoring a new entry.
+  const shareEntry = visibleEntry
+    ?? (autosave.entryId ? entries.find((e) => e.id === autosave.entryId) ?? null : null)
+  const shareDate = shareEntry ? new Date(shareEntry.createdAt) : new Date()
+
   const { CameraButton: ShareCameraButton, Capture: ShareCapture } = useShareableCapture({
-    cardContent: visibleEntry ? <JournalShareCard entry={visibleEntry as import('@/store/journal').JournalEntry} /> : null,
+    cardContent: shareEntry ? <JournalShareCard entry={shareEntry as import('@/store/journal').JournalEntry} /> : null,
     surface: 'diary',
-    date: spreadDate,
+    date: shareDate,
   })
 
   return (
@@ -587,22 +595,19 @@ export default function BookSpread() {
         </div>
 
         {/* Share camera — top-right of the screen, beside fullscreen + gear.
-            Uses `position: fixed` so it escapes the spread's bounds and sits
-            in the screen corner alongside the existing global controls.
-            Glass chrome matches FullscreenButton/DeskSettingsPanel. */}
-        {visibleEntry && (
-          <div
-            className="fixed top-6 right-36 z-50 w-12 h-12 rounded-full flex items-center justify-center pointer-events-auto"
-            style={{
-              background: theme.glass.bg,
-              backdropFilter: `blur(${theme.glass.blur})`,
-              WebkitBackdropFilter: `blur(${theme.glass.blur})`,
-              border: `1px solid ${theme.glass.border}`,
-            }}
-          >
-            {ShareCameraButton}
-          </div>
-        )}
+            Always visible; the underlying hook short-circuits gracefully when
+            there's no entry to capture yet. */}
+        <div
+          className="fixed top-6 right-36 z-50 w-12 h-12 rounded-full flex items-center justify-center pointer-events-auto"
+          style={{
+            background: theme.glass.bg,
+            backdropFilter: `blur(${theme.glass.blur})`,
+            WebkitBackdropFilter: `blur(${theme.glass.blur})`,
+            border: `1px solid ${theme.glass.border}`,
+          }}
+        >
+          {ShareCameraButton}
+        </div>
 
         {/* Flipbook (only after entries are loaded so startPage is correct).
             Page count is stable across the autosave lifecycle (the active
