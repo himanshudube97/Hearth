@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import type { Theme } from '@/lib/themes'
 import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
@@ -9,7 +9,6 @@ import LeftPage from '@/components/desk/LeftPage'
 import RightPage from '@/components/desk/RightPage'
 import type { JournalEntry } from '@/store/journal'
 import { useShareableCapture } from '@/components/share/ShareableCapture'
-import JournalShareCard from '@/components/share/JournalShareCard'
 import { formatTimeAgo } from './MemoryModal'
 
 const PAGE_W = 650
@@ -159,11 +158,16 @@ export function MemoryDiaryView({ entry, theme, onClose }: Props) {
     doodles: entry.doodles || [],
   }), [entry])
 
-  const subtitle = `a memory from ${formatTimeAgo(new Date(entry.createdAt))}`
+  // Capture the live spread DOM directly. Off-screen synthesis was fragile
+  // because LeftPage/RightPage rely on parent contexts that don't exist in
+  // the off-screen tree. The polaroid caption shows time-ago.
+  const spreadCaptureRef = useRef<HTMLDivElement>(null)
+  const polaroidCaption = `a memory from ${formatTimeAgo(new Date(entry.createdAt))} · hearth`
   const { CameraButton: ShareCameraButton, Capture: ShareCapture } = useShareableCapture({
-    cardContent: <JournalShareCard entry={entry} subtitle={subtitle} />,
+    captureTarget: () => spreadCaptureRef.current,
     surface: 'memory',
     date: new Date(entry.createdAt),
+    polaroidCaption,
   })
 
   return (
@@ -184,6 +188,7 @@ export function MemoryDiaryView({ entry, theme, onClose }: Props) {
 
       {/* Spread */}
       <motion.div
+        ref={spreadCaptureRef}
         initial={{ opacity: 0, scale: scale * 0.97, y: 18 }}
         animate={{ opacity: 1, scale, y: 0 }}
         exit={{ opacity: 0, scale: scale * 0.97, y: 18 }}
@@ -215,14 +220,6 @@ export function MemoryDiaryView({ entry, theme, onClose }: Props) {
           }}
         >
           {format(new Date(entry.createdAt), 'EEEE · MMMM d, yyyy')}
-        </div>
-
-        {/* Share camera — top-right of the spread, left of the close button */}
-        <div
-          className="absolute -top-12"
-          style={{ right: 38, zIndex: 51 }}
-        >
-          {ShareCameraButton}
         </div>
 
         {/* Close button */}
@@ -306,6 +303,22 @@ export function MemoryDiaryView({ entry, theme, onClose }: Props) {
           </div>
         </div>
       </motion.div>
+
+      {/* Share camera — top-right of the screen, between fullscreen and gear.
+          Mirrors the diary placement so it feels native. Themed glass chrome
+          uses the parent theme's glass tokens. */}
+      <div
+        className="fixed top-6 right-20 z-50 w-12 h-12 rounded-full flex items-center justify-center pointer-events-auto"
+        style={{
+          background: theme.glass.bg,
+          backdropFilter: `blur(${theme.glass.blur})`,
+          WebkitBackdropFilter: `blur(${theme.glass.blur})`,
+          border: `1px solid ${theme.glass.border}`,
+        }}
+      >
+        {ShareCameraButton}
+      </div>
+
       {ShareCapture}
     </>
   )

@@ -592,11 +592,11 @@ export default function BookSpread() {
           <div style={{ width: '36px', height: '1px', background: colors.pageBorder }} />
         </div>
 
-        {/* Share camera — top-right of the screen, beside fullscreen + gear.
+        {/* Share camera — top-right of the screen, between fullscreen and gear.
             Always visible; the underlying hook short-circuits gracefully when
             there's no entry to capture yet. */}
         <div
-          className="fixed top-6 right-36 z-50 w-12 h-12 rounded-full flex items-center justify-center pointer-events-auto"
+          className="fixed top-6 right-20 z-50 w-12 h-12 rounded-full flex items-center justify-center pointer-events-auto"
           style={{
             background: theme.glass.bg,
             backdropFilter: `blur(${theme.glass.blur})`,

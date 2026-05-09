@@ -59,8 +59,9 @@ export default function FullscreenButton() {
       whileTap={{ scale: 0.95 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
       onClick={() => void toggle()}
-      // Sits one slot to the left of the gear (gear is at right-6, 12 wide → fullscreen at right-20).
-      className="fixed top-6 right-20 z-50 w-12 h-12 rounded-full flex items-center justify-center"
+      // Order in the top-right cluster, left → right: fullscreen, camera, gear.
+      // gear at right-6, camera at right-20, fullscreen at right-36.
+      className="fixed top-6 right-36 z-50 w-12 h-12 rounded-full flex items-center justify-center"
       style={{
         background: theme.glass.bg,
         backdropFilter: `blur(${theme.glass.blur})`,

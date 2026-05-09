@@ -39,7 +39,6 @@ import { useE2EEStore } from '@/store/e2ee'
 import { encryptBytes, encryptString } from '@/lib/e2ee/crypto'
 import { deletePhotoBlob } from '@/lib/storage/delete-photo-blob'
 import { useShareableCapture } from '@/components/share/ShareableCapture'
-import ScrapbookShareCard from '@/components/share/ScrapbookShareCard'
 
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024
 const PHOTO_MAX_WIDTH = 1600
@@ -162,10 +161,16 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Capture the live canvas DOM directly. Off-screen synthesis was fragile
+  // because CanvasItemWrapper relies on the live canvasRef and other
+  // contexts that don't reproduce cleanly in a hidden tree. The polaroid
+  // caption shows today's date.
+  const polaroidCaption = `${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · hearth`
   const { CameraButton: ShareCameraButton, Capture: ShareCapture } = useShareableCapture({
-    cardContent: <ScrapbookShareCard items={items} date={new Date()} />,
+    captureTarget: () => canvasRef.current,
     surface: 'scrapbook',
     date: new Date(),
+    polaroidCaption,
   })
 
   // Pressing Esc exits edit mode (still selected) — feels expected from
@@ -517,13 +522,6 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
             )
           })}
           </PageSurface>
-
-          <div
-            style={{ position: 'absolute', top: 8, right: 8, zIndex: 50 }}
-            className="pointer-events-auto"
-          >
-            {ShareCameraButton}
-          </div>
         </div>
       </div>
 
@@ -541,6 +539,20 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
         onChange={onFilePicked}
         style={{ display: 'none' }}
       />
+
+      {/* Share camera — top-right of the screen, between fullscreen and gear.
+          Outside canvasRef so it isn't itself part of the capture. */}
+      <div
+        className="fixed top-6 right-20 z-50 w-12 h-12 rounded-full flex items-center justify-center pointer-events-auto"
+        style={{
+          background: theme.glass.bg,
+          backdropFilter: `blur(${theme.glass.blur})`,
+          WebkitBackdropFilter: `blur(${theme.glass.blur})`,
+          border: `1px solid ${theme.glass.border}`,
+        }}
+      >
+        {ShareCameraButton}
+      </div>
 
       {ShareCapture}
     </div>
