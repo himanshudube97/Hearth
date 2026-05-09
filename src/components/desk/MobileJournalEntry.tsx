@@ -18,6 +18,8 @@ import { useAutosaveEntry } from '@/hooks/useAutosaveEntry'
 import { useDeskStore, type AutosaveStatus } from '@/store/desk'
 import { useE2EE } from '@/hooks/useE2EE'
 import type { JournalEntry } from '@/store/journal'
+import { useShareableCapture } from '@/components/share/ShareableCapture'
+import JournalShareCard from '@/components/share/JournalShareCard'
 
 interface Photo {
   id?: string
@@ -290,6 +292,14 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
     return () => window.removeEventListener('hearth:entry-saved', handler)
   }, [fetchEntries])
 
+  // Share-capture surface for the current entry — renders a JournalShareCard
+  // off-screen, captures it, and opens the OS share sheet / download.
+  const { CameraButton: ShareCameraButton, Capture: ShareCapture } = useShareableCapture({
+    cardContent: currentEntry ? <JournalShareCard entry={currentEntry as unknown as import('@/store/journal').JournalEntry} /> : null,
+    surface: 'diary',
+    date: currentEntry ? new Date(currentEntry.createdAt) : new Date(),
+  })
+
   // Pagination — splits text by VISUAL LINES (newlines + soft-wrap), so
   // pressing Enter Enter Enter properly fills a page and triggers a flip.
   // Auto-advances only on forward-typing overflow at the active page so
@@ -406,37 +416,48 @@ export default function MobileJournalEntry({ onClose }: MobileJournalEntryProps)
       .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       .toLowerCase()
     return (
-      <div className="fixed inset-0 overflow-y-auto z-40" style={{ background: theme.bg.primary }}>
-        <div className="max-w-lg mx-auto px-4 py-6 pb-20">
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={onClose} className="text-sm px-3 py-1.5 rounded-full"
-              style={{ background: colors.buttonBg, color: colors.bodyText, border: `1px solid ${colors.buttonBorder}` }}>
-              Close
-            </button>
-            <span className="text-sm" style={{ color: colors.date }}>
-              {new Date(currentEntry.createdAt).toLocaleDateString('en-US', {
-                weekday: 'short', month: 'short', day: 'numeric',
-              })}
-            </span>
-          </div>
-          {todayEntries.length > 0 && (
-            <div className="flex justify-center mb-4">
-              <EntrySelector entries={todayEntries} currentEntryId={currentEntryId}
-                onEntrySelect={handleEntrySelect} />
+      <>
+        <div className="fixed inset-0 overflow-y-auto z-40" style={{ background: theme.bg.primary }}>
+          <div className="max-w-lg mx-auto px-4 py-6 pb-20" style={{ position: 'relative' }}>
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={onClose} className="text-sm px-3 py-1.5 rounded-full"
+                style={{ background: colors.buttonBg, color: colors.bodyText, border: `1px solid ${colors.buttonBorder}` }}>
+                Close
+              </button>
+              <span className="text-sm" style={{ color: colors.date }}>
+                {new Date(currentEntry.createdAt).toLocaleDateString('en-US', {
+                  weekday: 'short', month: 'short', day: 'numeric',
+                })}
+              </span>
             </div>
-          )}
-          {currentEntry.song && (
-            <div className="mb-4"><SongEmbed url={currentEntry.song} compact audioOnly /></div>
-          )}
-          <div className="whitespace-pre-wrap mb-4" style={{
-            color: colors.bodyText, fontFamily: 'var(--font-caveat), Georgia, serif',
-            fontSize: '20px', lineHeight: '32px',
-          }}>
-            {plainText || <span style={{ color: colors.prompt, fontStyle: 'italic' }}>No text</span>}
+            {todayEntries.length > 0 && (
+              <div className="flex justify-center mb-4">
+                <EntrySelector entries={todayEntries} currentEntryId={currentEntryId}
+                  onEntrySelect={handleEntrySelect} />
+              </div>
+            )}
+            {currentEntry.song && (
+              <div className="mb-4"><SongEmbed url={currentEntry.song} compact audioOnly /></div>
+            )}
+            <div className="whitespace-pre-wrap mb-4" style={{
+              color: colors.bodyText, fontFamily: 'var(--font-caveat), Georgia, serif',
+              fontSize: '20px', lineHeight: '32px',
+            }}>
+              {plainText || <span style={{ color: colors.prompt, fontStyle: 'italic' }}>No text</span>}
+            </div>
+            {entryPhotos.length > 0 && <div className="mb-4"><PhotoBlock photos={entryPhotos} disabled dateCaption={dateCaption} /></div>}
+            {currentEntry?.id && (
+              <div
+                style={{ position: 'absolute', top: 12, right: 12, zIndex: 30 }}
+                className="pointer-events-auto"
+              >
+                {ShareCameraButton}
+              </div>
+            )}
           </div>
-          {entryPhotos.length > 0 && <div className="mb-4"><PhotoBlock photos={entryPhotos} disabled dateCaption={dateCaption} /></div>}
         </div>
-      </div>
+        {ShareCapture}
+      </>
     )
   }
 

@@ -8,6 +8,9 @@ import { getGlassDiaryColors } from '@/lib/glassDiaryColors'
 import LeftPage from '@/components/desk/LeftPage'
 import RightPage from '@/components/desk/RightPage'
 import type { JournalEntry } from '@/store/journal'
+import { useShareableCapture } from '@/components/share/ShareableCapture'
+import JournalShareCard from '@/components/share/JournalShareCard'
+import { formatTimeAgo } from './MemoryModal'
 
 const PAGE_W = 650
 const PAGE_H = 820
@@ -156,6 +159,13 @@ export function MemoryDiaryView({ entry, theme, onClose }: Props) {
     doodles: entry.doodles || [],
   }), [entry])
 
+  const subtitle = `a memory from ${formatTimeAgo(new Date(entry.createdAt))}`
+  const { CameraButton: ShareCameraButton, Capture: ShareCapture } = useShareableCapture({
+    cardContent: <JournalShareCard entry={entry} subtitle={subtitle} />,
+    surface: 'memory',
+    date: new Date(entry.createdAt),
+  })
+
   return (
     <>
       {/* Backdrop */}
@@ -205,6 +215,14 @@ export function MemoryDiaryView({ entry, theme, onClose }: Props) {
           }}
         >
           {format(new Date(entry.createdAt), 'EEEE · MMMM d, yyyy')}
+        </div>
+
+        {/* Share camera — top-right of the spread, left of the close button */}
+        <div
+          className="absolute -top-12"
+          style={{ right: 38, zIndex: 51 }}
+        >
+          {ShareCameraButton}
         </div>
 
         {/* Close button */}
@@ -288,6 +306,7 @@ export function MemoryDiaryView({ entry, theme, onClose }: Props) {
           </div>
         </div>
       </motion.div>
+      {ShareCapture}
     </>
   )
 }

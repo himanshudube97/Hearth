@@ -6,7 +6,7 @@ import { Theme } from '@/lib/themes'
 import type { MemoryStar } from './ConstellationRenderer'
 import { MemoryDiaryView } from './MemoryDiaryView'
 
-function formatTimeAgo(date: Date): string {
+export function formatTimeAgo(date: Date): string {
   const now = new Date()
   const diff = now.getTime() - date.getTime()
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
