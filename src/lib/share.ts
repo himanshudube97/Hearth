@@ -7,19 +7,52 @@ export interface ShareResult {
 }
 
 /**
+ * Wait for all `<img>` elements inside `el` to finish loading. `html-to-image`
+ * captures whatever is in the DOM at the moment it runs, so unloaded images
+ * become broken-image rectangles in the PNG.
+ */
+async function waitForImages(el: HTMLElement): Promise<void> {
+  const imgs = Array.from(el.querySelectorAll('img'))
+  await Promise.all(
+    imgs.map((img) => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve()
+      return new Promise<void>((resolve) => {
+        const done = () => {
+          img.removeEventListener('load', done)
+          img.removeEventListener('error', done)
+          resolve()
+        }
+        img.addEventListener('load', done)
+        img.addEventListener('error', done) // resolve even on error so we don't hang
+      })
+    }),
+  )
+}
+
+/**
  * Capture an HTMLElement to a PNG blob at 2× device pixel ratio.
- * Returns null on failure so callers can show a toast.
+ * Waits for fonts + images to settle before snapshotting so the result
+ * isn't blank or broken. Returns null on failure so callers can show a toast.
  */
 export async function captureToBlob(element: HTMLElement): Promise<Blob | null> {
   try {
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      await document.fonts.ready
+    }
+    await waitForImages(element)
+
     const blob = await toBlob(element, {
       pixelRatio: 2,
       cacheBust: true,
       backgroundColor: undefined, // let the frame paint its own background
     })
+    if (!blob) {
+      console.error('[share] capture returned null blob — element may be empty or tainted')
+    }
     return blob
   } catch (err) {
-    console.error('[share] capture failed', err)
+    const e = err as Error
+    console.error('[share] capture failed:', e?.message || err, e)
     return null
   }
 }

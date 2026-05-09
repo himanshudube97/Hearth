@@ -53,17 +53,26 @@ export function useShareableCapture({ cardContent, surface, date }: UseShareable
   }, [imageUrl])
 
   const open = useCallback(async () => {
+    // Bail early when there's nothing to capture — opening a butterfly that
+    // can never resolve would just feel like a dead-end.
+    if (!cardContent) {
+      console.warn('[share] no cardContent — nothing to capture')
+      return
+    }
+
     setCaptureError(false)
     setImageUrl(null)
     setImageBlob(null)
     setButterflyHue(BUTTERFLY_HUES[Math.floor(Math.random() * BUTTERFLY_HUES.length)])
     setPhase('butterfly')
 
-    // Wait for the off-screen card to mount + fonts/images to settle.
-    // The phase change above mounts the off-screen container.
-    await new Promise((r) => setTimeout(r, 250))
+    // Brief settle so React commits the off-screen mount before we grab the
+    // ref. captureToBlob() then waits on document.fonts.ready and all images
+    // inside the element, so we don't need a long fixed timeout here.
+    await new Promise((r) => setTimeout(r, 80))
 
     if (!offscreenRef.current) {
+      console.error('[share] offscreenRef not mounted after settle')
       setCaptureError(true)
       return
     }
@@ -75,7 +84,7 @@ export function useShareableCapture({ cardContent, surface, date }: UseShareable
     }
     setImageBlob(blob)
     setImageUrl(URL.createObjectURL(blob))
-  }, [])
+  }, [cardContent])
 
   const close = useCallback(() => {
     setPhase('closed')
