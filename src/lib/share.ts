@@ -30,9 +30,46 @@ async function waitForImages(el: HTMLElement): Promise<void> {
 }
 
 /**
+ * Compute the union of `el`'s bounding rect with every descendant's. Used
+ * to expand the captured canvas so children that overflow the parent (e.g.
+ * absolute-positioned book cover at `inset: -28px -48px`, date-tab rail at
+ * `right: -22px`) are not clipped from the snapshot.
+ */
+function getOverflowBounds(el: HTMLElement): { width: number; height: number; offsetX: number; offsetY: number } {
+  const root = el.getBoundingClientRect()
+  let left = root.left
+  let top = root.top
+  let right = root.right
+  let bottom = root.bottom
+
+  const all = el.querySelectorAll<HTMLElement>('*')
+  all.forEach((child) => {
+    const r = child.getBoundingClientRect()
+    if (r.width === 0 || r.height === 0) return
+    if (r.left < left) left = r.left
+    if (r.top < top) top = r.top
+    if (r.right > right) right = r.right
+    if (r.bottom > bottom) bottom = r.bottom
+  })
+
+  return {
+    width: right - left,
+    height: bottom - top,
+    // How much the union extends past the element's own rect on the
+    // top/left — used to shift the element inside the larger canvas so
+    // overflowing children land inside the visible area.
+    offsetX: root.left - left,
+    offsetY: root.top - top,
+  }
+}
+
+/**
  * Capture an HTMLElement to a PNG blob at 2× device pixel ratio.
  * Waits for fonts + images to settle before snapshotting so the result
  * isn't blank or broken. Returns null on failure so callers can show a toast.
+ *
+ * Computes a union bounding rect across all descendants so children that
+ * overflow the parent (book cover, date-tab rail) are included.
  */
 export async function captureToBlob(element: HTMLElement): Promise<Blob | null> {
   try {
@@ -41,14 +78,21 @@ export async function captureToBlob(element: HTMLElement): Promise<Blob | null> 
     }
     await waitForImages(element)
 
+    const bounds = getOverflowBounds(element)
+
     const blob = await toBlob(element, {
       pixelRatio: 2,
-      // cacheBust appends `?timestamp` to image URLs, which breaks the
-      // blob: URLs that usePhotoSrc returns for E2EE-decrypted photos.
-      // Photos are already same-origin and freshly fetched, so caching
-      // isn't a concern here.
       cacheBust: false,
-      backgroundColor: undefined, // let the frame paint its own background
+      backgroundColor: undefined,
+      width: bounds.width,
+      height: bounds.height,
+      style: {
+        // Shift the element down/right inside the larger canvas so any
+        // children at negative coordinates relative to the element land
+        // inside the visible area instead of getting clipped.
+        transform: `translate(${bounds.offsetX}px, ${bounds.offsetY}px)`,
+        transformOrigin: 'top left',
+      },
     })
     if (!blob) {
       console.error('[share] capture returned null blob — element may be empty or tainted')
