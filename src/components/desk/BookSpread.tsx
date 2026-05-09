@@ -586,11 +586,19 @@ export default function BookSpread() {
           <div style={{ width: '36px', height: '1px', background: colors.pageBorder }} />
         </div>
 
-        {/* Share camera — top-right of the spread */}
+        {/* Share camera — top-right of the screen, beside fullscreen + gear.
+            Uses `position: fixed` so it escapes the spread's bounds and sits
+            in the screen corner alongside the existing global controls.
+            Glass chrome matches FullscreenButton/DeskSettingsPanel. */}
         {visibleEntry && (
           <div
-            className="absolute pointer-events-auto"
-            style={{ top: 8, right: 16, zIndex: 30 }}
+            className="fixed top-6 right-36 z-50 w-12 h-12 rounded-full flex items-center justify-center pointer-events-auto"
+            style={{
+              background: theme.glass.bg,
+              backdropFilter: `blur(${theme.glass.blur})`,
+              WebkitBackdropFilter: `blur(${theme.glass.blur})`,
+              border: `1px solid ${theme.glass.border}`,
+            }}
           >
             {ShareCameraButton}
           </div>
