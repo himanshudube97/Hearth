@@ -23,6 +23,8 @@ import { parseStyle } from '@/lib/entry-style'
 import { htmlToSplitPlainText, PAGE_BREAK_MARKER } from '@/lib/text-utils'
 import { deletePhotoBlob } from '@/lib/storage/delete-photo-blob'
 import { useE2EEStore } from '@/store/e2ee'
+import { useShareableCapture } from '@/components/share/ShareableCapture'
+import JournalShareCard from '@/components/share/JournalShareCard'
 
 const HTMLFlipBook = dynamic(() => import('react-pageflip'), { ssr: false })
 
@@ -489,6 +491,12 @@ export default function BookSpread() {
     : null
   const spreadDate = visibleEntry ? new Date(visibleEntry.createdAt) : new Date()
 
+  const { CameraButton: ShareCameraButton, Capture: ShareCapture } = useShareableCapture({
+    cardContent: visibleEntry ? <JournalShareCard entry={visibleEntry as import('@/store/journal').JournalEntry} /> : null,
+    surface: 'diary',
+    date: spreadDate,
+  })
+
   return (
     <div
       ref={diaryRootRef}
@@ -577,6 +585,16 @@ export default function BookSpread() {
           <ThemeOrnament themeName={themeName} color={colors.ribbon} size={20} />
           <div style={{ width: '36px', height: '1px', background: colors.pageBorder }} />
         </div>
+
+        {/* Share camera — top-right of the spread */}
+        {visibleEntry && (
+          <div
+            className="absolute pointer-events-auto"
+            style={{ top: 8, right: 16, zIndex: 30 }}
+          >
+            {ShareCameraButton}
+          </div>
+        )}
 
         {/* Flipbook (only after entries are loaded so startPage is correct).
             Page count is stable across the autosave lifecycle (the active
@@ -720,6 +738,7 @@ export default function BookSpread() {
       </motion.div>
       )}
       </div>
+      {ShareCapture}
     </div>
   )
 }
