@@ -38,6 +38,8 @@ import { useAutosaveScrapbook } from '@/hooks/useAutosaveScrapbook'
 import { useE2EEStore } from '@/store/e2ee'
 import { encryptBytes, encryptString } from '@/lib/e2ee/crypto'
 import { deletePhotoBlob } from '@/lib/storage/delete-photo-blob'
+import { useShareableCapture } from '@/components/share/ShareableCapture'
+import ScrapbookShareCard from '@/components/share/ScrapbookShareCard'
 
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024
 const PHOTO_MAX_WIDTH = 1600
@@ -159,6 +161,12 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
   const [uploadTargetId, setUploadTargetId] = useState<string | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const { CameraButton: ShareCameraButton, Capture: ShareCapture } = useShareableCapture({
+    cardContent: <ScrapbookShareCard items={items} date={new Date()} />,
+    surface: 'scrapbook',
+    date: new Date(),
+  })
 
   // Pressing Esc exits edit mode (still selected) — feels expected from
   // any text editor, and avoids users feeling trapped in a note.
@@ -509,6 +517,13 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
             )
           })}
           </PageSurface>
+
+          <div
+            style={{ position: 'absolute', top: 8, right: 8, zIndex: 50 }}
+            className="pointer-events-auto"
+          >
+            {ShareCameraButton}
+          </div>
         </div>
       </div>
 
@@ -526,6 +541,8 @@ export default function ScrapbookCanvas({ boardId, initialItems }: Props) {
         onChange={onFilePicked}
         style={{ display: 'none' }}
       />
+
+      {ShareCapture}
     </div>
   )
 }
