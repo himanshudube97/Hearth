@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { useThemeStore } from '@/store/theme'
 import { useDeskStore } from '@/store/desk'
 import { getGlassDiaryColors, GlassDiaryColors } from '@/lib/glassDiaryColors'
+import { getSpineDesign } from '@/lib/spineDesigns'
 import LeftPage, { type LeftPageHandle } from './LeftPage'
 import RightPage, { type RightPageHandle } from './RightPage'
 import { RibbonBookmark } from './interactive/RibbonBookmark'
@@ -685,9 +686,9 @@ export default function BookSpread() {
           </HTMLFlipBook>
         )}
 
-        {/* Binding spine: slim kraft band + twine wrap + dated hangtag.
+        {/* Binding spine: theme-specific material strip + accent.
             Rendered as a sibling of HTMLFlipBook so flip animation is untouched. */}
-        <SpineOrnaments colors={colors} />
+        <SpineOrnaments spine={getSpineDesign(themeName)} />
 
         {/* Day-tab index rail on the right edge. Lets the user jump directly
             to any day in the visible month without flipping. */}

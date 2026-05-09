@@ -19,7 +19,6 @@ export interface GlassDiaryColors {
   photoBorder: string
   doodleBorder: string
   doodleBg: string
-  spineGradient: string
   ribbon: string
   saveButton: string
   buttonBg: string
@@ -81,7 +80,6 @@ export function getGlassDiaryColors(theme: Theme): GlassDiaryColors {
     photoBorder: warm(theme, 0.3),
     doodleBorder: warm(theme, 0.2),
     doodleBg: 'rgba(255, 255, 255, 0.03)',
-    spineGradient: `linear-gradient(180deg, ${warm(theme, 0.12)}, ${warm(theme, 0.05)}, ${warm(theme, 0.12)})`,
     ribbon: theme.accent.primary,
     saveButton: theme.accent.warm,
     buttonBg: 'rgba(255, 255, 255, 0.06)',
