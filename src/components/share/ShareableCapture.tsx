@@ -20,14 +20,23 @@ interface UseShareableCaptureOptions {
    * that returns one — the function form is read at click time so it can
    * pull from external state stores (like draft text) without forcing the
    * caller to re-render on every keystroke.
+   *
+   * Mutually exclusive with `captureTarget`.
    */
-  cardContent: React.ReactNode | (() => React.ReactNode)
+  cardContent?: React.ReactNode | (() => React.ReactNode)
+  /**
+   * Direct-DOM capture mode — returns the live element to snapshot. Use
+   * this when off-screen reconstruction is fragile (e.g. the source tree
+   * relies on parent contexts or refs that don't exist outside its real
+   * mount point). Mutually exclusive with `cardContent`.
+   */
+  captureTarget?: () => HTMLElement | null
   surface: ShareSurface
   /** Date used for filename + (if shown) the frame footer. */
   date: Date
 }
 
-export function useShareableCapture({ cardContent, surface, date }: UseShareableCaptureOptions) {
+export function useShareableCapture({ cardContent, captureTarget, surface, date }: UseShareableCaptureOptions) {
   const { theme } = useThemeStore()
   const [phase, setPhase] = useState<Phase>('closed')
   const [butterflyHue, setButterflyHue] = useState(0)
@@ -64,12 +73,24 @@ export function useShareableCapture({ cardContent, surface, date }: UseShareable
   }, [imageUrl])
 
   const open = useCallback(async () => {
-    // Resolve the lazy form (if any) so we read fresh state at click-time
-    // rather than at the parent's render-time.
-    const card = typeof cardContent === 'function' ? cardContent() : cardContent
-    if (!card) {
-      console.warn('[share] no cardContent — nothing to capture')
-      return
+    // Resolve the capture source. Two modes:
+    //   - captureTarget: snapshot a live DOM element directly
+    //   - cardContent:   render an off-screen ReactNode and snapshot that
+    let liveTarget: HTMLElement | null = null
+    let card: React.ReactNode = null
+
+    if (captureTarget) {
+      liveTarget = captureTarget()
+      if (!liveTarget) {
+        console.warn('[share] captureTarget returned null — nothing to capture')
+        return
+      }
+    } else {
+      card = typeof cardContent === 'function' ? cardContent() : cardContent
+      if (!card) {
+        console.warn('[share] no cardContent — nothing to capture')
+        return
+      }
     }
 
     setResolvedCard(card)
@@ -84,20 +105,21 @@ export function useShareableCapture({ cardContent, surface, date }: UseShareable
     // inside the element, so we don't need a long fixed timeout here.
     await new Promise((r) => setTimeout(r, 80))
 
-    if (!offscreenRef.current) {
-      console.error('[share] offscreenRef not mounted after settle')
+    const target = liveTarget ?? offscreenRef.current
+    if (!target) {
+      console.error('[share] capture target not available after settle')
       setCaptureError(true)
       return
     }
 
-    const blob = await captureToBlob(offscreenRef.current)
+    const blob = await captureToBlob(target)
     if (!blob) {
       setCaptureError(true)
       return
     }
     setImageBlob(blob)
     setImageUrl(URL.createObjectURL(blob))
-  }, [cardContent])
+  }, [cardContent, captureTarget])
 
   const close = useCallback(() => {
     setPhase('closed')

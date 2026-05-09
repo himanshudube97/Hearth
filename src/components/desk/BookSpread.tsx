@@ -24,7 +24,6 @@ import { htmlToSplitPlainText, PAGE_BREAK_MARKER } from '@/lib/text-utils'
 import { deletePhotoBlob } from '@/lib/storage/delete-photo-blob'
 import { useE2EEStore } from '@/store/e2ee'
 import { useShareableCapture } from '@/components/share/ShareableCapture'
-import JournalShareCard from '@/components/share/JournalShareCard'
 
 const HTMLFlipBook = dynamic(() => import('react-pageflip'), { ssr: false })
 
@@ -118,6 +117,7 @@ export default function BookSpread() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flipBookRef = useRef<any>(null)
   const diaryRootRef = useRef<HTMLDivElement>(null)
+  const spreadCaptureRef = useRef<HTMLDivElement>(null)
 
   const autosave = useAutosaveEntry()
   const autosaveRef = useRef(autosave)
@@ -491,57 +491,13 @@ export default function BookSpread() {
     : null
   const spreadDate = visibleEntry ? new Date(visibleEntry.createdAt) : new Date()
 
-  // Share-capture target: lazy resolution at click-time so we can read the
-  // current draft from the desk store without subscribing to it (which
-  // would re-render BookSpread on every keystroke and tear down the
-  // flipbook). Three cases, in priority order:
-  //   1. The spread is showing a saved entry (visibleEntry).
-  //   2. The new-entry spread has been autosaved → use that saved entry.
-  //   3. The new-entry spread has live draft text/photos but no save yet
-  //      → synthesize a JournalEntry from the desk store + pendingPhotos.
-  const resolveShareCardContent = (): React.ReactNode => {
-    const JE = (e: unknown) => e as import('@/store/journal').JournalEntry
-
-    if (visibleEntry) {
-      return <JournalShareCard entry={JE(visibleEntry)} />
-    }
-
-    const savedDraft = autosave.entryId
-      ? entries.find((e) => e.id === autosave.entryId)
-      : null
-    if (savedDraft) {
-      return <JournalShareCard entry={JE(savedDraft)} />
-    }
-
-    const desk = useDeskStore.getState()
-    const text = combineDraftHtml(desk.leftPageDraft, desk.rightPageDraft)
-    const livePhotos = pendingPhotosRef.current
-    const hasContent = desk.leftPageDraft.trim().length > 0
-      || desk.rightPageDraft.trim().length > 0
-      || livePhotos.length > 0
-    if (!hasContent) return null
-
-    const synthetic = {
-      id: autosave.entryId ?? 'draft',
-      text,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      tags: [],
-      doodles: [],
-      photos: livePhotos.map((p) => ({
-        id: p.id,
-        url: p.url,
-        rotation: p.rotation,
-        position: p.position,
-        spread: 0,
-      })),
-      style: desk.entryStyleDraft,
-    }
-    return <JournalShareCard entry={JE(synthetic)} />
-  }
-
+  // Share-capture: snapshot the live spread DOM directly. Off-screen
+  // synthesis was fragile here because LeftPage/RightPage rely on parent
+  // contexts (flipbook, desk refs) that don't exist outside their real
+  // mount point — they silently render null off-screen. Capturing the
+  // live element is also literally what the user is looking at.
   const { CameraButton: ShareCameraButton, Capture: ShareCapture } = useShareableCapture({
-    cardContent: resolveShareCardContent,
+    captureTarget: () => spreadCaptureRef.current,
     surface: 'diary',
     date: spreadDate,
   })
@@ -586,6 +542,7 @@ export default function BookSpread() {
           in alone before the pages. */}
       {!loading && (
       <motion.div
+        ref={spreadCaptureRef}
         className="relative"
         style={{
           width: `${PAGE_WIDTH * 2}px`,
