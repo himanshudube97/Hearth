@@ -18,6 +18,12 @@ export function RecoveryKeyStep({
     setRecoveryKey(generateRecoveryKey())
   }, [])
 
+  useEffect(() => {
+    if (!copied) return
+    const t = setTimeout(() => setCopied(false), 2000)
+    return () => clearTimeout(t)
+  }, [copied])
+
   if (!recoveryKey) return <p>Generating your recovery key...</p>
 
   return (
@@ -38,7 +44,6 @@ export function RecoveryKeyStep({
           onClick={() => {
             navigator.clipboard.writeText(recoveryKey)
             setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
           }}
           className="px-4 py-2 border border-[#3d342a]/30 rounded-full text-sm"
         >
