@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { generateRecoveryKey } from '@/lib/e2ee/crypto'
+import { useThemeStore } from '@/store/theme'
 
 export function RecoveryKeyStep({
-  passphrase,
   onComplete,
 }: {
   passphrase: string
   onComplete: (rk: string) => void
 }) {
+  const { theme } = useThemeStore()
   const [recoveryKey, setRecoveryKey] = useState<string | null>(null)
   const [acknowledged, setAcknowledged] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -24,18 +25,32 @@ export function RecoveryKeyStep({
     return () => clearTimeout(t)
   }, [copied])
 
-  if (!recoveryKey) return <p>Generating your recovery key...</p>
+  if (!recoveryKey) {
+    return (
+      <p style={{ color: theme.text.secondary }}>Generating your recovery key...</p>
+    )
+  }
 
   return (
     <div>
       <h2 className="font-serif text-2xl mb-3">Save your recovery key.</h2>
-      <p className="text-sm opacity-70 mb-6 leading-relaxed">
+      <p
+        className="text-sm mb-6 leading-relaxed"
+        style={{ color: theme.text.secondary }}
+      >
         This is your only way back in if you ever forget your phrase. Save
         it somewhere safe — a password manager, a printed copy, an email to
         yourself. We don&apos;t keep a copy.
       </p>
 
-      <div className="font-mono text-lg p-6 bg-white border border-[#3d342a]/20 rounded-lg mb-4 break-all select-all">
+      <div
+        className="font-mono text-lg p-6 border rounded-lg mb-4 break-all select-all"
+        style={{
+          background: theme.glass.bg,
+          borderColor: `${theme.text.primary}33`,
+          color: theme.text.primary,
+        }}
+      >
         {recoveryKey}
       </div>
 
@@ -45,24 +60,36 @@ export function RecoveryKeyStep({
             navigator.clipboard.writeText(recoveryKey)
             setCopied(true)
           }}
-          className="px-4 py-2 border border-[#3d342a]/30 rounded-full text-sm"
+          className="px-4 py-2 border rounded-full text-sm transition-opacity hover:opacity-80"
+          style={{
+            borderColor: `${theme.text.primary}4d`,
+            color: theme.text.primary,
+          }}
         >
           {copied ? 'Copied' : 'Copy to clipboard'}
         </button>
         <button
           onClick={() => downloadRecoveryKey(recoveryKey)}
-          className="px-4 py-2 border border-[#3d342a]/30 rounded-full text-sm"
+          className="px-4 py-2 border rounded-full text-sm transition-opacity hover:opacity-80"
+          style={{
+            borderColor: `${theme.text.primary}4d`,
+            color: theme.text.primary,
+          }}
         >
           Download as .txt
         </button>
       </div>
 
-      <label className="flex items-start gap-3 mb-6 cursor-pointer">
+      <label
+        className="flex items-start gap-3 mb-6 cursor-pointer"
+        style={{ color: theme.text.secondary }}
+      >
         <input
           type="checkbox"
           checked={acknowledged}
           onChange={(e) => setAcknowledged(e.target.checked)}
           className="mt-1"
+          style={{ accentColor: theme.accent.primary }}
         />
         <span className="text-sm leading-relaxed">
           I&apos;ve saved my recovery key somewhere I can find it again. I
@@ -74,7 +101,11 @@ export function RecoveryKeyStep({
       <button
         disabled={!acknowledged}
         onClick={() => onComplete(recoveryKey)}
-        className="px-6 py-3 bg-[#3d342a] text-[#f6efe2] rounded-full disabled:opacity-30"
+        className="px-6 py-3 rounded-full disabled:opacity-30 transition-opacity hover:opacity-90 disabled:hover:opacity-30"
+        style={{
+          background: theme.text.primary,
+          color: theme.bg.primary,
+        }}
       >
         I&apos;ve saved it — continue
       </button>

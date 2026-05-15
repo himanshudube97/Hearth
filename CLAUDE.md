@@ -150,6 +150,14 @@ Time-delayed letters to self or friends:
 - Particle effects (snow, fireflies, sakura, rain, stars, etc.)
 - Theme-specific "whispers" (writing prompts)
 
+**New pages must integrate with the active theme — never paint over it.** Every new route inherits the user's selected theme through three coordinated pieces, and skipping any of them is a recurring source of UI bugs (nav chrome bleeding through, hardcoded cream/brown panels that ignore the user's chosen palette, scrollbars caused by stacked backgrounds):
+
+1. **`LayoutContent` (`src/components/LayoutContent.tsx`)** is the gatekeeper for page chrome (Navigation, Background, padding, fullscreen + gear icons). It branches on `pathname`. Any new route that needs special chrome — typically a full-bleed scene with no nav (`/onboarding`, `/letter/[token]`, future cinematic screens) — MUST be added as an explicit case here. Don't rely on the page's own `layout.tsx` to fight the global chrome.
+2. **Background + theme bg colour**. The `Background` component renders the theme's particles. The body background colour is set globally by `LayoutContent`'s `useEffect` from `useThemeStore().theme.bg.primary`. New routes either render `<Background />` (preferred — particles match the theme) or rely on body bg alone (no particles). They should NEVER set their own `bg-[#xxxxxx]` on a wrapping div — that hides the theme.
+3. **Theme-aware text/border colours via `useThemeStore`**. Tailwind arbitrary values like `text-[#3d342a]` are baked at build time and ignore the runtime theme. For any colour that needs to follow the theme, read it from `useThemeStore` in a client component and apply via inline style (`style={{ color: theme.text.primary }}`). Static brand colours (the dark button on the landing CTA, etc.) can stay as Tailwind literals — those are intentional brand constants, not user-themed UI.
+
+When you create a new route, the mental checklist is: *Does this need the nav bar? Does the background need to match the theme? Will my text/borders still look right on every theme (rivendell dark, rose light, sunset, etc.)?* Walk through `LayoutContent` first, then style your components against `useThemeStore`.
+
 ### Component Patterns
 - `Background.tsx`: Renders theme-specific particles/effects
 - `Editor.tsx`: TipTap editor with song embed and doodle support

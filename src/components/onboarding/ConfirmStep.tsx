@@ -11,6 +11,7 @@ import {
   hashRecoveryKey,
 } from '@/lib/e2ee/crypto'
 import { useE2EEStore } from '@/store/e2ee'
+import { useThemeStore } from '@/store/theme'
 
 export function ConfirmStep({
   passphrase,
@@ -21,6 +22,7 @@ export function ConfirmStep({
   recoveryKey: string
   onComplete: () => void
 }) {
+  const { theme } = useThemeStore()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -89,14 +91,23 @@ export function ConfirmStep({
   return (
     <div>
       <h2 className="font-serif text-2xl mb-3">One last check.</h2>
-      <p className="mb-6 leading-relaxed">
+      <p
+        className="mb-6 leading-relaxed"
+        style={{ color: theme.text.secondary }}
+      >
         You&apos;re about to encrypt your account with the phrase you just set.
         From now on, you&apos;ll type that phrase once a day to unlock your
         diary. Ready?
       </p>
 
       {error && (
-        <p className="text-sm text-red-700 mb-4 p-3 bg-red-50 rounded">
+        <p
+          className="text-sm mb-4 p-3 rounded"
+          style={{
+            background: `${theme.accent.warm}22`,
+            color: theme.accent.warm,
+          }}
+        >
           {error}
         </p>
       )}
@@ -104,7 +115,11 @@ export function ConfirmStep({
       <button
         disabled={busy}
         onClick={finalize}
-        className="px-6 py-3 bg-[#3d342a] text-[#f6efe2] rounded-full disabled:opacity-30"
+        className="px-6 py-3 rounded-full disabled:opacity-30 transition-opacity hover:opacity-90 disabled:hover:opacity-30"
+        style={{
+          background: theme.text.primary,
+          color: theme.bg.primary,
+        }}
       >
         {busy ? 'Setting up...' : 'Lock it in'}
       </button>

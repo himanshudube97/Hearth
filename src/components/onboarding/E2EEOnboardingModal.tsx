@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useThemeStore } from '@/store/theme'
 import { PassphraseStep } from './PassphraseStep'
 import { RecoveryKeyStep } from './RecoveryKeyStep'
 import { ConfirmStep } from './ConfirmStep'
@@ -9,12 +10,16 @@ import { ConfirmStep } from './ConfirmStep'
 type Step = 'intro' | 'passphrase' | 'recovery' | 'confirm'
 
 export function E2EEOnboardingModal({ userName }: { userName: string }) {
+  const { theme } = useThemeStore()
   const [step, setStep] = useState<Step>('intro')
   const [passphrase, setPassphrase] = useState('')
   const [recoveryKey, setRecoveryKey] = useState('')
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
+    <div
+      className="relative z-10 min-h-screen flex items-center justify-center p-6"
+      style={{ color: theme.text.primary }}
+    >
       <div className="max-w-xl w-full">
         <AnimatePresence mode="wait">
           {step === 'intro' && (
@@ -35,14 +40,21 @@ export function E2EEOnboardingModal({ userName }: { userName: string }) {
                 photos — should only be readable by you. Even we can&apos;t
                 see it. This is how we promise that.
               </p>
-              <p className="mb-6 text-sm opacity-70">
+              <p
+                className="mb-6 text-sm leading-relaxed"
+                style={{ color: theme.text.secondary }}
+              >
                 It takes about a minute. You&apos;ll set a memorable phrase
                 (like a UPI PIN you type once a day), and we&apos;ll give you
                 a recovery key in case you ever forget.
               </p>
               <button
                 onClick={() => setStep('passphrase')}
-                className="px-6 py-3 bg-[#3d342a] text-[#f6efe2] rounded-full"
+                className="px-6 py-3 rounded-full transition-opacity hover:opacity-90"
+                style={{
+                  background: theme.text.primary,
+                  color: theme.bg.primary,
+                }}
               >
                 Let&apos;s set it up
               </button>
