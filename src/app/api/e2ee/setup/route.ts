@@ -63,7 +63,15 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ success: true })
+    const response = NextResponse.json({ success: true })
+    response.cookies.set('hearth-e2ee-onboarded', '1', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+    })
+    return response
   } catch (error) {
     console.error('Error setting up E2EE:', error)
     return NextResponse.json(

@@ -3,6 +3,16 @@ import { prisma } from '@/lib/db'
 import { isDevAuth, AUTH_COOKIE_NAME } from '@/lib/auth/config'
 import { createDevToken } from '@/lib/auth/dev-auth'
 import { createClient } from '@/lib/auth/supabase/server'
+import { hasCompletedE2EEOnboarding } from '@/lib/auth'
+
+const E2EE_ONBOARDED_COOKIE = 'hearth-e2ee-onboarded'
+const E2EE_COOKIE_OPTS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  path: '/',
+  maxAge: 60 * 60 * 24 * 365,
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
@@ -29,11 +39,33 @@ async function handleDevLogin(email: string, redirectTo?: string) {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 })
   }
 
-  let user = await prisma.user.findUnique({ where: { email } })
+  let user = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      avatar: true,
+      provider: true,
+      e2eeEnabled: true,
+      encryptedMasterKey: true,
+      recoveryKeyHash: true,
+    },
+  })
 
   if (!user) {
     user = await prisma.user.create({
       data: { email, name: email.split('@')[0], provider: 'dev' },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        provider: true,
+        e2eeEnabled: true,
+        encryptedMasterKey: true,
+        recoveryKeyHash: true,
+      },
     })
   }
 
@@ -56,6 +88,14 @@ async function handleDevLogin(email: string, redirectTo?: string) {
     maxAge: 60 * 60 * 24 * 7,
     path: '/',
   })
+
+  // Sync E2EE onboarding status into a hint cookie so middleware can gate
+  // /onboarding without a Prisma call.
+  if (hasCompletedE2EEOnboarding(user)) {
+    response.cookies.set(E2EE_ONBOARDED_COOKIE, '1', E2EE_COOKIE_OPTS)
+  } else {
+    response.cookies.delete(E2EE_ONBOARDED_COOKIE)
+  }
 
   return response
 }
