@@ -10,6 +10,13 @@ export default async function OnboardingPage() {
   // Fetch full user record from Prisma to get E2EE fields
   const user = await prisma.user.findUnique({
     where: { id: authUser.id },
+    select: {
+      id: true,
+      name: true,
+      e2eeEnabled: true,
+      encryptedMasterKey: true,
+      recoveryKeyHash: true,
+    },
   })
 
   if (!user) redirect('/login')
