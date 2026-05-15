@@ -2,15 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth/supabase/server'
 import { prisma } from '@/lib/db'
 import { hasCompletedE2EEOnboarding } from '@/lib/auth'
-
-const E2EE_ONBOARDED_COOKIE = 'hearth-e2ee-onboarded'
-const E2EE_COOKIE_OPTS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-  maxAge: 60 * 60 * 24 * 365,
-}
+import { E2EE_ONBOARDED_COOKIE, E2EE_COOKIE_OPTS } from '@/lib/auth/e2ee-cookie'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl

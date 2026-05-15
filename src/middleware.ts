@@ -17,6 +17,8 @@ const PUBLIC_PATHS = [
 ]
 const PUBLIC_EXACT_PATHS = ['/', '/pricing', '/forgot', '/reset', '/verify', '/download']
 
+// Must stay in sync with E2EE_ONBOARDED_COOKIE in src/lib/auth/e2ee-cookie.ts.
+// Kept local here so middleware stays safe on the edge runtime.
 const E2EE_ONBOARDED_COOKIE = 'hearth-e2ee-onboarded'
 const STATIC_PATHS = ['/_next', '/favicon.ico', '/images', '/icons', '/manifest.json', '/sw.js', '/workbox']
 

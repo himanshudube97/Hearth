@@ -4,15 +4,7 @@ import { isDevAuth, AUTH_COOKIE_NAME } from '@/lib/auth/config'
 import { createDevToken } from '@/lib/auth/dev-auth'
 import { createClient } from '@/lib/auth/supabase/server'
 import { hasCompletedE2EEOnboarding } from '@/lib/auth'
-
-const E2EE_ONBOARDED_COOKIE = 'hearth-e2ee-onboarded'
-const E2EE_COOKIE_OPTS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-  maxAge: 60 * 60 * 24 * 365,
-}
+import { E2EE_ONBOARDED_COOKIE, E2EE_COOKIE_OPTS } from '@/lib/auth/e2ee-cookie'
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
@@ -112,22 +104,37 @@ async function handleEmailLogin(email: string, password: string, redirectTo?: st
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
-  // Sync user to our DB
+  // Sync user to our DB and fetch E2EE fields
+  let dbUser: { e2eeEnabled: boolean; encryptedMasterKey: string | null; recoveryKeyHash: string | null } | null = null
   if (data.user?.email) {
-    const existingUser = await prisma.user.findUnique({ where: { email: data.user.email } })
-    if (!existingUser) {
-      await prisma.user.create({
+    dbUser = await prisma.user.findUnique({
+      where: { email: data.user.email },
+      select: { e2eeEnabled: true, encryptedMasterKey: true, recoveryKeyHash: true },
+    })
+    if (!dbUser) {
+      dbUser = await prisma.user.create({
         data: {
           email: data.user.email,
           name: data.user.user_metadata?.full_name || data.user.email.split('@')[0],
           avatar: data.user.user_metadata?.avatar_url || null,
           provider: 'email',
         },
+        select: { e2eeEnabled: true, encryptedMasterKey: true, recoveryKeyHash: true },
       })
     }
   }
 
-  return NextResponse.json({ success: true, redirectTo: redirectTo || '/write' })
+  const response = NextResponse.json({ success: true, redirectTo: redirectTo || '/write' })
+
+  // Sync E2EE onboarding status into a hint cookie so middleware can gate
+  // /onboarding without a Prisma call.
+  if (dbUser && hasCompletedE2EEOnboarding(dbUser)) {
+    response.cookies.set(E2EE_ONBOARDED_COOKIE, '1', E2EE_COOKIE_OPTS)
+  } else {
+    response.cookies.delete(E2EE_ONBOARDED_COOKIE)
+  }
+
+  return response
 }
 
 async function handleEmailSignup(email: string, password: string) {
@@ -171,22 +178,37 @@ async function handleVerifyOtp(email: string, token: string, redirectTo?: string
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
-  // Create user in our DB on first verify
+  // Create user in our DB on first verify and fetch E2EE fields
+  let dbUser: { e2eeEnabled: boolean; encryptedMasterKey: string | null; recoveryKeyHash: string | null } | null = null
   if (data.user?.email) {
-    const existingUser = await prisma.user.findUnique({ where: { email: data.user.email } })
-    if (!existingUser) {
-      await prisma.user.create({
+    dbUser = await prisma.user.findUnique({
+      where: { email: data.user.email },
+      select: { e2eeEnabled: true, encryptedMasterKey: true, recoveryKeyHash: true },
+    })
+    if (!dbUser) {
+      dbUser = await prisma.user.create({
         data: {
           email: data.user.email,
           name: data.user.user_metadata?.full_name || data.user.email.split('@')[0],
           avatar: data.user.user_metadata?.avatar_url || null,
           provider: 'email',
         },
+        select: { e2eeEnabled: true, encryptedMasterKey: true, recoveryKeyHash: true },
       })
     }
   }
 
-  return NextResponse.json({ success: true, redirectTo: redirectTo || '/write' })
+  const response = NextResponse.json({ success: true, redirectTo: redirectTo || '/write' })
+
+  // Sync E2EE onboarding status into a hint cookie so middleware can gate
+  // /onboarding without a Prisma call.
+  if (dbUser && hasCompletedE2EEOnboarding(dbUser)) {
+    response.cookies.set(E2EE_ONBOARDED_COOKIE, '1', E2EE_COOKIE_OPTS)
+  } else {
+    response.cookies.delete(E2EE_ONBOARDED_COOKIE)
+  }
+
+  return response
 }
 
 async function handleGoogleLogin(redirectTo?: string) {
